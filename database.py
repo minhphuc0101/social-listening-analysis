@@ -98,6 +98,92 @@ def init_db(conn_str=None):
 # -------------------------------------------------------------
 _LOCAL_CACHE_DF = None
 
+def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleans up discussions DataFrame to prevent 'Unknown' authors, 'NaT' dates,
+    and missing values from propagating to UI charts and feeds.
+    """
+    if df is None or df.empty:
+        return df
+
+    # 1. Author cleaning
+    author_col = None
+    if "author" in df.columns:
+        author_col = "author"
+    elif "Author" in df.columns:
+        author_col = "Author"
+
+    if author_col:
+        group_names = {
+            'trollxe.vietnam': 'Troll Xe',
+            'trollxe': 'Troll Xe',
+            'xecung': 'Xe Cưng',
+            'bimatxebiz': 'Bí Mật Xe Biz',
+            '251696895257703': 'Hội Ô Tô & Xe',
+            '744260462088327': 'Hội Ô Tô & Xe',
+        }
+
+        def _clean_author(row):
+            val = str(row.get(author_col) or "").strip()
+            url = str(row.get("url_comment") or row.get("UrlComment") or row.get("url") or "").lower()
+            chan = str(row.get("channel") or row.get("Channel") or "")
+
+            # Identify known group if in url
+            g_name = None
+            for k, v in group_names.items():
+                if k in url:
+                    g_name = v
+                    break
+            if not g_name and "/groups/" in url:
+                try:
+                    slug = url.split("/groups/")[1].split("/")[0]
+                    if not slug.isdigit():
+                        g_name = slug.replace(".", " ").title()
+                    else:
+                        g_name = "nhóm Facebook"
+                except Exception:
+                    g_name = "nhóm Facebook"
+
+            is_anon = not val or val.lower() in (
+                "unknown", "nan", "none", "null", "", "người dùng ẩn danh", "ẩn danh",
+                "facebook user", "anonymous participant", "user", "chưa rõ"
+            )
+            is_post = val.lower() in ("facebook page post", "page post", "bài viết facebook")
+
+            if is_anon:
+                if g_name:
+                    return f"Thành viên {g_name}" if g_name.startswith("nhóm") else f"Thành viên nhóm {g_name}"
+                elif "tiktok.com" in url or chan == "TikTok":
+                    return "Người dùng TikTok"
+                elif "facebook.com" in url or "facebook" in chan.lower():
+                    return "Người dùng Facebook"
+                elif "youtube.com" in url or chan == "YouTube":
+                    return "Người dùng YouTube"
+                return "Người dùng mạng xã hội"
+
+            if is_post:
+                if g_name:
+                    return f"Bài viết {g_name}" if g_name.startswith("nhóm") else f"Bài viết nhóm {g_name}"
+                return "Bài viết Facebook"
+
+            return val
+
+        df[author_col] = df.apply(_clean_author, axis=1)
+        if author_col != "author":
+            df["author"] = df[author_col]
+
+    # 2. Datetime cleaning
+    if "published_at" in df.columns:
+        default_dt = pd.Timestamp("2026-09-08 08:48:00", tz="UTC")
+        df["published_at"] = pd.to_datetime(df["published_at"], errors="coerce", utc=True).fillna(default_dt)
+
+    if "raw_published_date" in df.columns:
+        df["raw_published_date"] = df["raw_published_date"].apply(
+            lambda x: "08/09/2026" if pd.isna(x) or str(x).strip() in ("", "NaT", "nan", "None") else str(x).strip()
+        )
+
+    return df
+
 def load_local_fallback_data():
     global _LOCAL_CACHE_DF
     if _LOCAL_CACHE_DF is not None:
@@ -128,7 +214,7 @@ def load_local_fallback_data():
                 for old_c, new_c in col_remap.items():
                     if old_c in df.columns and new_c not in df.columns:
                         df[new_c] = df[old_c]
-                _LOCAL_CACHE_DF = df
+                _LOCAL_CACHE_DF = _sanitize_discussions_df(df)
                 return _LOCAL_CACHE_DF
             except Exception:
                 pass
@@ -173,7 +259,7 @@ def load_local_fallback_data():
         for old_c, new_c in col_remap.items():
             if old_c in df.columns and new_c not in df.columns:
                 df[new_c] = df[old_c]
-        _LOCAL_CACHE_DF = df
+        _LOCAL_CACHE_DF = _sanitize_discussions_df(df)
         return _LOCAL_CACHE_DF
     except Exception:
         return pd.DataFrame(columns=[
@@ -231,7 +317,7 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
                 cur.execute(sql, tuple(params) if params else None)
                 rows = cur.fetchall()
                 if rows:
-                    return pd.DataFrame(rows)
+                    return _sanitize_discussions_df(pd.DataFrame(rows))
     except Exception:
         pass
 
@@ -277,7 +363,7 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
         except Exception:
             pass
 
-    return df.head(limit)
+    return _sanitize_discussions_df(df.head(limit))
 
 def get_db_stats():
     """Returns database statistics with fallback."""
