@@ -407,8 +407,7 @@ if nav_page == "Tổng quan thảo luận":
                 paper_bgcolor='#FFFFFF',
                 height=450,
                 margin=dict(t=10, b=20, l=150, r=40),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(showgrid=False, maxnorm='percent', range=[0, 100]),
+                xaxis=dict(showgrid=False, range=[0, 100]),
                 yaxis=dict(tickfont=dict(size=11))
             )
             st.plotly_chart(fig_topics, use_container_width=True)
