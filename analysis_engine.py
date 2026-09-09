@@ -3,18 +3,12 @@ import datetime
 from datetime import timezone, timedelta
 import dateutil.parser
 
-# Reference crawl base time (Vietnam timezone UTC+7)
 VN_TZ = timezone(timedelta(hours=7))
 
 # -------------------------------------------------------------
 # 1. TIMESTAMP NORMALIZATION
 # -------------------------------------------------------------
 def parse_timestamp(raw_date, reference_time=None):
-    """
-    Normalizes varied timestamp formats from Facebook/TikTok into UTC datetime.
-    Handles relative offsets ('2h', '1d', '30m', 'Just now'), localized English dates,
-    and ISO strings.
-    """
     if not raw_date or str(raw_date).strip().lower() in ['nan', 'none', '']:
         return None
         
@@ -24,12 +18,10 @@ def parse_timestamp(raw_date, reference_time=None):
     elif reference_time.tzinfo is None:
         reference_time = reference_time.replace(tzinfo=timezone.utc)
 
-    # 1. Check relative formats
     lower = raw_str.lower()
     if lower in ['just now', 'vừa xong', 'mới xong']:
         return reference_time
         
-    # Match patterns like '2h', '12h', '1d', '3d', '45m', '10s', '1w'
     rel_match = re.match(r'^(\d+)\s*([smhdw])$', lower)
     if rel_match:
         val = int(rel_match.group(1))
@@ -45,21 +37,18 @@ def parse_timestamp(raw_date, reference_time=None):
         elif unit == 'w':
             return reference_time - timedelta(weeks=val)
 
-    # 2. Check Facebook format: 'Tuesday, September 8, 2026 at 11:25 AM'
-    clean_fb_date = re.sub(r'^[A-Za-z]+,\s*', '', raw_str) # strip weekday
+    clean_fb_date = re.sub(r'^[A-Za-z]+,\s*', '', raw_str)
     clean_fb_date = clean_fb_date.replace(' at ', ' ')
-    clean_fb_date = clean_fb_date.replace('\u202f', ' ') # replace non-breaking spaces
+    clean_fb_date = clean_fb_date.replace('\u202f', ' ')
     
     try:
         dt = dateutil.parser.parse(clean_fb_date)
         if dt.tzinfo is None:
-            # Assume local Vietnam time (UTC+7)
             dt = dt.replace(tzinfo=VN_TZ).astimezone(timezone.utc)
         return dt
     except Exception:
         pass
 
-    # 3. Standard fallback parser
     try:
         dt = dateutil.parser.parse(raw_str)
         if dt.tzinfo is None:
@@ -69,15 +58,88 @@ def parse_timestamp(raw_date, reference_time=None):
         return None
 
 # -------------------------------------------------------------
-# 2. AUTOMOTIVE TAXONOMY & TOPIC CLASSIFICATION
+# 2. AUTOMOTIVE TAXONOMY - EXACT 3-PILLAR STRUCTURE (MATCHING DASHBOARD)
 # -------------------------------------------------------------
+HIERARCHICAL_TOPICS = {
+    "Thương hiệu": {
+        "Hoạt động truyền thông": [
+            r"truyền thông", r"quảng cáo", r"poster", r"video", r"livestream", r"phỏng vấn",
+            r"bài viết", r"trollxe", r"autodaily", r"autopro", r"xehay", r"bimatxebiz", r"fanpage"
+        ],
+        "Hệ thống phân phối": [
+            r"đại lý", r"showroom", r"phân phối", r"giao xe", r"nhận xe", r"đặt cọc", r"cọc", r"sale"
+        ],
+        "Độ phủ chung": [
+            r"thương hiệu", r"hãng xe", r"độ phủ", r"phổ biến", r"nổi tiếng", r"uy tín", r"tên tuổi"
+        ],
+        "Tình hình kinh doanh": [
+            r"doanh số", r"bán chạy", r"thị phần", r"kinh doanh", r"báo cáo", r"tỷ phú", r"doanh thu", r"lãi"
+        ],
+        "Khởi kiện / Thu hồi": [
+            r"thu hồi", r"triệu hồi", r"khởi kiện", r"kiện", r"phốt", r"bồi thường", r"lỗi hàng loạt"
+        ],
+        "Sự kiện": [
+            r"sự kiện", r"triển lãm", r"ra mắt", r"ra mắt xe", r"trải nghiệm", r"lái thử", r"test drive"
+        ],
+        "Pháp lý": [
+            r"pháp lý", r"đăng kiểm", r"rớt đăng kiểm", r"thầy cụt", r"biển số", r"phạt nguội", r"thủ tục"
+        ]
+    },
+    "Sản phẩm": {
+        "Thông tin sản phẩm": [
+            r"thông tin", r"ra mắt", r"thế hệ mới", r"bản mới", r"facelift", r"phiên bản", r"option"
+        ],
+        "Khả năng vận hành": [
+            r"vận hành", r"động cơ", r"máy", r"turbo", r"twin turbo", r"công suất", r"mã lực",
+            r"hộp số", r"tăng tốc", r"leo dốc", r"cảm giác lái", r"đầm", r"bốc", r"khung gầm", r"trâu bò"
+        ],
+        "Công nghệ": [
+            r"công nghệ", r"pin", r"catl", r"byd", r"quản lý nhiệt", r"adas", r"màn hình", r"tự lái", r"phần mềm"
+        ],
+        "Ngoại thất": [
+            r"ngoại thất", r"thiết kế", r"dáng", r"đẹp", r"mâm", r"đèn", r"calang", r"màu sơn", r"body", r"form"
+        ],
+        "Tính năng an toàn": [
+            r"an toàn", r"phanh", r"túi khí", r"cảnh báo", r"cảm biến", r"camera", r"va chạm", r"chống lật"
+        ],
+        "Nội thất & Không gian": [
+            r"nội thất", r"ghế", r"7 chỗ", r"5 chỗ", r"khoang", r"rộng", r"hẹp", r"da nappa", r"thảm", r"cốp"
+        ],
+        "Đánh giá sản phẩm": [
+            r"đánh giá", r"review", r"trải nghiệm", r"khen", r"chê", r"nhược điểm", r"ưu điểm", r"chất lượng"
+        ],
+        "Tiêu thụ năng lượng": [
+            r"tiêu thụ", r"hao xăng", r"ăn xăng", r"tiết kiệm", r"pin sụt", r"quãng đường", r"sạc"
+        ],
+        "So sánh với đối thủ": [
+            r"so sánh", r"đối thủ", r"hơn", r"kém", r"hạng b", r"hạng c", r"phân vân", r"cân nhắc", r"chọn con"
+        ]
+    },
+    "Dịch vụ": {
+        "Sửa chữa & Bảo hành": [
+            r"sửa chữa", r"bảo dưỡng", r"bảo hành", r"gara", r"xưởng", r"phụ tùng", r"thay thế", r"bảo hiểm"
+        ],
+        "Chính sách bán hàng": [
+            r"chính sách", r"trả góp", r"vay", r"ngân hàng", r"hợp đồng", r"ký hợp đồng"
+        ],
+        "Chăm sóc khách hàng": [
+            r"chăm sóc", r"cskh", r"tư vấn", r"hỗ trợ", r"nhiệt tình", r"thái độ"
+        ],
+        "Trải nghiệm khách hàng": [
+            r"trải nghiệm", r"hài lòng", r"thất vọng", r"tệ", r"tuyệt vời", r"bất tiện"
+        ],
+        "Giá / Khuyến mãi": [
+            r"giá", r"khuyến mãi", r"ưu đãi", r"giảm giá", r"lăn bánh", r"trước bạ", r"củ", r"tỏi", r"triệu"
+        ]
+    }
+}
+
 CAR_MODELS = {
     "Mitsubishi Xforce": [r"\bxforce\b", r"\bx-force\b"],
     "Mitsubishi Pajero Sport": [r"\bpajero\b", r"\bpajero\s*sport\b", r"\bps\b"],
     "Mitsubishi Destinator": [r"\bdestinator\b", r"\bdst\b"],
     "Mitsubishi Xpander": [r"\bxpander\b", r"\bxpander\s*cross\b"],
     "Mitsubishi Outlander": [r"\boutlander\b"],
-    "Mitsubishi Triton": [r"\btriton\b"],
     "VinFast VF6": [r"\bvf6\b", r"\bvf\s*6\b"],
     "VinFast VF3": [r"\bvf3\b", r"\bvf\s*3\b"],
     "VinFast VF7": [r"\bvf7\b", r"\bvf\s*7\b"],
@@ -86,65 +148,26 @@ CAR_MODELS = {
     "Toyota Yaris Cross": [r"\byaris\s*cross\b", r"\byaris\b"],
     "Toyota Corolla Cross": [r"\bcorolla\s*cross\b", r"\bcross\b"],
     "Toyota Vios": [r"\bvios\b"],
-    "Toyota Fortuner": [r"\bfortuner\b"],
     "Skoda Kushaq": [r"\bkushaq\b", r"\bskoda\b"],
     "Mercedes-Benz W212 / E400": [r"\bw212\b", r"\be400\b", r"\bm276\b", r"\bmer\b", r"\bmercedes\b"],
-    "Mazda CX-5": [r"\bcx-5\b", r"\bcx5\b", r"\bmazda\b"],
-    "Hyundai Creta / SantaFe": [r"\bcreta\b", r"\bsantafe\b", r"\bsanta\s*fe\b", r"\btucson\b", r"\bhyundai\b"],
-    "Kia Seltos / Sonet": [r"\bseltos\b", r"\bsonet\b", r"\bcarnival\b", r"\bkia\b"],
-    "Ford Ranger / Everest": [r"\branger\b", r"\beverest\b", r"\bterritory\b", r"\bford\b"],
-    "Honda CR-V / City": [r"\bcr-v\b", r"\bcrv\b", r"\bcity\b", r"\bcivic\b", r"\bhonda\b"]
-}
-
-TOPIC_RULES = {
-    "Động cơ & Vận hành": [
-        r"động cơ", r"máy", r"công suất", r"mã lực", r"twin turbo", r"turbo", r"hộp số",
-        r"vận hành", r"leo dốc", r"cảm giác lái", r"khung gầm", r"treo", r"hao xăng",
-        r"tiêu hao", r"ăn xăng", r"cách âm", r"đầm chắc", r"độ ồn"
-    ],
-    "Độ xe & Kỹ thuật": [
-        r"độ", r"remap", r"tune", r"downpipe", r"hố vôi", r"mâm", r"body", r"lò xo",
-        r"sên cam", r"muội carbon", r"nghịch ngợm", r"nâng cấp", r"lên 500hp", r"phục hồi"
-    ],
-    "Bảo hiểm & Đăng kiểm": [
-        r"bảo hiểm", r"thân vỏ", r"2 chiều", r"hai chiều", r"va chạm", r"móp", r"húc",
-        r"xước", r"đăng kiểm", r"rớt", r"thầy cụt", r"tem", r"phạt nguội", r"công an", r"giao thông"
-    ],
-    "Giá bán & Khuyến mãi": [
-        r"giá", r"lăn bánh", r"củ", r"tỏi", r"triệu", r"trăm", r"trước bạ", r"giảm giá",
-        r"ưu đãi", r"khuyến mãi", r"đại lý", r"sale", r"trả góp", r"cọc", r"mua xe"
-    ],
-    "Trang bị & Phụ kiện": [
-        r"thảm", r"lót sàn", r"nappa", r"khóa cửa", r"lên kính", r"cắm zin", r"màn hình",
-        r"cam 360", r"camera", r"phim cách nhiệt", r"đồ chơi", r"bọc ghế", r"phụ kiện"
-    ],
-    "So sánh & Tư vấn xe": [
-        r"so sánh", r"phân vân", r"cân nhắc", r"hạng b", r"hạng c", r"mua xe lần đầu",
-        r"tư vấn", r"nên mua", r"chọn con nào", r"đánh giá"
-    ],
-    "Chất lượng & Bảo dưỡng": [
-        r"bảo dưỡng", r"hỏng", r"lỗi", r"thay thế", r"phụ tùng", r"bền", r"trâu bò",
-        r"bảo hành", r"xưởng", r"gara"
-    ],
-    "Cộng đồng & Đời sống": [
-        r"troll", r"chém gió", r"hội", r"anh em", r"hầm rượu", r"đi phượt", r"chia sẻ",
-        r"kinh nghiệm", r"giao lưu", r"hài hước"
-    ]
+    "Ford Ranger / Everest": [r"\branger\b", r"\beverest\b", r"\bford\b"],
+    "Hyundai Creta / SantaFe": [r"\bcreta\b", r"\bsantafe\b", r"\bhyundai\b"],
+    "Kia Seltos / Sonet": [r"\bseltos\b", r"\bsonet\b", r"\bkia\b"]
 }
 
 # -------------------------------------------------------------
-# 3. SENTIMENT ANALYSIS (VIETNAMESE AUTOMOTIVE TUNED)
+# 3. SENTIMENT ANALYSIS
 # -------------------------------------------------------------
 POSITIVE_WORDS = [
     "bền", "ngon", "đẹp", "mượt", "keng", "trâu bò", "chất", "ưng", "hài lòng", "yêu",
     "thích", "lực", "tiện", "rẻ", "đáng tiền", "tuyệt", "tốt", "ok", "ổn", "phà phà",
-    "gọn gàng", "lan tỏa", "ưu đãi", "sang xịn", "zin", "chuẩn"
+    "gọn gàng", "lan tỏa", "ưu đãi", "sang xịn", "zin", "chuẩn", "đỉnh"
 ]
 
 NEGATIVE_WORDS = [
     "lỗi", "hỏng", "kém", "ồn", "hao xăng", "đắt", "chán", "bất tiện", "móp", "xước",
     "rớt", "tắc đường", "đíu", "đéo", "đm", "cay", "chê", "thất vọng", "ngáo giá",
-    "ngáo", "nguy hiểm", "chết", "chửi", "lừa", "tệ", "yếu", "lỏ"
+    "ngáo", "nguy hiểm", "chết", "chửi", "lừa", "tệ", "yếu", "lỏ", "bẩn tính"
 ]
 
 NEGATION_WORDS = ["không", "k", "chẳng", "chưa", "đừng", "kô", "ko"]
@@ -183,54 +206,84 @@ def analyze_sentiment(text):
     return "NEUTRAL"
 
 # -------------------------------------------------------------
-# 4. COMBINED RECORD ENRICHER
+# 4. TOPIC & CHANNEL CLASSIFIER
 # -------------------------------------------------------------
+def classify_topic_hierarchy(text):
+    """
+    Returns (pillar, sub_topic).
+    Pillar is one of: 'Thương hiệu', 'Sản phẩm', 'Dịch vụ'.
+    """
+    text_lower = text.lower()
+    
+    for pillar, sub_dict in HIERARCHICAL_TOPICS.items():
+        for sub_topic, patterns in sub_dict.items():
+            if any(re.search(pat, text_lower) for pat in patterns):
+                return pillar, sub_topic
+                
+    # Fallback to general product topic
+    return "Sản phẩm", "Đánh giá sản phẩm"
+
+def normalize_channel(raw_channel, url="", post_type=""):
+    """
+    Normalizes channel into standard Vietnamese social media channels:
+    'TikTok', 'Facebook Pages', 'Facebook Groups', 'Facebook Users', 'News', 'YouTube', 'Forum'
+    """
+    raw = str(raw_channel or "").lower()
+    u = str(url or "").lower()
+    
+    if "tiktok" in raw or "tiktok" in u:
+        return "TikTok"
+    if "youtube" in raw or "youtube" in u or "youtu.be" in u:
+        return "YouTube"
+    if "otofun" in raw or "otosaigon" in raw or "forum" in raw:
+        return "Forum"
+    if any(site in u for site in ["baomoi", "autopro", "autodaily", "24h", "vnexpress", "dantri"]):
+        return "News"
+    if "group" in raw or "/groups/" in u:
+        return "Facebook Groups"
+    if "page" in raw or "community" in raw or "/posts/" in u or "reel" in u:
+        return "Facebook Pages"
+    if "facebook" in raw or "facebook" in u:
+        return "Facebook Users"
+    return "Facebook Pages"
+
 def enrich_social_record(record, reference_time=None):
-    """
-    Enriches a raw comment/post record with normalized published_at,
-    topic_category, car_model, tags, and sentiment.
-    """
     content = str(record.get("Content", "") or record.get("content", "")).strip()
     description = str(record.get("Description", "") or record.get("description", "")).strip()
     full_text = f"{description} {content}".strip()
     
-    # 1. Normalize Date
+    # 1. Date
     raw_date = record.get("PublishedDate") or record.get("raw_published_date")
     p_at = record.get("published_at") or parse_timestamp(raw_date, reference_time)
     
-    # 2. Detect Car Model
+    # 2. Car Model
     detected_model = "Khác"
     for model_name, patterns in CAR_MODELS.items():
         if any(re.search(pat, full_text, re.IGNORECASE) for pat in patterns):
             detected_model = model_name
             break
             
-    # 3. Detect Topic Category
-    detected_topic = "Tổng quan"
-    matched_topics = []
-    for topic_name, patterns in TOPIC_RULES.items():
-        if any(re.search(pat, full_text, re.IGNORECASE) for pat in patterns):
-            matched_topics.append(topic_name)
-    if matched_topics:
-        detected_topic = matched_topics[0]
-        
+    # 3. Topic Hierarchy
+    pillar, sub_topic = classify_topic_hierarchy(full_text)
+    
     # 4. Sentiment
     sentiment = record.get("Sentiment") or record.get("sentiment")
     if not sentiment or sentiment.upper() not in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
         sentiment = analyze_sentiment(content or description)
         
-    # 5. Tags
-    tags = []
-    if detected_model != "Khác":
-        tags.append(detected_model)
-    if len(matched_topics) > 1:
-        tags.extend(matched_topics[1:])
+    # 5. Channel
+    channel = normalize_channel(
+        record.get("Channel") or record.get("channel"),
+        url=record.get("UrlComment") or record.get("url_comment"),
+        post_type=record.get("Type") or record.get("post_type")
+    )
 
     enriched = dict(record)
     enriched["published_at"] = p_at
     enriched["raw_published_date"] = str(raw_date or "")
-    enriched["topic_category"] = detected_topic
+    enriched["topic_pillar"] = pillar
+    enriched["topic_category"] = sub_topic
     enriched["car_model"] = detected_model
     enriched["sentiment"] = sentiment
-    enriched["tags"] = tags
+    enriched["channel"] = channel
     return enriched

@@ -6,385 +6,689 @@ import datetime
 import os
 import sys
 
-# Page configuration
+# Page Configuration
 st.set_page_config(
-    page_title="AutoPulse AI - Realtime Social Intelligence",
-    page_icon="🚗",
+    page_title="Dashboard - Tổng Quan Thảo Luận Mạng Xã Hội",
+    page_icon="🖥️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Custom Styling to match the uploaded design
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.2rem;
-        font-weight: 800;
-        background: linear-gradient(90deg, #1E3A8A, #3B82F6, #06B6D4);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.2rem;
+    /* Global Styles */
+    body, .stApp {
+        background-color: #F8FAFC;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    .sub-header {
-        color: #64748B;
-        font-size: 1.05rem;
-        margin-bottom: 1.5rem;
+    
+    /* Sidebar Navigation Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #FFFFFF;
+        border-right: 1px solid #E2E8F0;
+        padding-top: 1rem;
     }
-    .metric-card {
-        background: #FFFFFF;
-        border-radius: 12px;
-        padding: 1.2rem;
+    .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0F766E;
+        padding: 0.5rem 0.5rem 1.5rem 0.5rem;
+        border-bottom: 1px solid #E2E8F0;
+        margin-bottom: 1rem;
+    }
+    
+    /* Custom Card Containers */
+    .dashboard-card {
+        background-color: #FFFFFF;
+        border-radius: 8px;
         border: 1px solid #E2E8F0;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        text-align: center;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     }
-    .metric-val {
-        font-size: 1.8rem;
+    .card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    /* Top Bar */
+    .top-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 1rem;
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .page-title {
+        font-size: 1.6rem;
         font-weight: 800;
         color: #0F172A;
     }
-    .metric-lbl {
+    
+    /* Discussion Feed Card */
+    .feed-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    .feed-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .feed-topic-tag {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: #F1F5F9;
+        color: #475569;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-bottom: 0.4rem;
+    }
+    .feed-author {
+        font-weight: 700;
+        color: #1E293B;
+        font-size: 0.9rem;
+    }
+    .feed-channel {
+        color: #2563EB;
         font-size: 0.85rem;
+    }
+    .feed-date {
+        color: #94A3B8;
+        font-size: 0.8rem;
+    }
+    .feed-content {
+        color: #334155;
+        font-size: 0.92rem;
+        margin-top: 0.5rem;
+        line-height: 1.5;
+    }
+    .badge-pos {
+        background: #DCFCE7;
+        color: #16A34A;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
+    .badge-neu {
+        background: #F1F5F9;
         color: #64748B;
-        font-weight: 600;
-        text-transform: uppercase;
-        margin-top: 0.2rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 12px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        font-weight: 600;
-        padding: 8px 18px;
-        border-radius: 8px;
+    .badge-neg {
+        background: #FEE2E2;
+        color: #DC2626;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-from database import (
-    get_discussions_df, get_db_stats, get_latest_daily_summary,
-    get_all_daily_summaries, get_transfer_logs, init_db
-)
+from database import get_discussions_df, get_db_stats, get_latest_daily_summary
 from ai_scanner import run_48h_scan
-
-# Ensure DB tables exist
-try:
-    init_db()
-except Exception as e:
-    st.error(f"Database Connection Error: {e}")
-    st.stop()
+from analysis_engine import HIERARCHICAL_TOPICS
 
 # -------------------------------------------------------------
-# SIDEBAR CONTROLS
+# SIDEBAR NAVIGATION & FILTERS
 # -------------------------------------------------------------
-st.sidebar.markdown("### ⚙️ Điều Khiển & Bộ Lọc")
-
-# Database health badge
-stats = get_db_stats() or {}
-st.sidebar.markdown(f"""
-<div style="background:#F1F5F9; border-radius:8px; padding:10px; margin-bottom:15px; border:1px solid #CBD5E1;">
-    <div style="font-size:0.8rem; color:#475569; font-weight:bold;">🟢 NEON POSTGRESQL KẾT NỐI</div>
-    <div style="font-size:1.1rem; font-weight:800; color:#0F172A;">{stats.get('total_records', 0):,} bản ghi</div>
-    <div style="font-size:0.75rem; color:#64748B;">{stats.get('total_posts', 0):,} bài viết | {stats.get('total_comments', 0):,} bình luận</div>
+st.sidebar.markdown("""
+<div class="sidebar-brand">
+    <span>🖥️</span> Dashboard
 </div>
 """, unsafe_allow_html=True)
 
-# Time Range Filter
-time_filter = st.sidebar.selectbox(
-    "⏱️ Khoảng thời gian phân tích:",
-    options=["🔥 48 Giờ Qua (Mặc định)", "⚡ 24 Giờ Qua", "📅 7 Ngày Qua", "🌐 Toàn Bộ Dữ Liệu"],
+nav_page = st.sidebar.radio(
+    "Danh mục màn hình:",
+    options=[
+        "Tổng quan thảo luận",
+        "Thảo luận qua các kênh",
+        "Thảo luận tiêu cực",
+        "Cập nhật thảo luận mới nhất",
+        "Báo cáo AI 48H"
+    ],
+    label_visibility="collapsed"
+)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔍 Bộ Lọc Dữ Liệu")
+
+# Date range selection
+date_preset = st.sidebar.selectbox(
+    "Khoảng thời gian:",
+    options=["Toàn thời gian (1 năm)", "48 Giờ Qua (Mới nhất)", "24 Giờ Qua", "7 Ngày Qua", "30 Ngày Qua"],
     index=0
 )
 
 lookback_hours = None
-if "48 Giờ" in time_filter:
+if date_preset == "48 Giờ Qua (Mới nhất)":
     lookback_hours = 48
-elif "24 Giờ" in time_filter:
+elif date_preset == "24 Giờ Qua":
     lookback_hours = 24
-elif "7 Ngày" in time_filter:
+elif date_preset == "7 Ngày Qua":
     lookback_hours = 168
+elif date_preset == "30 Ngày Qua":
+    lookback_hours = 720
 
-# Topic & Model Filter
-topic_options = ["All", "Giá bán & Khuyến mãi", "Động cơ & Vận hành", "Bảo hiểm & Đăng kiểm", "Trang bị & Phụ kiện", "So sánh & Tư vấn xe", "Độ xe & Kỹ thuật", "Chất lượng & Bảo dưỡng", "Cộng đồng & Đời sống"]
-selected_topic = st.sidebar.selectbox("📂 Chủ đề thảo luận:", topic_options)
+# Channel Filter
+channel_filter = st.sidebar.selectbox(
+    "Kênh thảo luận:",
+    options=["Tất cả", "TikTok", "Facebook Pages", "Facebook Groups", "Facebook Users", "News", "YouTube", "Forum"]
+)
 
-model_options = ["All", "Mitsubishi Xforce", "Mitsubishi Pajero Sport", "Mitsubishi Xpander", "VinFast VF6", "VinFast VF8", "Skoda Kushaq", "Mercedes-Benz W212 / E400", "Ford Ranger / Everest", "Toyota Yaris Cross"]
-selected_model = st.sidebar.selectbox("🚘 Dòng xe:", model_options)
+# Pillar / Category Filter
+pillar_filter = st.sidebar.selectbox(
+    "Nhóm chủ đề chính:",
+    options=["Tất cả", "Thương hiệu", "Sản phẩm", "Dịch vụ"]
+)
 
-sentiment_options = ["All", "POSITIVE", "NEUTRAL", "NEGATIVE"]
-selected_sentiment = st.sidebar.selectbox("🎭 Cảm xúc:", sentiment_options)
+# Car Model Filter
+model_filter = st.sidebar.selectbox(
+    "Thương hiệu / Dòng xe:",
+    options=["Tất cả", "Mitsubishi Xforce", "VinFast VF6", "Toyota Yaris Cross", "Skoda Kushaq", "Mitsubishi Pajero Sport", "VinFast VF8", "Mercedes-Benz W212 / E400", "Ford Ranger / Everest"]
+)
 
-# Auto-refresh option
-auto_refresh = st.sidebar.checkbox("🔄 Tự động làm mới (60 giây)", value=False)
-if auto_refresh:
-    st.sidebar.caption("Đang bật chế độ tự động đồng bộ thời gian thực.")
+# Sentiment Filter
+sentiment_filter = st.sidebar.selectbox(
+    "Sắc thái thảo luận:",
+    options=["Tất cả", "Tích cực (POSITIVE)", "Trung lập (NEUTRAL)", "Tiêu cực (NEGATIVE)"]
+)
 
-st.sidebar.divider()
-st.sidebar.markdown("💡 **Cơ sở dữ liệu:** Neon Serverless Cloud")
-st.sidebar.caption("Hệ thống tự động phát hiện thảo luận nóng, xu hướng phân khúc B/C và các tranh luận nổi bật.")
+sentiment_arg = None
+if "Tích cực" in sentiment_filter:
+    sentiment_arg = "POSITIVE"
+elif "Trung lập" in sentiment_filter:
+    sentiment_arg = "NEUTRAL"
+elif "Tiêu cực" in sentiment_filter:
+    sentiment_arg = "NEGATIVE"
 
 # -------------------------------------------------------------
-# DATA LOADING
+# DATA RETRIEVAL (WITH SMART CACHING)
 # -------------------------------------------------------------
-@st.cache_data(ttl=15)
-def load_data(lookback, topic, model, sentiment):
+@st.cache_data(ttl=20)
+def fetch_filtered_data(lookback, pillar, model, sentiment, channel):
     return get_discussions_df(
         lookback_hours=lookback,
-        topic=topic if topic != "All" else None,
-        car_model=model if model != "All" else None,
-        sentiment=sentiment if sentiment != "All" else None,
-        limit=10000
+        pillar=pillar if pillar != "Tất cả" else None,
+        car_model=model if model != "Tất cả" else None,
+        sentiment=sentiment_arg,
+        channel=channel if channel != "Tất cả" else None,
+        limit=12000
     )
 
-df = load_data(lookback_hours, selected_topic, selected_model, selected_sentiment)
+df = fetch_filtered_data(lookback_hours, pillar_filter, model_filter, sentiment_arg, channel_filter)
 
-# If 48h filter yields 0 records due to date offsets, fallback to recent 1000 records
-if df.empty and lookback_hours:
-    df = get_discussions_df(limit=3000)
+# Top Bar (Header & Search)
+col_top1, col_top2 = st.columns([3, 2])
+with col_top1:
+    st.markdown(f'<div class="page-title">{nav_page}</div>', unsafe_allow_html=True)
+with col_top2:
+    search_col, date_col = st.columns([1, 1])
+    with search_col:
+        search_kw = st.text_input("Tìm kiếm", placeholder="🔍 Search...", label_visibility="collapsed")
+    with date_col:
+        st.markdown("""
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:6px 12px; font-size:0.8rem; color:#475569; text-align:center; font-weight:600;">
+            📅 09-09-2025 - 09-09-2026
+        </div>
+        """, unsafe_allow_html=True)
 
-# Header Title
-col_h1, col_h2 = st.columns([3, 1])
-with col_h1:
-    st.markdown('<div class="main-header">🚗 AutoPulse AI - Realtime Social Intelligence</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Phân tích xu hướng thảo luận ô tô đa kênh thời gian thực & Quét nhanh báo cáo AI 48H</div>', unsafe_allow_html=True)
-with col_h2:
-    st.markdown("<div style='text-align:right; padding-top:10px;'>", unsafe_allow_html=True)
-    if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+# Apply search filter if keyword entered
+if search_kw and not df.empty:
+    df = df[
+        df['content'].astype(str).str.contains(search_kw, case=False, na=False) |
+        df['description'].astype(str).str.contains(search_kw, case=False, na=False) |
+        df['author'].astype(str).str.contains(search_kw, case=False, na=False)
+    ]
 
-# -------------------------------------------------------------
-# TOP KPI METRICS BAR
-# -------------------------------------------------------------
-total_rows = len(df)
-posts_count = len(df[df['post_type'].str.contains('post', case=False, na=False)])
-comments_count = len(df[df['post_type'].str.contains('comment', case=False, na=False)])
-threads_count = df['url_comment'].nunique() if 'url_comment' in df.columns else 0
+total_buzz = len(df)
+sent_counts = df['sentiment'].value_counts() if not df.empty else pd.Series()
+pos_cnt = sent_counts.get('POSITIVE', 0)
+neu_cnt = sent_counts.get('NEUTRAL', 0)
+neg_cnt = sent_counts.get('NEGATIVE', 0)
 
-sent_counts = df['sentiment'].value_counts()
-pos_pct = round((sent_counts.get('POSITIVE', 0) / total_rows * 100) if total_rows else 0, 1)
-neg_pct = round((sent_counts.get('NEGATIVE', 0) / total_rows * 100) if total_rows else 0, 1)
-neu_pct = round((sent_counts.get('NEUTRAL', 0) / total_rows * 100) if total_rows else 0, 1)
-
-k1, k2, k3, k4, k5 = st.columns(5)
-with k1:
-    st.markdown(f'<div class="metric-card"><div class="metric-val">{total_rows:,}</div><div class="metric-lbl">Tổng Thảo Luận</div></div>', unsafe_allow_html=True)
-with k2:
-    st.markdown(f'<div class="metric-card"><div class="metric-val" style="color:#2563EB;">{posts_count:,}</div><div class="metric-lbl">Bài Viết Gốc</div></div>', unsafe_allow_html=True)
-with k3:
-    st.markdown(f'<div class="metric-card"><div class="metric-val" style="color:#059669;">{comments_count:,}</div><div class="metric-lbl">Bình Luận</div></div>', unsafe_allow_html=True)
-with k4:
-    st.markdown(f'<div class="metric-card"><div class="metric-val" style="color:#D97706;">{threads_count:,}</div><div class="metric-lbl">Luồng Thảo Luận</div></div>', unsafe_allow_html=True)
-with k5:
-    st.markdown(f'<div class="metric-card"><div class="metric-val" style="color:#10B981;">{pos_pct}% <span style="color:#EF4444; font-size:1.1rem;">/ {neg_pct}%</span></div><div class="metric-lbl">Tích Cực / Tiêu Cực</div></div>', unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# -------------------------------------------------------------
-# MAIN TABS
-# -------------------------------------------------------------
-tab_dashboard, tab_scanner, tab_explorer, tab_db = st.tabs([
-    "📊 Realtime Topic Radar",
-    "🤖 Daily AI Scan (48H Briefing)",
-    "🔍 Thread & Comment Explorer",
-    "⚙️ Database & Crawler Hub"
-])
 
 # =============================================================
-# TAB 1: REALTIME TOPIC RADAR
+# SCREEN 1: TỔNG QUAN THẢO LUẬN (Image 1)
 # =============================================================
-with tab_dashboard:
-    c1, c2 = st.columns([1, 1])
+if nav_page == "Tổng quan thảo luận":
+    # 1. TOP CHART: Đường xu hướng thảo luận theo ngày (Full Width)
+    st.markdown("""
+    <div class="dashboard-card">
+        <div class="card-title">
+            <span>Đường xu hướng thảo luận theo ngày</span>
+            <span style="font-size:0.8rem; font-weight:normal; color:#64748B;">Lượt thảo luận / ngày</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with c1:
-        st.subheader("📌 Tỷ trọng các Chủ đề Thảo luận")
-        topic_counts = df['topic_category'].value_counts().reset_index()
-        topic_counts.columns = ['Chủ đề', 'Số lượng']
-        fig_topic = px.pie(
-            topic_counts,
-            names='Chủ đề',
-            values='Số lượng',
-            hole=0.45,
-            color_discrete_sequence=px.colors.qualitative.Safe
+    if not df.empty and 'published_at' in df.columns:
+        df_daily = df.copy()
+        df_daily['date'] = pd.to_datetime(df_daily['published_at']).dt.date
+        daily_vol = df_daily.groupby('date').size().reset_index(name='buzz_count')
+        daily_vol = daily_vol.sort_values('date')
+        
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Bar(
+            x=daily_vol['date'],
+            y=daily_vol['buzz_count'],
+            marker_color='#38BDF8',
+            marker_line_color='#0284C7',
+            marker_line_width=1,
+            hovertemplate='<b>Ngày:</b> %{x|%d/%m/%Y}<br><b>Số thảo luận:</b> %{y:,} buzz<extra></extra>'
+        ))
+        fig_trend.update_layout(
+            plot_bgcolor='#FFFFFF',
+            paper_bgcolor='#FFFFFF',
+            margin=dict(t=10, b=30, l=40, r=20),
+            height=280,
+            xaxis=dict(showgrid=True, gridcolor='#F1F5F9', tickformat='%d/%m'),
+            yaxis=dict(showgrid=True, gridcolor='#F1F5F9')
         )
-        fig_topic.update_layout(margin=dict(t=20, b=20, l=10, r=10), height=350)
-        st.plotly_chart(fig_topic, use_container_width=True)
-
-    with c2:
-        st.subheader("🚘 Ma trận Cảm xúc theo Dòng xe")
-        model_df = df[df['car_model'] != 'Khác']
-        if not model_df.empty:
-            model_sent = model_df.groupby(['car_model', 'sentiment']).size().reset_index(name='Số lượng')
-            fig_sent = px.bar(
-                model_sent,
-                x='car_model',
-                y='Số lượng',
-                color='sentiment',
-                barmode='stack',
-                color_discrete_map={'POSITIVE': '#10B981', 'NEUTRAL': '#94A3B8', 'NEGATIVE': '#EF4444'},
-                labels={'car_model': 'Dòng xe', 'Số lượng': 'Lượng thảo luận', 'sentiment': 'Cảm xúc'}
-            )
-            fig_sent.update_layout(margin=dict(t=20, b=20, l=10, r=10), height=350, xaxis_tickangle=-30)
-            st.plotly_chart(fig_sent, use_container_width=True)
-        else:
-            st.info("Chưa có đủ dữ liệu theo dòng xe cụ thể để vẽ biểu đồ cảm xúc.")
-
-    st.divider()
-
-    # Timeline activity chart
-    st.subheader("📈 Xu hướng Thảo luận theo Thời gian")
-    df_time = df[df['published_at'].notna()].copy()
-    if not df_time.empty:
-        df_time['hour'] = pd.to_datetime(df_time['published_at']).dt.floor('h')
-        hourly_counts = df_time.groupby(['hour', 'topic_category']).size().reset_index(name='Lượt thảo luận')
-        fig_time = px.area(
-            hourly_counts,
-            x='hour',
-            y='Lượt thảo luận',
-            color='topic_category',
-            labels={'hour': 'Thời gian (Giờ)', 'Lượt thảo luận': 'Số bài/bình luận'},
-            color_discrete_sequence=px.colors.qualitative.Prism
-        )
-        fig_time.update_layout(margin=dict(t=20, b=20, l=10, r=10), height=340)
-        st.plotly_chart(fig_time, use_container_width=True)
+        st.plotly_chart(fig_trend, use_container_width=True)
     else:
-        st.caption("Dữ liệu mốc thời gian chi tiết đang được cập nhật từ các bài viết mới.")
+        st.info("Đang nạp dữ liệu xu hướng theo ngày...")
+
+    # 2. BOTTOM ROW: Sentiment Overview (Left) + Sắc thái thảo luận theo chủ đề (Right)
+    col_b1, col_b2 = st.columns([2, 3])
+    
+    # Bottom Left: Sentiment Donut Chart
+    with col_b1:
+        st.markdown("""
+        <div class="dashboard-card" style="min-height: 480px;">
+            <div class="card-title">Sentiment overview</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        fig_donut = go.Figure(data=[go.Pie(
+            labels=['Tích cực', 'Trung lập', 'Tiêu cực'],
+            values=[pos_cnt, neu_cnt, neg_cnt],
+            hole=0.68,
+            marker_colors=['#2DD4BF', '#475569', '#EF4444'],
+            textinfo='percent',
+            hoverinfo='label+value+percent'
+        )])
+        fig_donut.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5),
+            margin=dict(t=20, b=20, l=20, r=20),
+            height=360,
+            annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
+        )
+        st.plotly_chart(fig_donut, use_container_width=True)
+
+    # Bottom Right: Sắc thái thảo luận theo chủ đề (Hierarchical 100% Stacked Horizontal Bars)
+    with col_b2:
+        st.markdown("""
+        <div class="dashboard-card">
+            <div class="card-title">
+                <span>Sắc thái thảo luận theo chủ đề</span>
+                <span style="font-size:0.8rem; font-weight:normal; color:#64748B;">Tỷ lệ cảm xúc & Tổng buzz</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Build hierarchical topic rows matching Image 1
+        records_topic = []
+        for pillar, subtopics in HIERARCHICAL_TOPICS.items():
+            for st_name in subtopics.keys():
+                sub_df = df[df['topic_category'] == st_name]
+                cnt = len(sub_df)
+                if cnt > 0:
+                    s_counts = sub_df['sentiment'].value_counts()
+                    p = s_counts.get('POSITIVE', 0)
+                    neu = s_counts.get('NEUTRAL', 0)
+                    n = s_counts.get('NEGATIVE', 0)
+                    records_topic.append({
+                        "Pillar": pillar,
+                        "Subtopic": f"{pillar} > {st_name}",
+                        "Name": st_name,
+                        "Count": cnt,
+                        "Pos_pct": round(p / cnt * 100, 1),
+                        "Neu_pct": round(neu / cnt * 100, 1),
+                        "Neg_pct": round(n / cnt * 100, 1)
+                    })
+
+        df_topic_chart = pd.DataFrame(records_topic)
+        if not df_topic_chart.empty:
+            df_topic_chart = df_topic_chart.sort_values('Count', ascending=True)
+            
+            fig_topics = go.Figure()
+            # Positive (Green)
+            fig_topics.add_trace(go.Bar(
+                y=df_topic_chart['Name'],
+                x=df_topic_chart['Pos_pct'],
+                name='Tích cực',
+                orientation='h',
+                marker_color='#2DD4BF',
+                hovertemplate='%{y}: %{x}% Tích cực<extra></extra>'
+            ))
+            # Negative (Red)
+            fig_topics.add_trace(go.Bar(
+                y=df_topic_chart['Name'],
+                x=df_topic_chart['Neg_pct'],
+                name='Tiêu cực',
+                orientation='h',
+                marker_color='#EF4444',
+                hovertemplate='%{y}: %{x}% Tiêu cực<extra></extra>'
+            ))
+            # Neutral (Grey)
+            fig_topics.add_trace(go.Bar(
+                y=df_topic_chart['Name'],
+                x=df_topic_chart['Neu_pct'],
+                name='Trung lập',
+                orientation='h',
+                marker_color='#475569',
+                hovertemplate='%{y}: %{x}% Trung lập<extra></extra>'
+            ))
+            
+            fig_topics.update_layout(
+                barmode='stack',
+                plot_bgcolor='#FFFFFF',
+                paper_bgcolor='#FFFFFF',
+                height=450,
+                margin=dict(t=10, b=20, l=150, r=40),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                xaxis=dict(showgrid=False, maxnorm='percent', range=[0, 100]),
+                yaxis=dict(tickfont=dict(size=11))
+            )
+            st.plotly_chart(fig_topics, use_container_width=True)
+        else:
+            st.info("Chưa có đủ thảo luận theo chủ đề được phân loại.")
+
 
 # =============================================================
-# TAB 2: DAILY AI SCAN (48H BRIEFING)
+# SCREEN 2: THẢO LUẬN QUA CÁC KÊNH (Image 2)
 # =============================================================
-with tab_scanner:
-    col_scan1, col_scan2 = st.columns([2, 1])
-    with col_scan1:
-        st.subheader("⚡ Báo Cáo Tóm Tắt Nhanh AI Scan (48 Giờ Qua)")
-        st.caption("Quét toàn bộ tương tác 48h, phát hiện các luồng thảo luận nóng, phản ánh khách hàng & đề xuất hành động.")
-    with col_scan2:
-        st.markdown("<div style='text-align:right;'>", unsafe_allow_html=True)
+elif nav_page == "Thảo luận qua các kênh":
+    col_c1, col_c2 = st.columns([1, 1])
+    
+    # Top Left: Tỷ lệ thảo luận trên các kênh (Donut)
+    with col_c1:
+        st.markdown("""
+        <div class="dashboard-card">
+            <div class="card-title">Tỷ lệ thảo luận trên các kênh</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        channel_counts = df['channel'].value_counts().reset_index()
+        channel_counts.columns = ['Channel', 'Count']
+        
+        fig_ch_donut = go.Figure(data=[go.Pie(
+            labels=channel_counts['Channel'],
+            values=channel_counts['Count'],
+            hole=0.65,
+            marker_colors=['#3B82F6', '#06B6D4', '#F59E0B', '#8B5CF6', '#10B981', '#EC4899', '#64748B'],
+            textinfo='percent',
+            hoverinfo='label+value+percent'
+        )])
+        fig_ch_donut.update_layout(
+            margin=dict(t=20, b=20, l=20, r=20),
+            height=340,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+            annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
+        )
+        st.plotly_chart(fig_ch_donut, use_container_width=True)
+
+    # Top Right: Xếp hạng nguồn thảo luận
+    with col_c2:
+        st.markdown("""
+        <div class="dashboard-card">
+            <div class="card-title">Xếp hạng nguồn thảo luận</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        standard_channels = ["News", "TikTok", "Facebook Pages", "Facebook Users", "Facebook Groups", "YouTube", "Forum", "Social Sites", "E-commerce Sites"]
+        rank_data = []
+        for ch in standard_channels:
+            sub = df[df['channel'] == ch]
+            c_cnt = len(sub)
+            p = len(sub[sub['sentiment'] == 'POSITIVE'])
+            neu = len(sub[sub['sentiment'] == 'NEUTRAL'])
+            neg = len(sub[sub['sentiment'] == 'NEGATIVE'])
+            rank_data.append({
+                "Channel": ch,
+                "Buzz": c_cnt,
+                "Pos_pct": round(p/c_cnt*100, 1) if c_cnt else 0,
+                "Neu_pct": round(neu/c_cnt*100, 1) if c_cnt else 0,
+                "Neg_pct": round(neg/c_cnt*100, 1) if c_cnt else 0
+            })
+            
+        df_rank = pd.DataFrame(rank_data).sort_values('Buzz', ascending=False).reset_index(drop=True)
+        
+        # Display as ranked list matching screenshot
+        for idx, row in df_rank.iterrows():
+            st.markdown(f"""
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid #F1F5F9;">
+                <div style="width:180px; font-size:0.85rem; font-weight:600; color:#1E293B;">
+                    <span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row['Channel']}
+                </div>
+                <div style="flex-grow:1; margin:0 15px; background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden; display:flex;">
+                    <div style="width:{row['Pos_pct']}%; background:#2DD4BF;"></div>
+                    <div style="width:{row['Neg_pct']}%; background:#EF4444;"></div>
+                    <div style="width:{row['Neu_pct']}%; background:#475569;"></div>
+                </div>
+                <div style="width:90px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569;">
+                    {row['Buzz']:,} buzz
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Bottom: Top nguồn thảo luận trên kênh trực tuyến
+    st.markdown("""
+    <div class="dashboard-card">
+        <div class="card-title">Top nguồn thảo luận (Fanpages, Groups & Diễn đàn hàng đầu)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Extract domain / author / group names
+    if 'url_comment' in df.columns:
+        source_df = df.groupby('channel').size().reset_index(name='count').sort_values('count', ascending=True)
+        fig_sources = px.bar(
+            source_df,
+            x='count',
+            y='channel',
+            orientation='h',
+            labels={'count': 'Số lượng thảo luận', 'channel': 'Kênh / Nguồn'},
+            color_discrete_sequence=['#38BDF8']
+        )
+        fig_sources.update_layout(
+            plot_bgcolor='#FFFFFF',
+            paper_bgcolor='#FFFFFF',
+            height=260,
+            margin=dict(t=10, b=20, l=120, r=20)
+        )
+        st.plotly_chart(fig_sources, use_container_width=True)
+
+
+# =============================================================
+# SCREEN 3: THẢO LUẬN TIÊU CỰC (Image 3)
+# =============================================================
+elif nav_page == "Thảo luận tiêu cực":
+    col_neg1, col_neg2, col_neg3 = st.columns([1, 1.2, 1.8])
+    
+    neg_df = df[df['sentiment'] == 'NEGATIVE']
+    total_neg = len(neg_df)
+    
+    # Column 1: Sắc thái thảo luận tiêu cực (Donut)
+    with col_neg1:
+        st.markdown("""
+        <div class="dashboard-card">
+            <div class="card-title">Sắc thái thảo luận</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        fig_neg_donut = go.Figure(data=[go.Pie(
+            labels=['Tiêu cực'],
+            values=[total_neg if total_neg > 0 else 1],
+            hole=0.68,
+            marker_colors=['#EF4444'],
+            textinfo='none',
+            hoverinfo='label+value'
+        )])
+        fig_neg_donut.update_layout(
+            margin=dict(t=20, b=20, l=20, r=20),
+            height=320,
+            showlegend=False,
+            annotations=[dict(text=f'<b>{total_neg:,}</b><br><span style="font-size:12px; color:#EF4444;">Buzz Tiêu Cực</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
+        )
+        st.plotly_chart(fig_neg_donut, use_container_width=True)
+
+    # Column 2: Thảo luận tiêu cực trên các kênh
+    with col_neg2:
+        st.markdown("""
+        <div class="dashboard-card">
+            <div class="card-title">Thảo luận tiêu cực trên các kênh</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if not neg_df.empty:
+            neg_channels = neg_df['channel'].value_counts().reset_index()
+            neg_channels.columns = ['Channel', 'Buzz']
+            neg_channels = neg_channels.sort_values('Buzz', ascending=True)
+            
+            fig_neg_ch = px.bar(
+                neg_channels,
+                x='Buzz',
+                y='Channel',
+                orientation='h',
+                color_discrete_sequence=['#EF4444']
+            )
+            fig_neg_ch.update_layout(
+                plot_bgcolor='#FFFFFF',
+                paper_bgcolor='#FFFFFF',
+                height=320,
+                margin=dict(t=10, b=20, l=110, r=20),
+                xaxis=dict(showgrid=True, gridcolor='#F1F5F9')
+            )
+            st.plotly_chart(fig_neg_ch, use_container_width=True)
+        else:
+            st.info("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
+
+    # Column 3: Cập nhật thảo luận tiêu cực mới nhất
+    with col_neg3:
+        st.markdown("""
+        <div class="dashboard-card">
+            <div class="card-title">Cập nhật thảo luận tiêu cực mới nhất</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if not neg_df.empty:
+            for idx, r in neg_df.head(15).iterrows():
+                dt_str = str(r.get('raw_published_date') or r.get('published_at') or 'Gần đây')
+                auth = r.get('author') or 'Người dùng ẩn danh'
+                chan = r.get('channel') or 'Mạng xã hội'
+                content = str(r.get('content') or r.get('description') or '')
+                st.markdown(f"""
+                <div class="feed-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <span class="feed-author">{auth}</span> &nbsp;<span class="feed-channel">({chan})</span>
+                            <div class="feed-date">🕒 {dt_str}</div>
+                        </div>
+                        <span class="badge-neg">Tiêu cực</span>
+                    </div>
+                    <div class="feed-content">{content[:180]}...</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.success("Không có thảo luận tiêu cực.")
+
+
+# =============================================================
+# SCREEN 4: CẬP NHẬT THẢO LUẬN MỚI NHẤT (Image 4)
+# =============================================================
+elif nav_page == "Cập nhật thảo luận mới nhất":
+    st.markdown(f"""
+    <div class="dashboard-card">
+        <div class="card-title">
+            <span>Dòng thời gian thảo luận thời gian thực</span>
+            <span style="font-size:0.85rem; font-weight:600; color:#0F766E;">Tổng số: {total_buzz:,} bài viết & bình luận</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not df.empty:
+        for idx, r in df.head(30).iterrows():
+            topic_tag = r.get('topic_category') or 'Đánh giá sản phẩm'
+            auth = r.get('author') or 'Facebook User'
+            chan = r.get('channel') or 'Facebook'
+            dt_str = str(r.get('raw_published_date') or r.get('published_at') or 'Gần đây')
+            content = str(r.get('content') or r.get('description') or '')
+            sentiment = str(r.get('sentiment') or 'NEUTRAL').upper()
+            
+            badge_html = '<span class="badge-neu">Trung lập</span>'
+            if sentiment == 'POSITIVE':
+                badge_html = '<span class="badge-pos">Tích cực</span>'
+            elif sentiment == 'NEGATIVE':
+                badge_html = '<span class="badge-neg">Tiêu cực</span>'
+                
+            st.markdown(f"""
+            <div class="feed-card">
+                <span class="feed-topic-tag">🏷️ {topic_tag}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span class="feed-author">{auth}</span> &nbsp;<span style="color:#64748B;">trên</span>&nbsp; <span class="feed-channel">{chan}</span>
+                        <div class="feed-date">🕒 {dt_str}</div>
+                    </div>
+                    <div>{badge_html}</div>
+                </div>
+                <div class="feed-content">{content}</div>
+                <div style="margin-top:8px; font-size:0.8rem; color:#94A3B8;">
+                    👍 Like &nbsp;&nbsp; 💬 Bình luận &nbsp;&nbsp; 🔗 <a href="{r.get('url_comment', '#')}" target="_blank" style="color:#2563EB; text-decoration:none;">Xem bài viết gốc</a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("Không có dữ liệu thảo luận phù hợp với bộ lọc hiện tại.")
+
+
+# =============================================================
+# SCREEN 5: BÁO CÁO AI 48H
+# =============================================================
+elif nav_page == "Báo cáo AI 48H":
+    c_ai1, c_ai2 = st.columns([3, 1])
+    with c_ai1:
+        st.subheader("⚡ Báo Cáo AI Scan 48 Giờ Qua")
+        st.caption("Quét toàn bộ luồng thông tin, phát hiện điểm nóng & đề xuất hành động thông minh.")
+    with c_ai2:
         if st.button("🚀 Chạy Quét AI 48H Mới", type="primary", use_container_width=True):
-            with st.spinner("Đang tổng hợp dữ liệu 48h và tạo báo cáo thông minh..."):
+            with st.spinner("Đang tổng hợp thông tin và tạo báo cáo AI..."):
                 run_48h_scan()
                 st.success("Đã hoàn tất bản quét 48h mới nhất!")
                 st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    # Fetch latest summary from Neon
     latest_summary = get_latest_daily_summary()
-    
     if latest_summary:
-        st.info(f"📅 **Ngày báo cáo:** {latest_summary.get('report_date')} | **Khung thời gian:** {latest_summary.get('lookback_hours', 48)} giờ qua")
-        
-        # Render the full report
-        report_content = latest_summary.get('full_report_markdown', '')
-        st.markdown(report_content)
-        
-        # Export options
+        st.markdown(latest_summary.get('full_report_markdown', ''))
         st.divider()
-        col_exp1, col_exp2 = st.columns(2)
-        with col_exp1:
-            st.download_button(
-                "📥 Tải Báo Cáo Markdown (.md)",
-                data=report_content,
-                file_name=f"auto_intelligence_48h_{latest_summary.get('report_date')}.md",
-                mime="text/markdown"
-            )
-        with col_exp2:
-            html_content = f"<html><head><meta charset='utf-8'><title>48H Auto Intelligence</title></head><body style='font-family:sans-serif; line-height:1.6; padding:30px;'>{report_content.replace(chr(10), '<br>')}</body></html>"
-            st.download_button(
-                "🌐 Tải Báo Cáo HTML (.html)",
-                data=html_content,
-                file_name=f"auto_intelligence_48h_{latest_summary.get('report_date')}.html",
-                mime="text/html"
-            )
+        st.download_button(
+            "📥 Tải Báo Cáo Markdown (.md)",
+            data=latest_summary.get('full_report_markdown', ''),
+            file_name=f"ai_intelligence_48h_{latest_summary.get('report_date')}.md",
+            mime="text/markdown"
+        )
     else:
-        st.warning("Chưa có báo cáo 48h nào được lưu. Hãy bấm '🚀 Chạy Quét AI 48H Mới' để khởi tạo ngay!")
-
-# =============================================================
-# TAB 3: THREAD & COMMENT EXPLORER
-# =============================================================
-with tab_explorer:
-    st.subheader("🔍 Khám phá Chi tiết Từng Bài viết & Bình luận")
-    
-    search_query = st.text_input("🔎 Tìm kiếm nội dung thảo luận (ví dụ: 'Kushaq', 'bảo hiểm', 'đăng kiểm', 'máy 1.0', 'Xforce'):", "")
-    
-    display_df = df.copy()
-    if search_query:
-        display_df = display_df[
-            display_df['content'].str.contains(search_query, case=False, na=False) |
-            display_df['description'].str.contains(search_query, case=False, na=False) |
-            display_df['author'].str.contains(search_query, case=False, na=False)
-        ]
-
-    st.write(f"Hiển thị **{len(display_df):,}** bản ghi phù hợp.")
-
-    # Top Viral Threads view
-    st.markdown("#### 🔥 Các Luồng Thảo Luận Sôi Nổi Nhất")
-    if 'url_comment' in display_df.columns:
-        top_threads = display_df.groupby('url_comment').size().sort_values(ascending=False).head(5)
-        for url, count in top_threads.items():
-            thread_rows = display_df[display_df['url_comment'] == url]
-            desc = thread_rows['description'].dropna().iloc[0] if len(thread_rows['description'].dropna()) > 0 else "Không có tiêu đề"
-            chan = thread_rows['channel'].dropna().iloc[0] if len(thread_rows['channel'].dropna()) > 0 else "Community"
-            
-            with st.expander(f"💬 [{count} phản hồi] - {chan}: {desc[:120]}..."):
-                st.markdown(f"**Nội dung bài viết gốc:**\n> {desc}")
-                st.markdown(f"🔗 [Mở bài viết trên Facebook]({url})")
-                st.markdown("**Các bình luận tiêu biểu:**")
-                comments = thread_rows[thread_rows['post_type'].str.contains('comment', case=False, na=False)].head(8)
-                for idx, r in comments.iterrows():
-                    sent_badge = "🟢" if r['sentiment'] == "POSITIVE" else ("🔴" if r['sentiment'] == "NEGATIVE" else "⚪")
-                    st.markdown(f"- {sent_badge} **{r['author']}**: {r['content']}")
-
-    st.divider()
-    st.markdown("#### 📋 Bảng Dữ Liệu Chi Tiết")
-    table_cols = ['published_at', 'group_name', 'channel', 'car_model', 'topic_category', 'sentiment', 'author', 'post_type', 'content', 'url_comment']
-    available_cols = [c for c in table_cols if c in display_df.columns]
-    st.dataframe(
-        display_df[available_cols].head(300),
-        use_container_width=True,
-        height=400
-    )
-
-# =============================================================
-# TAB 4: DATABASE & CRAWLER HUB
-# =============================================================
-with tab_db:
-    st.subheader("⚙️ Quản Trị Cơ Sở Dữ Liệu & Nguồn Thu Thập")
-    
-    st.markdown("""
-    Hệ thống sử dụng **Neon Serverless PostgreSQL** để lưu trữ tập trung dữ liệu mạng xã hội:
-    - **Tốc độ truy vấn**: < 50ms cho các phép tổng hợp hàng chục nghìn bản ghi.
-    - **Khả năng mở rộng**: Lưu trữ hàng triệu bài viết & bình luận không giới hạn dung lượng như Google Sheets.
-    - **Sẵn sàng triển khai Online 24/7**: Dashboard có thể đưa lên Streamlit Community Cloud hoặc mở link xem ngay qua Cloudflare Tunnel.
-    """)
-    
-    c_s1, c_s2 = st.columns(2)
-    with c_s1:
-        st.markdown("### 📊 Thống Kê Database")
-        db_s = get_db_stats() or {}
-        st.json(db_s)
-    
-    with c_s2:
-        st.markdown("### 🌐 Hướng Dẫn Đưa Lên Mạng (Online)")
-        st.markdown("""
-        **Cách 1: Mở link Public HTTPS ngay từ máy tính (Instant Tunnel)**
-        - Chạy file `Start_Online_Dashboard.bat` trong thư mục dự án.
-        - Hệ thống sẽ tự động tạo một đường link HTTPS an toàn (Cloudflare Tunnel) để truy cập từ điện thoại hoặc gửi cho đồng nghiệp.
-        
-        **Cách 2: Đưa lên Streamlit Community Cloud (Chạy 24/7)**
-        - Push mã nguồn lên GitHub.
-        - Đăng nhập [share.streamlit.io](https://share.streamlit.io) và liên kết repo.
-        - Thêm Secret: `NEON_DATABASE_URL` trong mục Advanced Settings.
-        """)
-
-    st.divider()
-    st.markdown("### 📝 Nhật Ký Đẩy Dữ Liệu Tự Động (Batch Transfer Logs)")
-    st.caption("Ghi nhận chi tiết từng đợt cào dữ liệu được nạp vào Neon DB (thời gian, chiến dịch, nhóm, số dòng thêm mới, số trùng lặp, tốc độ nạp).")
-    try:
-        logs_df = get_transfer_logs(limit=50)
-        if not logs_df.empty:
-            st.dataframe(logs_df, use_container_width=True, height=280)
-        else:
-            st.info("Chưa có lượt nạp dữ liệu nào được ghi nhận.")
-    except Exception as e:
-        st.warning(f"Không thể tải nhật ký nạp dữ liệu: {e}")
+        st.warning("Chưa có báo cáo 48h. Bấm '🚀 Chạy Quét AI 48H Mới' để khởi tạo ngay.")
