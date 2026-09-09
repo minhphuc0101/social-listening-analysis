@@ -400,24 +400,24 @@ if nav_page == "Tổng quan thảo luận":
                         neu_label = f"{neu_pct}%" if neu_pct >= 14 else ""
 
                         row_html = (
-                            f'<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:7px;">'
-                            f'<span style="width:145px; font-size:0.78rem; color:#334155; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{st_name}">{st_name}</span>'
-                            f'<div style="flex-grow:1; margin:0 10px; height:16px; border-radius:8px; overflow:hidden; display:flex; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center; line-height:16px;">'
-                            f'<div style="width:{p_pct}%; background:#2DD4BF;" title="Tích cực: {p_pct}%">{p_label}</div>'
-                            f'<div style="width:{n_pct}%; background:#EF4444;" title="Tiêu cực: {n_pct}%">{n_label}</div>'
-                            f'<div style="width:{neu_pct}%; background:#475569;" title="Trung lập: {neu_pct}%">{neu_label}</div>'
+                            f'<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; min-height:24px;">'
+                            f'<span style="width:160px; font-size:0.84rem; color:#334155; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:22px;" title="{st_name}">{st_name}</span>'
+                            f'<div style="flex-grow:1; margin:0 14px; height:22px; border-radius:11px; overflow:hidden; display:flex; font-size:10.5px; font-weight:700; color:#FFFFFF; text-align:center; line-height:22px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);">'
+                            f'<div style="width:{p_pct}%; background:#2DD4BF; display:flex; align-items:center; justify-content:center;" title="Tích cực: {p_pct}%">{p_label}</div>'
+                            f'<div style="width:{n_pct}%; background:#EF4444; display:flex; align-items:center; justify-content:center;" title="Tiêu cực: {n_pct}%">{n_label}</div>'
+                            f'<div style="width:{neu_pct}%; background:#475569; display:flex; align-items:center; justify-content:center;" title="Trung lập: {neu_pct}%">{neu_label}</div>'
                             f'</div>'
-                            f'<span style="width:75px; text-align:right; font-size:0.78rem; font-weight:700; color:#64748B;">{cnt:,} buzz</span>'
+                            f'<span style="width:85px; text-align:right; font-size:0.84rem; font-weight:700; color:#475569; line-height:22px;">{cnt:,} buzz</span>'
                             f'</div>'
                         )
                         subtopic_rows_html.append(row_html)
 
                 if subtopic_rows_html or pillar_cnt > 0:
                     pillar_block = (
-                        f'<div style="margin-top:10px; margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid #F1F5F9;">'
-                        f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.88rem; font-weight:700; color:#0F172A; margin-bottom:6px;">'
+                        f'<div style="margin-top:18px; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #F1F5F9;">'
+                        f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.92rem; font-weight:800; color:#0F172A; margin-bottom:12px;">'
                         f'<span>* {pillar}</span>'
-                        f'<span style="color:#64748B; font-weight:700; font-size:0.82rem;">{pillar_cnt:,} buzz</span>'
+                        f'<span style="color:#64748B; font-weight:700; font-size:0.85rem;">{pillar_cnt:,} buzz</span>'
                         f'</div>'
                         f'{"".join(subtopic_rows_html)}'
                         f'</div>'
@@ -425,7 +425,7 @@ if nav_page == "Tổng quan thảo luận":
                     topic_html_blocks.append(pillar_block)
 
             if topic_html_blocks:
-                topics_rendered = f'<div style="max-height:350px; overflow-y:auto; padding-right:6px;">{"".join(topic_html_blocks)}</div>'
+                topics_rendered = f'<div style="max-height:450px; overflow-y:auto; padding-right:8px;">{"".join(topic_html_blocks)}</div>'
                 if hasattr(st, "html"):
                     st.html(topics_rendered)
                 else:
@@ -499,23 +499,23 @@ elif nav_page == "Thảo luận qua các kênh":
             rank_rows_html = []
             for idx, row in df_rank.iterrows():
                 r_html = (
-                    f'<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid #F8FAFC;">'
-                    f'<div style="width:160px; font-size:0.85rem; font-weight:600; color:#1E293B;">'
+                    f'<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F8FAFC; min-height:24px;">'
+                    f'<div style="width:160px; font-size:0.85rem; font-weight:600; color:#1E293B; line-height:20px;">'
                     f'<span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row["Channel"]}'
                     f'</div>'
-                    f'<div style="flex-grow:1; margin:0 12px; background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden; display:flex;">'
+                    f'<div style="flex-grow:1; margin:0 14px; background:#E2E8F0; height:14px; border-radius:7px; overflow:hidden; display:flex;">'
                     f'<div style="width:{row["Pos_pct"]}%; background:#2DD4BF;"></div>'
                     f'<div style="width:{row["Neg_pct"]}%; background:#EF4444;"></div>'
                     f'<div style="width:{row["Neu_pct"]}%; background:#475569;"></div>'
                     f'</div>'
-                    f'<div style="width:85px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569;">'
+                    f'<div style="width:85px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569; line-height:20px;">'
                     f'{row["Buzz"]:,} buzz'
                     f'</div>'
                     f'</div>'
                 )
                 rank_rows_html.append(r_html)
                 
-            rank_full_html = f'<div style="max-height:360px; overflow-y:auto;">{"".join(rank_rows_html)}</div>'
+            rank_full_html = f'<div style="max-height:420px; overflow-y:auto; padding-right:6px;">{"".join(rank_rows_html)}</div>'
             if hasattr(st, "html"):
                 st.html(rank_full_html)
             else:
