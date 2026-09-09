@@ -1,0 +1,15 @@
+# Environment variables and credentials
+.env
+
+# Cloudflare portable binary
+cloudflared.exe
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS metadata
+.DS_Store
+Thumbs.db

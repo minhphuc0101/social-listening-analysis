@@ -1,0 +1,46 @@
+name: Daily 48H Automotive AI Analysis
+
+on:
+  schedule:
+    # Runs everyday at 01:00 UTC (08:00 AM Vietnam Time UTC+7)
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    # Allows manual trigger anytime from the GitHub Actions tab
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; elif [ -f analytics/requirements.txt ]; then pip install -r analytics/requirements.txt; fi
+
+      - name: Run Daily 48H AI Scan & Sync to Neon DB
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -f run_daily_summary.py ]; then
+            python run_daily_summary.py
+          elif [ -f analytics/run_daily_summary.py ]; then
+            cd analytics && python run_daily_summary.py
+          fi
+
+      - name: Commit & Archive Daily Report (Optional)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/ analytics/reports/ || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs: archive daily 48h intelligence scan [skip ci]" && git push)
+        continue-on-error: true
