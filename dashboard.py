@@ -200,17 +200,28 @@ st.sidebar.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+nav_options = [
+    "Tổng quan thảo luận",
+    "Thảo luận qua các kênh",
+    "Thảo luận tiêu cực",
+    "Thảo luận tích cực",
+    "Cập nhật thảo luận mới nhất",
+    "Báo cáo AI 48H"
+]
+
+if "sidebar_nav_radio" not in st.session_state:
+    st.session_state["sidebar_nav_radio"] = "Tổng quan thảo luận"
+
+if "redirect_page" in st.session_state:
+    target = st.session_state.pop("redirect_page")
+    if target in nav_options:
+        st.session_state["sidebar_nav_radio"] = target
+
 nav_page = st.sidebar.radio(
     "Danh mục màn hình:",
-    options=[
-        "Tổng quan thảo luận",
-        "Thảo luận qua các kênh",
-        "Thảo luận tiêu cực",
-        "Thảo luận tích cực",
-        "Cập nhật thảo luận mới nhất",
-        "Báo cáo AI 48H"
-    ],
-    label_visibility="collapsed"
+    options=nav_options,
+    label_visibility="collapsed",
+    key="sidebar_nav_radio"
 )
 
 st.sidebar.markdown("---")
@@ -426,7 +437,48 @@ if nav_page == "Tổng quan thảo luận":
                     showarrow=False
                 )]
             )
-            st.plotly_chart(fig_donut, use_container_width=True)
+            donut_event = st.plotly_chart(
+                fig_donut,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="points",
+                key="sentiment_donut_event"
+            )
+
+            # Interactive chart click navigation
+            if donut_event:
+                sel = donut_event.get("selection") if isinstance(donut_event, dict) else getattr(donut_event, "selection", None)
+                if sel:
+                    pts = sel.get("points") if isinstance(sel, dict) else getattr(sel, "points", [])
+                    if pts:
+                        pt = pts[0]
+                        pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
+                        label = pt_dict.get("label")
+                        p_idx = pt_dict.get("point_index", pt_dict.get("point_number"))
+                        sentiment_labels = ['Tích cực', 'Trung lập', 'Tiêu cực']
+                        if not label and p_idx is not None and p_idx < len(sentiment_labels):
+                            label = sentiment_labels[p_idx]
+                        
+                        if label == 'Tiêu cực':
+                            st.session_state["redirect_page"] = "Thảo luận tiêu cực"
+                            st.rerun()
+                        elif label == 'Tích cực':
+                            st.session_state["redirect_page"] = "Thảo luận tích cực"
+                            st.rerun()
+                        elif label == 'Trung lập':
+                            st.session_state["redirect_page"] = "Cập nhật thảo luận mới nhất"
+                            st.rerun()
+
+            # Quick navigation buttons below chart
+            btn_c1, btn_c2 = st.columns(2)
+            with btn_c1:
+                if st.button(f"🟢 Xem {pos_cnt:,} Tích cực ➔", use_container_width=True, key="btn_to_pos"):
+                    st.session_state["redirect_page"] = "Thảo luận tích cực"
+                    st.rerun()
+            with btn_c2:
+                if st.button(f"🔴 Xem {neg_cnt:,} Tiêu cực ➔", use_container_width=True, key="btn_to_neg"):
+                    st.session_state["redirect_page"] = "Thảo luận tiêu cực"
+                    st.rerun()
 
     # Bottom Right: Sắc thái thảo luận theo chủ đề (Hierarchical 100% Stacked Horizontal Bars matching Image 1)
     with col_b2:
@@ -641,6 +693,12 @@ elif nav_page == "Thảo luận qua các kênh":
 # SCREEN 3: THẢO LUẬN TIÊU CỰC (Image 3)
 # =============================================================
 elif nav_page == "Thảo luận tiêu cực":
+    col_back, _ = st.columns([1.5, 4])
+    with col_back:
+        if st.button("⬅️ Quay lại Tổng quan thảo luận", key="back_from_neg"):
+            st.session_state["redirect_page"] = "Tổng quan thảo luận"
+            st.rerun()
+
     col_neg1, col_neg2, col_neg3 = st.columns([1, 1.2, 1.8])
     
     neg_df = df[df['sentiment'] == 'NEGATIVE']
@@ -735,6 +793,12 @@ elif nav_page == "Thảo luận tiêu cực":
 # SCREEN: THẢO LUẬN TÍCH CỰC
 # =============================================================
 elif nav_page == "Thảo luận tích cực":
+    col_back, _ = st.columns([1.5, 4])
+    with col_back:
+        if st.button("⬅️ Quay lại Tổng quan thảo luận", key="back_from_pos"):
+            st.session_state["redirect_page"] = "Tổng quan thảo luận"
+            st.rerun()
+
     col_pos1, col_pos2, col_pos3 = st.columns([1, 1.2, 1.8])
     
     pos_df = df[df['sentiment'] == 'POSITIVE']
