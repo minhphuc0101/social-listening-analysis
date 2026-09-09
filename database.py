@@ -200,7 +200,7 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
                 params.append(start_date)
             if end_date:
                 conditions.append("published_at <= %s")
-                params.append(end_date)
+                params.append(f"{end_date} 23:59:59" if len(str(end_date)) == 10 else end_date)
             if pillar and pillar not in ("All", "Tất cả"):
                 conditions.append("topic_pillar = %s")
                 params.append(pillar)
@@ -252,8 +252,28 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
         df = df[df["channel"] == channel]
     if lookback_hours and "published_at" in df.columns:
         try:
-            cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=int(lookback_hours))
+            max_dt = pd.to_datetime(df["published_at"]).max()
+            now_dt = datetime.datetime.now(datetime.timezone.utc)
+            base_time = max(now_dt, max_dt) if pd.notna(max_dt) else now_dt
+            cutoff = base_time - datetime.timedelta(hours=int(lookback_hours))
             df = df[pd.to_datetime(df["published_at"]) >= cutoff]
+        except Exception:
+            pass
+    if start_date and "published_at" in df.columns:
+        try:
+            s_dt = pd.to_datetime(start_date)
+            if s_dt.tzinfo is None:
+                s_dt = s_dt.tz_localize(datetime.timezone.utc)
+            df = df[pd.to_datetime(df["published_at"]) >= s_dt]
+        except Exception:
+            pass
+    if end_date and "published_at" in df.columns:
+        try:
+            e_str = f"{end_date} 23:59:59" if len(str(end_date)) == 10 else str(end_date)
+            e_dt = pd.to_datetime(e_str)
+            if e_dt.tzinfo is None:
+                e_dt = e_dt.tz_localize(datetime.timezone.utc)
+            df = df[pd.to_datetime(df["published_at"]) <= e_dt]
         except Exception:
             pass
 

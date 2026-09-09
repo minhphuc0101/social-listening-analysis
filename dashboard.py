@@ -172,23 +172,6 @@ nav_page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔍 Bộ Lọc Dữ Liệu")
 
-# Date range selection
-date_preset = st.sidebar.selectbox(
-    "Khoảng thời gian:",
-    options=["Toàn thời gian (1 năm)", "48 Giờ Qua (Mới nhất)", "24 Giờ Qua", "7 Ngày Qua", "30 Ngày Qua"],
-    index=0
-)
-
-lookback_hours = None
-if date_preset == "48 Giờ Qua (Mới nhất)":
-    lookback_hours = 48
-elif date_preset == "24 Giờ Qua":
-    lookback_hours = 24
-elif date_preset == "7 Ngày Qua":
-    lookback_hours = 168
-elif date_preset == "30 Ngày Qua":
-    lookback_hours = 720
-
 # Channel Filter
 channel_filter = st.sidebar.selectbox(
     "Kênh thảo luận:",
@@ -222,12 +205,64 @@ elif "Tiêu cực" in sentiment_filter:
     sentiment_arg = "NEGATIVE"
 
 # -------------------------------------------------------------
+# TOP BAR (HEADER, SEARCH & FUNCTIONAL TIME FILTER)
+# -------------------------------------------------------------
+col_top1, col_top2 = st.columns([1, 1.4])
+with col_top1:
+    st.markdown(f'<div class="page-title">{nav_page}</div>', unsafe_allow_html=True)
+with col_top2:
+    search_col, date_col = st.columns([1, 1.35])
+    with search_col:
+        search_kw = st.text_input("Tìm kiếm", placeholder="🔍 Search...", label_visibility="collapsed")
+    with date_col:
+        date_preset = st.selectbox(
+            "Khoảng thời gian",
+            options=[
+                "📅 09-09-2025 - 09-09-2026",
+                "📅 48 Giờ Qua (Mới nhất)",
+                "📅 24 Giờ Qua",
+                "📅 7 Ngày Qua",
+                "📅 30 Ngày Qua",
+                "📅 Tùy chọn ngày..."
+            ],
+            index=0,
+            label_visibility="collapsed"
+        )
+
+# Parse time filter from top right selection
+lookback_hours = None
+start_date_arg = None
+end_date_arg = None
+
+if "48 Giờ" in date_preset:
+    lookback_hours = 48
+elif "24 Giờ" in date_preset:
+    lookback_hours = 24
+elif "7 Ngày" in date_preset:
+    lookback_hours = 168
+elif "30 Ngày" in date_preset:
+    lookback_hours = 720
+elif "Tùy chọn" in date_preset:
+    col_custom1, col_custom2 = st.columns([1.5, 1])
+    with col_custom2:
+        custom_dates = st.date_input(
+            "Khoảng ngày:",
+            value=(datetime.date(2026, 9, 1), datetime.date(2026, 9, 9)),
+            label_visibility="collapsed"
+        )
+        if isinstance(custom_dates, (list, tuple)) and len(custom_dates) == 2:
+            start_date_arg = str(custom_dates[0])
+            end_date_arg = str(custom_dates[1])
+
+# -------------------------------------------------------------
 # DATA RETRIEVAL (WITH SMART CACHING)
 # -------------------------------------------------------------
 @st.cache_data(ttl=20)
-def fetch_filtered_data(lookback, pillar, model, sentiment, channel):
+def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel):
     return get_discussions_df(
         lookback_hours=lookback,
+        start_date=start_d,
+        end_date=end_d,
         pillar=pillar if pillar != "Tất cả" else None,
         car_model=model if model != "Tất cả" else None,
         sentiment=sentiment if sentiment != "Tất cả" else None,
@@ -235,22 +270,7 @@ def fetch_filtered_data(lookback, pillar, model, sentiment, channel):
         limit=12000
     )
 
-df = fetch_filtered_data(lookback_hours, pillar_filter, model_filter, sentiment_arg, channel_filter)
-
-# Top Bar (Header & Search)
-col_top1, col_top2 = st.columns([3, 2])
-with col_top1:
-    st.markdown(f'<div class="page-title">{nav_page}</div>', unsafe_allow_html=True)
-with col_top2:
-    search_col, date_col = st.columns([1, 1])
-    with search_col:
-        search_kw = st.text_input("Tìm kiếm", placeholder="🔍 Search...", label_visibility="collapsed")
-    with date_col:
-        st.markdown("""
-        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:6px 12px; font-size:0.8rem; color:#475569; text-align:center; font-weight:600;">
-            📅 09-09-2025 - 09-09-2026
-        </div>
-        """, unsafe_allow_html=True)
+df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter)
 
 # Apply search filter if keyword entered
 if search_kw and not df.empty:
