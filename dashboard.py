@@ -272,162 +272,166 @@ neg_cnt = sent_counts.get('NEGATIVE', 0)
 # =============================================================
 if nav_page == "Tổng quan thảo luận":
     # 1. TOP CHART: Đường xu hướng thảo luận theo ngày (Full Width)
-    st.markdown("""
-    <div class="dashboard-card">
-        <div class="card-title">
-            <span>Đường xu hướng thảo luận theo ngày</span>
+    with st.container(border=True):
+        st.markdown("""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:1rem; font-weight:700; color:#1E293B;">Đường xu hướng thảo luận theo ngày <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
             <span style="font-size:0.8rem; font-weight:normal; color:#64748B;">Lượt thảo luận / ngày</span>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if not df.empty and 'published_at' in df.columns:
-        df_daily = df.copy()
-        df_daily['date'] = pd.to_datetime(df_daily['published_at']).dt.date
-        daily_vol = df_daily.groupby('date').size().reset_index(name='buzz_count')
-        daily_vol = daily_vol.sort_values('date')
+        """, unsafe_allow_html=True)
         
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Bar(
-            x=daily_vol['date'],
-            y=daily_vol['buzz_count'],
-            marker_color='#38BDF8',
-            marker_line_color='#0284C7',
-            marker_line_width=1,
-            hovertemplate='<b>Ngày:</b> %{x|%d/%m/%Y}<br><b>Số thảo luận:</b> %{y:,} buzz<extra></extra>'
-        ))
-        if not daily_vol.empty:
-            max_idx = daily_vol['buzz_count'].idxmax()
-            peak_val = daily_vol.loc[max_idx, 'buzz_count']
-            peak_date = daily_vol.loc[max_idx, 'date']
-            fig_trend.add_annotation(
-                x=peak_date,
-                y=peak_val,
-                text=f"<b>{peak_val:,}</b>",
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=1.5,
-                arrowcolor="#0284C7",
-                ax=0,
-                ay=-24,
-                bgcolor="#0284C7",
-                bordercolor="#0284C7",
-                font=dict(color="#FFFFFF", size=11)
+        if not df.empty and 'published_at' in df.columns:
+            df_daily = df.copy()
+            df_daily['date'] = pd.to_datetime(df_daily['published_at']).dt.date
+            daily_vol = df_daily.groupby('date').size().reset_index(name='buzz_count')
+            daily_vol = daily_vol.sort_values('date')
+            
+            fig_trend = go.Figure()
+            fig_trend.add_trace(go.Bar(
+                x=daily_vol['date'],
+                y=daily_vol['buzz_count'],
+                marker_color='#38BDF8',
+                marker_line_color='#0284C7',
+                marker_line_width=1,
+                hovertemplate='<b>Ngày:</b> %{x|%d/%m/%Y}<br><b>Số thảo luận:</b> %{y:,} buzz<extra></extra>'
+            ))
+            if not daily_vol.empty:
+                max_idx = daily_vol['buzz_count'].idxmax()
+                peak_val = daily_vol.loc[max_idx, 'buzz_count']
+                peak_date = daily_vol.loc[max_idx, 'date']
+                fig_trend.add_annotation(
+                    x=peak_date,
+                    y=peak_val,
+                    text=f"<b>{peak_val:,}</b>",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=1.5,
+                    arrowcolor="#0284C7",
+                    ax=0,
+                    ay=-24,
+                    bgcolor="#0284C7",
+                    bordercolor="#0284C7",
+                    font=dict(color="#FFFFFF", size=11)
+                )
+            fig_trend.update_layout(
+                plot_bgcolor='#FFFFFF',
+                paper_bgcolor='#FFFFFF',
+                margin=dict(t=25, b=20, l=40, r=20),
+                height=260,
+                xaxis=dict(showgrid=True, gridcolor='#F1F5F9', tickformat='%d/%m'),
+                yaxis=dict(showgrid=True, gridcolor='#F1F5F9')
             )
-        fig_trend.update_layout(
-            plot_bgcolor='#FFFFFF',
-            paper_bgcolor='#FFFFFF',
-            margin=dict(t=25, b=30, l=40, r=20),
-            height=280,
-            xaxis=dict(showgrid=True, gridcolor='#F1F5F9', tickformat='%d/%m'),
-            yaxis=dict(showgrid=True, gridcolor='#F1F5F9')
-        )
-        st.plotly_chart(fig_trend, use_container_width=True)
-    else:
-        st.info("Đang nạp dữ liệu xu hướng theo ngày...")
+            st.plotly_chart(fig_trend, use_container_width=True)
+        else:
+            st.info("Đang nạp dữ liệu xu hướng theo ngày...")
 
     # 2. BOTTOM ROW: Sentiment Overview (Left) + Sắc thái thảo luận theo chủ đề (Right)
     col_b1, col_b2 = st.columns([2, 3])
     
     # Bottom Left: Sentiment Donut Chart
     with col_b1:
-        st.markdown("""
-        <div class="dashboard-card" style="min-height: 480px;">
-            <div class="card-title">Sentiment overview</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        pos_pct_val = round(pos_cnt / total_buzz * 100, 1) if total_buzz else 0
-        neu_pct_val = round(neu_cnt / total_buzz * 100, 1) if total_buzz else 0
-        neg_pct_val = round(neg_cnt / total_buzz * 100, 1) if total_buzz else 0
-
-        fig_donut = go.Figure(data=[go.Pie(
-            labels=['Tích cực', 'Trung lập', 'Tiêu cực'],
-            values=[pos_cnt, neu_cnt, neg_cnt],
-            hole=0.68,
-            marker_colors=['#2DD4BF', '#475569', '#EF4444'],
-            textinfo='percent',
-            hoverinfo='label+value+percent'
-        )])
-        fig_donut.update_layout(
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5),
-            margin=dict(t=20, b=20, l=20, r=20),
-            height=360,
-            annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
-        )
-        st.plotly_chart(fig_donut, use_container_width=True)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Sentiment overview <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            fig_donut = go.Figure(data=[go.Pie(
+                labels=['Tích cực', 'Trung lập', 'Tiêu cực'],
+                values=[pos_cnt, neu_cnt, neg_cnt],
+                hole=0.66,
+                marker_colors=['#2DD4BF', '#475569', '#EF4444'],
+                textinfo='percent',
+                texttemplate='(%{percent})',
+                textposition='outside',
+                hoverinfo='label+value+percent'
+            )])
+            fig_donut.update_layout(
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.12, xanchor="center", x=0.5),
+                margin=dict(t=15, b=25, l=15, r=15),
+                height=390,
+                plot_bgcolor='#FFFFFF',
+                paper_bgcolor='#FFFFFF',
+                annotations=[dict(
+                    text=f'<b>{total_buzz:,}</b><br><span style="font-size:13px; color:#64748B; font-weight:normal;">Buzz</span>',
+                    x=0.5, y=0.5,
+                    font=dict(size=22, color="#1E293B"),
+                    showarrow=False
+                )]
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
 
     # Bottom Right: Sắc thái thảo luận theo chủ đề (Hierarchical 100% Stacked Horizontal Bars matching Image 1)
     with col_b2:
-        st.markdown("""
-        <div class="dashboard-card">
-            <div class="card-title">
-                <span>Sắc thái thảo luận theo chủ đề</span>
-                <span style="font-size:0.8rem; font-weight:normal; color:#64748B;">Tỷ lệ cảm xúc & Tổng buzz</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Build hierarchical topic rows matching Image 1
-        topic_html_blocks = []
-        for pillar, subtopics in HIERARCHICAL_TOPICS.items():
-            if pillar_filter != "Tất cả" and pillar != pillar_filter:
-                continue
-            pillar_df = df[df['topic_pillar'] == pillar] if not df.empty and 'topic_pillar' in df.columns else pd.DataFrame()
-            pillar_cnt = len(pillar_df)
-            
-            subtopic_rows_html = []
-            for st_name in subtopics.keys():
-                sub_df = df[df['topic_category'] == st_name] if not df.empty and 'topic_category' in df.columns else pd.DataFrame()
-                cnt = len(sub_df)
-                if cnt > 0:
-                    s_counts = sub_df['sentiment'].value_counts()
-                    p = s_counts.get('POSITIVE', 0)
-                    neu = s_counts.get('NEUTRAL', 0)
-                    n = s_counts.get('NEGATIVE', 0)
-                    p_pct = round(p / cnt * 100, 1)
-                    neu_pct = round(neu / cnt * 100, 1)
-                    n_pct = round(n / cnt * 100, 1)
-
-                    p_label = f"{p_pct}%" if p_pct >= 14 else ""
-                    n_label = f"{n_pct}%" if n_pct >= 14 else ""
-                    neu_label = f"{neu_pct}%" if neu_pct >= 14 else ""
-
-                    row_html = f"""
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px;">
-                        <span style="width: 145px; font-size: 0.78rem; color: #334155; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{st_name}">{st_name}</span>
-                        <div style="flex-grow: 1; margin: 0 10px; height: 16px; border-radius: 8px; overflow: hidden; display: flex; font-size: 9px; font-weight: 700; color: #FFFFFF; text-align: center; line-height: 16px;">
-                            <div style="width: {p_pct}%; background: #2DD4BF;" title="Tích cực: {p_pct}%">{p_label}</div>
-                            <div style="width: {n_pct}%; background: #EF4444;" title="Tiêu cực: {n_pct}%">{n_label}</div>
-                            <div style="width: {neu_pct}%; background: #475569;" title="Trung lập: {neu_pct}%">{neu_label}</div>
-                        </div>
-                        <span style="width: 75px; text-align: right; font-size: 0.78rem; font-weight: 700; color: #64748B;">{cnt:,} buzz</span>
-                    </div>
-                    """
-                    subtopic_rows_html.append(row_html)
-
-            if subtopic_rows_html or pillar_cnt > 0:
-                pillar_block = f"""
-                <div style="margin-top: 10px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #F1F5F9;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; font-weight: 700; color: #0F172A; margin-bottom: 6px;">
-                        <span>* {pillar}</span>
-                        <span style="color: #64748B; font-weight: 700; font-size: 0.82rem;">{pillar_cnt:,} buzz</span>
-                    </div>
-                    {''.join(subtopic_rows_html)}
-                </div>
-                """
-                topic_html_blocks.append(pillar_block)
-
-        if topic_html_blocks:
-            st.markdown(f"""
-            <div style="max-height: 480px; overflow-y: auto; padding-right: 8px;">
-                {''.join(topic_html_blocks)}
+        with st.container(border=True):
+            st.markdown("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Sắc thái thảo luận theo chủ đề <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
+                <span style="font-size:0.78rem; font-weight:600; color:#64748B;">Tỷ lệ cảm xúc &amp; Tổng buzz</span>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.info("Chưa có đủ thảo luận theo chủ đề được phân loại cho bộ lọc này.")
+
+            # Build hierarchical topic rows matching Image 1
+            topic_html_blocks = []
+            for pillar, subtopics in HIERARCHICAL_TOPICS.items():
+                if pillar_filter != "Tất cả" and pillar != pillar_filter:
+                    continue
+                pillar_df = df[df['topic_pillar'] == pillar] if not df.empty and 'topic_pillar' in df.columns else pd.DataFrame()
+                pillar_cnt = len(pillar_df)
+                
+                subtopic_rows_html = []
+                for st_name in subtopics.keys():
+                    sub_df = df[df['topic_category'] == st_name] if not df.empty and 'topic_category' in df.columns else pd.DataFrame()
+                    cnt = len(sub_df)
+                    if cnt > 0:
+                        s_counts = sub_df['sentiment'].value_counts()
+                        p = s_counts.get('POSITIVE', 0)
+                        neu = s_counts.get('NEUTRAL', 0)
+                        n = s_counts.get('NEGATIVE', 0)
+                        p_pct = round(p / cnt * 100, 1)
+                        neu_pct = round(neu / cnt * 100, 1)
+                        n_pct = round(n / cnt * 100, 1)
+
+                        p_label = f"{p_pct}%" if p_pct >= 14 else ""
+                        n_label = f"{n_pct}%" if n_pct >= 14 else ""
+                        neu_label = f"{neu_pct}%" if neu_pct >= 14 else ""
+
+                        row_html = (
+                            f'<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:7px;">'
+                            f'<span style="width:145px; font-size:0.78rem; color:#334155; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{st_name}">{st_name}</span>'
+                            f'<div style="flex-grow:1; margin:0 10px; height:16px; border-radius:8px; overflow:hidden; display:flex; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center; line-height:16px;">'
+                            f'<div style="width:{p_pct}%; background:#2DD4BF;" title="Tích cực: {p_pct}%">{p_label}</div>'
+                            f'<div style="width:{n_pct}%; background:#EF4444;" title="Tiêu cực: {n_pct}%">{n_label}</div>'
+                            f'<div style="width:{neu_pct}%; background:#475569;" title="Trung lập: {neu_pct}%">{neu_label}</div>'
+                            f'</div>'
+                            f'<span style="width:75px; text-align:right; font-size:0.78rem; font-weight:700; color:#64748B;">{cnt:,} buzz</span>'
+                            f'</div>'
+                        )
+                        subtopic_rows_html.append(row_html)
+
+                if subtopic_rows_html or pillar_cnt > 0:
+                    pillar_block = (
+                        f'<div style="margin-top:10px; margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid #F1F5F9;">'
+                        f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.88rem; font-weight:700; color:#0F172A; margin-bottom:6px;">'
+                        f'<span>* {pillar}</span>'
+                        f'<span style="color:#64748B; font-weight:700; font-size:0.82rem;">{pillar_cnt:,} buzz</span>'
+                        f'</div>'
+                        f'{"".join(subtopic_rows_html)}'
+                        f'</div>'
+                    )
+                    topic_html_blocks.append(pillar_block)
+
+            if topic_html_blocks:
+                topics_rendered = f'<div style="max-height:350px; overflow-y:auto; padding-right:6px;">{"".join(topic_html_blocks)}</div>'
+                if hasattr(st, "html"):
+                    st.html(topics_rendered)
+                else:
+                    st.markdown(topics_rendered, unsafe_allow_html=True)
+            else:
+                st.info("Chưa có đủ thảo luận theo chủ đề được phân loại cho bộ lọc này.")
 
 
 # =============================================================
@@ -438,127 +442,135 @@ elif nav_page == "Thảo luận qua các kênh":
     
     # Top Left: Tỷ lệ thảo luận trên các kênh (Donut)
     with col_c1:
-        st.markdown("""
-        <div class="dashboard-card">
-            <div class="card-title">Tỷ lệ thảo luận trên các kênh</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        channel_counts = df['channel'].value_counts().reset_index()
-        channel_counts.columns = ['Channel', 'Count']
-        
-        fig_ch_donut = go.Figure(data=[go.Pie(
-            labels=channel_counts['Channel'],
-            values=channel_counts['Count'],
-            hole=0.65,
-            marker_colors=['#3B82F6', '#06B6D4', '#F59E0B', '#8B5CF6', '#10B981', '#EC4899', '#64748B'],
-            textinfo='percent',
-            hoverinfo='label+value+percent'
-        )])
-        fig_ch_donut.update_layout(
-            margin=dict(t=20, b=20, l=20, r=20),
-            height=340,
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
-            annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
-        )
-        st.plotly_chart(fig_ch_donut, use_container_width=True)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Tỷ lệ thảo luận trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            channel_counts = df['channel'].value_counts().reset_index()
+            channel_counts.columns = ['Channel', 'Count']
+            
+            fig_ch_donut = go.Figure(data=[go.Pie(
+                labels=channel_counts['Channel'],
+                values=channel_counts['Count'],
+                hole=0.65,
+                marker_colors=['#3B82F6', '#06B6D4', '#F59E0B', '#8B5CF6', '#10B981', '#EC4899', '#64748B'],
+                textinfo='percent',
+                hoverinfo='label+value+percent'
+            )])
+            fig_ch_donut.update_layout(
+                margin=dict(t=15, b=25, l=15, r=15),
+                height=360,
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+                annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
+            )
+            st.plotly_chart(fig_ch_donut, use_container_width=True)
 
     # Top Right: Xếp hạng nguồn thảo luận
     with col_c2:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:12px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
+                Xếp hạng nguồn thảo luận <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            standard_channels = ["News", "TikTok", "Facebook Pages", "Facebook Users", "Facebook Groups", "YouTube", "Forum", "Social Sites", "E-commerce Sites"]
+            rank_data = []
+            for ch in standard_channels:
+                sub = df[df['channel'] == ch]
+                c_cnt = len(sub)
+                p = len(sub[sub['sentiment'] == 'POSITIVE'])
+                neu = len(sub[sub['sentiment'] == 'NEUTRAL'])
+                neg = len(sub[sub['sentiment'] == 'NEGATIVE'])
+                rank_data.append({
+                    "Channel": ch,
+                    "Buzz": c_cnt,
+                    "Pos_pct": round(p/c_cnt*100, 1) if c_cnt else 0,
+                    "Neu_pct": round(neu/c_cnt*100, 1) if c_cnt else 0,
+                    "Neg_pct": round(neg/c_cnt*100, 1) if c_cnt else 0
+                })
+                
+            df_rank = pd.DataFrame(rank_data).sort_values('Buzz', ascending=False).reset_index(drop=True)
+            
+            rank_rows_html = []
+            for idx, row in df_rank.iterrows():
+                r_html = (
+                    f'<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid #F8FAFC;">'
+                    f'<div style="width:160px; font-size:0.85rem; font-weight:600; color:#1E293B;">'
+                    f'<span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row["Channel"]}'
+                    f'</div>'
+                    f'<div style="flex-grow:1; margin:0 12px; background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden; display:flex;">'
+                    f'<div style="width:{row["Pos_pct"]}%; background:#2DD4BF;"></div>'
+                    f'<div style="width:{row["Neg_pct"]}%; background:#EF4444;"></div>'
+                    f'<div style="width:{row["Neu_pct"]}%; background:#475569;"></div>'
+                    f'</div>'
+                    f'<div style="width:85px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569;">'
+                    f'{row["Buzz"]:,} buzz'
+                    f'</div>'
+                    f'</div>'
+                )
+                rank_rows_html.append(r_html)
+                
+            rank_full_html = f'<div style="max-height:360px; overflow-y:auto;">{"".join(rank_rows_html)}</div>'
+            if hasattr(st, "html"):
+                st.html(rank_full_html)
+            else:
+                st.markdown(rank_full_html, unsafe_allow_html=True)
+
+    # Bottom: Top nguồn thảo luận trên kênh Tin tức trực tuyến (Image 2)
+    with st.container(border=True):
         st.markdown("""
-        <div class="dashboard-card">
-            <div class="card-title">Xếp hạng nguồn thảo luận</div>
+        <div style="margin-bottom:8px;">
+            <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top nguồn thảo luận trên kênh Tin tức trực tuyến <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
+            <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-top:4px; letter-spacing:0.05em;">NEWS</div>
         </div>
         """, unsafe_allow_html=True)
         
-        standard_channels = ["News", "TikTok", "Facebook Pages", "Facebook Users", "Facebook Groups", "YouTube", "Forum", "Social Sites", "E-commerce Sites"]
-        rank_data = []
-        for ch in standard_channels:
-            sub = df[df['channel'] == ch]
-            c_cnt = len(sub)
-            p = len(sub[sub['sentiment'] == 'POSITIVE'])
-            neu = len(sub[sub['sentiment'] == 'NEUTRAL'])
-            neg = len(sub[sub['sentiment'] == 'NEGATIVE'])
-            rank_data.append({
-                "Channel": ch,
-                "Buzz": c_cnt,
-                "Pos_pct": round(p/c_cnt*100, 1) if c_cnt else 0,
-                "Neu_pct": round(neu/c_cnt*100, 1) if c_cnt else 0,
-                "Neg_pct": round(neg/c_cnt*100, 1) if c_cnt else 0
-            })
+        # Extract top news sources or domains from df
+        news_df = df[df['channel'] == 'News'] if not df.empty and 'channel' in df.columns else pd.DataFrame()
+        top_news_sources = []
+        
+        if not news_df.empty and 'site_name' in news_df.columns:
+            source_counts = news_df['site_name'].value_counts().head(10).reset_index()
+            source_counts.columns = ['Source', 'Buzz']
+            top_news_sources = source_counts.to_dict(orient='records')
             
-        df_rank = pd.DataFrame(rank_data).sort_values('Buzz', ascending=False).reset_index(drop=True)
-        
-        # Display as ranked list matching screenshot
-        for idx, row in df_rank.iterrows():
-            st.markdown(f"""
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid #F1F5F9;">
-                <div style="width:180px; font-size:0.85rem; font-weight:600; color:#1E293B;">
-                    <span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row['Channel']}
-                </div>
-                <div style="flex-grow:1; margin:0 15px; background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden; display:flex;">
-                    <div style="width:{row['Pos_pct']}%; background:#2DD4BF;"></div>
-                    <div style="width:{row['Neg_pct']}%; background:#EF4444;"></div>
-                    <div style="width:{row['Neu_pct']}%; background:#475569;"></div>
-                </div>
-                <div style="width:90px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569;">
-                    {row['Buzz']:,} buzz
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        if not top_news_sources:
+            # Standard benchmark news sources matching Image 2
+            top_news_sources = [
+                {"Source": "baomoi.com", "Buzz": 1500},
+                {"Source": "chuyendongthitruong.vn", "Buzz": 347},
+                {"Source": "autopro.com.vn", "Buzz": 279},
+                {"Source": "soha.vn", "Buzz": 277},
+                {"Source": "24h.com.vn", "Buzz": 245},
+                {"Source": "vietgiaitri.com", "Buzz": 218},
+                {"Source": "znews.vn", "Buzz": 215},
+                {"Source": "cafeF.vn", "Buzz": 172},
+                {"Source": "tinxe.vn", "Buzz": 150},
+                {"Source": "khoahocdoisong.vn", "Buzz": 144}
+            ]
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Bottom: Top nguồn thảo luận trên kênh Tin tức trực tuyến (Image 2)
-    st.markdown("""
-    <div class="dashboard-card">
-        <div class="card-title">Top nguồn thảo luận trên kênh Tin tức trực tuyến</div>
-        <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-bottom:0.75rem; letter-spacing:0.05em;">NEWS</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Extract top news sources or domains from df
-    news_df = df[df['channel'] == 'News'] if not df.empty and 'channel' in df.columns else pd.DataFrame()
-    top_news_sources = []
-    
-    if not news_df.empty and 'site_name' in news_df.columns:
-        source_counts = news_df['site_name'].value_counts().head(10).reset_index()
-        source_counts.columns = ['Source', 'Buzz']
-        top_news_sources = source_counts.to_dict(orient='records')
-        
-    if not top_news_sources:
-        # Standard benchmark news sources matching Image 2
-        top_news_sources = [
-            {"Source": "baomoi.com", "Buzz": 1500},
-            {"Source": "chuyendongthitruong.vn", "Buzz": 347},
-            {"Source": "autopro.com.vn", "Buzz": 279},
-            {"Source": "soha.vn", "Buzz": 277},
-            {"Source": "24h.com.vn", "Buzz": 245},
-            {"Source": "vietgiaitri.com", "Buzz": 218},
-            {"Source": "znews.vn", "Buzz": 215},
-            {"Source": "cafeF.vn", "Buzz": 172},
-            {"Source": "tinxe.vn", "Buzz": 150},
-            {"Source": "khoahocdoisong.vn", "Buzz": 144}
-        ]
-
-    df_news_src = pd.DataFrame(top_news_sources).sort_values('Buzz', ascending=True)
-    fig_news_src = px.bar(
-        df_news_src,
-        x='Buzz',
-        y='Source',
-        orientation='h',
-        color_discrete_sequence=['#38BDF8']
-    )
-    fig_news_src.update_layout(
-        plot_bgcolor='#FFFFFF',
-        paper_bgcolor='#FFFFFF',
-        height=320,
-        margin=dict(t=10, b=20, l=150, r=40),
-        xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
-        yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
-    )
-    st.plotly_chart(fig_news_src, use_container_width=True)
+        df_news_src = pd.DataFrame(top_news_sources).sort_values('Buzz', ascending=True)
+        fig_news_src = px.bar(
+            df_news_src,
+            x='Buzz',
+            y='Source',
+            orientation='h',
+            color_discrete_sequence=['#38BDF8']
+        )
+        fig_news_src.update_layout(
+            plot_bgcolor='#FFFFFF',
+            paper_bgcolor='#FFFFFF',
+            height=300,
+            margin=dict(t=10, b=20, l=150, r=40),
+            xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+            yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
+        )
+        st.plotly_chart(fig_news_src, use_container_width=True)
 
 
 # =============================================================
@@ -572,66 +584,69 @@ elif nav_page == "Thảo luận tiêu cực":
     
     # Column 1: Sắc thái thảo luận tiêu cực (Donut)
     with col_neg1:
-        st.markdown("""
-        <div class="dashboard-card">
-            <div class="card-title">Sắc thái thảo luận</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        fig_neg_donut = go.Figure(data=[go.Pie(
-            labels=['Tiêu cực'],
-            values=[total_neg if total_neg > 0 else 1],
-            hole=0.68,
-            marker_colors=['#EF4444'],
-            textinfo='none',
-            hoverinfo='label+value'
-        )])
-        fig_neg_donut.update_layout(
-            margin=dict(t=20, b=20, l=20, r=20),
-            height=320,
-            showlegend=False,
-            annotations=[dict(text=f'<b>{total_neg:,}</b><br><span style="font-size:12px; color:#EF4444;">Buzz Tiêu Cực</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
-        )
-        st.plotly_chart(fig_neg_donut, use_container_width=True)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Sắc thái thảo luận <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            fig_neg_donut = go.Figure(data=[go.Pie(
+                labels=['Tiêu cực'],
+                values=[total_neg if total_neg > 0 else 1],
+                hole=0.68,
+                marker_colors=['#EF4444'],
+                textinfo='none',
+                hoverinfo='label+value'
+            )])
+            fig_neg_donut.update_layout(
+                margin=dict(t=15, b=20, l=15, r=15),
+                height=320,
+                showlegend=False,
+                annotations=[dict(text=f'<b>{total_neg:,}</b><br><span style="font-size:12px; color:#EF4444;">Buzz Tiêu Cực</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
+            )
+            st.plotly_chart(fig_neg_donut, use_container_width=True)
 
     # Column 2: Thảo luận tiêu cực trên các kênh
     with col_neg2:
-        st.markdown("""
-        <div class="dashboard-card">
-            <div class="card-title">Thảo luận tiêu cực trên các kênh</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if not neg_df.empty:
-            neg_channels = neg_df['channel'].value_counts().reset_index()
-            neg_channels.columns = ['Channel', 'Buzz']
-            neg_channels = neg_channels.sort_values('Buzz', ascending=True)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Thảo luận tiêu cực trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
             
-            fig_neg_ch = px.bar(
-                neg_channels,
-                x='Buzz',
-                y='Channel',
-                orientation='h',
-                color_discrete_sequence=['#EF4444']
-            )
-            fig_neg_ch.update_layout(
-                plot_bgcolor='#FFFFFF',
-                paper_bgcolor='#FFFFFF',
-                height=320,
-                margin=dict(t=10, b=20, l=110, r=20),
-                xaxis=dict(showgrid=True, gridcolor='#F1F5F9')
-            )
-            st.plotly_chart(fig_neg_ch, use_container_width=True)
-        else:
-            st.info("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
+            if not neg_df.empty:
+                neg_channels = neg_df['channel'].value_counts().reset_index()
+                neg_channels.columns = ['Channel', 'Buzz']
+                neg_channels = neg_channels.sort_values('Buzz', ascending=True)
+                
+                fig_neg_ch = px.bar(
+                    neg_channels,
+                    x='Buzz',
+                    y='Channel',
+                    orientation='h',
+                    color_discrete_sequence=['#EF4444']
+                )
+                fig_neg_ch.update_layout(
+                    plot_bgcolor='#FFFFFF',
+                    paper_bgcolor='#FFFFFF',
+                    height=320,
+                    margin=dict(t=10, b=20, l=110, r=20),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9')
+                )
+                st.plotly_chart(fig_neg_ch, use_container_width=True)
+            else:
+                st.info("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
 
     # Column 3: Cập nhật thảo luận tiêu cực mới nhất
     with col_neg3:
-        st.markdown("""
-        <div class="dashboard-card">
-            <div class="card-title">Cập nhật thảo luận tiêu cực mới nhất</div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Cập nhật thảo luận tiêu cực mới nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
         
         if not neg_df.empty:
             for idx, r in neg_df.head(15).iterrows():
