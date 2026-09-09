@@ -148,6 +148,49 @@ from database import get_discussions_df, get_db_stats, get_latest_daily_summary
 from ai_scanner import run_48h_scan
 from analysis_engine import HIERARCHICAL_TOPICS
 
+def render_feed_card(record, sentiment_type="NEUTRAL"):
+    url = record.get('url_comment') or record.get('UrlComment') or record.get('url') or ''
+    has_link = bool(url and str(url).startswith('http'))
+    auth = record.get('author') or record.get('Author') or 'Người dùng ẩn danh'
+    chan = record.get('channel') or record.get('Channel') or 'Mạng xã hội'
+    dt_str = str(record.get('raw_published_date') or record.get('published_at') or 'Gần đây')
+    content = str(record.get('content') or record.get('Content') or record.get('description') or record.get('Description') or '')
+    topic_tag = record.get('topic_category') or 'Chung'
+    
+    s_upper = str(sentiment_type).upper()
+    if s_upper == 'POSITIVE':
+        badge_html = '<span class="badge-pos">Tích cực</span>'
+        border_color = '#2DD4BF'
+    elif s_upper == 'NEGATIVE':
+        badge_html = '<span class="badge-neg">Tiêu cực</span>'
+        border_color = '#EF4444'
+    else:
+        badge_html = '<span class="badge-neu">Trung lập</span>'
+        border_color = '#94A3B8'
+        
+    auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700; font-size:0.92rem;" title="Mở liên kết bài viết gốc">{auth} <span style="font-size:0.8rem; color:#2563EB;">↗</span></a>' if has_link else f'<span class="feed-author">{auth}</span>'
+    
+    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:4px;" title="Mở trên {chan}">🔗 Xem bài viết gốc trên {chan} ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
+    
+    clean_content = content.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+    
+    return (
+        f'<div class="feed-card" style="border-left:4px solid {border_color}; margin-bottom:12px; padding:12px 16px;">'
+        f'<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">'
+        f'<div>'
+        f'{auth_html} &nbsp;<span class="feed-channel">({chan})</span>'
+        f'<div class="feed-date">🕒 {dt_str}</div>'
+        f'</div>'
+        f'<div>{badge_html}</div>'
+        f'</div>'
+        f'<div class="feed-content" style="font-size:0.88rem; color:#334155; line-height:1.5;">{clean_content[:280]}{"..." if len(clean_content) > 280 else ""}</div>'
+        f'<div style="margin-top:10px; padding-top:8px; border-top:1px solid #F1F5F9; display:flex; justify-content:space-between; align-items:center;">'
+        f'<span class="feed-topic-tag" style="margin-bottom:0;">🏷️ {topic_tag}</span>'
+        f'{link_btn_html}'
+        f'</div>'
+        f'</div>'
+    )
+
 # -------------------------------------------------------------
 # SIDEBAR NAVIGATION & FILTERS
 # -------------------------------------------------------------
@@ -163,6 +206,7 @@ nav_page = st.sidebar.radio(
         "Tổng quan thảo luận",
         "Thảo luận qua các kênh",
         "Thảo luận tiêu cực",
+        "Thảo luận tích cực",
         "Cập nhật thảo luận mới nhất",
         "Báo cáo AI 48H"
     ],
@@ -659,83 +703,156 @@ elif nav_page == "Thảo luận tiêu cực":
             else:
                 st.info("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
 
-    # Column 3: Cập nhật thảo luận tiêu cực mới nhất
+    # Column 3: Cập nhật thảo luận tiêu cực & tích cực
     with col_neg3:
         with st.container(border=True):
             st.markdown("""
             <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Cập nhật thảo luận tiêu cực mới nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                Cập nhật thảo luận theo sắc thái <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
             </div>
             """, unsafe_allow_html=True)
-        
-        if not neg_df.empty:
-            for idx, r in neg_df.head(15).iterrows():
-                dt_str = str(r.get('raw_published_date') or r.get('published_at') or 'Gần đây')
-                auth = r.get('author') or 'Người dùng ẩn danh'
-                chan = r.get('channel') or 'Mạng xã hội'
-                content = str(r.get('content') or r.get('description') or '')
-                st.markdown(f"""
-                <div class="feed-card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <span class="feed-author">{auth}</span> &nbsp;<span class="feed-channel">({chan})</span>
-                            <div class="feed-date">🕒 {dt_str}</div>
-                        </div>
-                        <span class="badge-neg">Tiêu cực</span>
-                    </div>
-                    <div class="feed-content">{content[:180]}...</div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.success("Không có thảo luận tiêu cực.")
+            
+            tab_neg_list, tab_pos_list = st.tabs([
+                f"🔴 Tiêu cực ({len(neg_df):,})",
+                f"🟢 Tích cực ({len(df[df['sentiment'] == 'POSITIVE']):,})"
+            ])
+            with tab_neg_list:
+                if not neg_df.empty:
+                    for idx, r in neg_df.head(25).iterrows():
+                        st.markdown(render_feed_card(r, "NEGATIVE"), unsafe_allow_html=True)
+                else:
+                    st.success("Không có thảo luận tiêu cực.")
+            with tab_pos_list:
+                pos_df = df[df['sentiment'] == 'POSITIVE']
+                if not pos_df.empty:
+                    for idx, r in pos_df.head(25).iterrows():
+                        st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
+                else:
+                    st.info("Không có thảo luận tích cực.")
+
+
+# =============================================================
+# SCREEN: THẢO LUẬN TÍCH CỰC
+# =============================================================
+elif nav_page == "Thảo luận tích cực":
+    col_pos1, col_pos2, col_pos3 = st.columns([1, 1.2, 1.8])
+    
+    pos_df = df[df['sentiment'] == 'POSITIVE']
+    total_pos = len(pos_df)
+    
+    # Column 1: Sắc thái thảo luận tích cực (Donut)
+    with col_pos1:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Sắc thái thảo luận tích cực <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            fig_pos_donut = go.Figure(data=[go.Pie(
+                labels=['Tích cực'],
+                values=[total_pos if total_pos > 0 else 1],
+                hole=0.68,
+                marker_colors=['#2DD4BF'],
+                textinfo='none',
+                hoverinfo='label+value'
+            )])
+            fig_pos_donut.update_layout(
+                margin=dict(t=15, b=20, l=15, r=15),
+                height=320,
+                showlegend=False,
+                annotations=[dict(text=f'<b>{total_pos:,}</b><br><span style="font-size:12px; color:#0F766E;">Buzz Tích Cực</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
+            )
+            st.plotly_chart(fig_pos_donut, use_container_width=True)
+
+    # Column 2: Thảo luận tích cực trên các kênh
+    with col_pos2:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Thảo luận tích cực trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if not pos_df.empty:
+                pos_channels = pos_df['channel'].value_counts().reset_index()
+                pos_channels.columns = ['Channel', 'Buzz']
+                pos_channels = pos_channels.sort_values('Buzz', ascending=True)
+                
+                fig_pos_ch = px.bar(
+                    pos_channels,
+                    x='Buzz',
+                    y='Channel',
+                    orientation='h',
+                    color_discrete_sequence=['#2DD4BF']
+                )
+                fig_pos_ch.update_layout(
+                    plot_bgcolor='#FFFFFF',
+                    paper_bgcolor='#FFFFFF',
+                    height=320,
+                    margin=dict(t=10, b=20, l=110, r=20),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9')
+                )
+                st.plotly_chart(fig_pos_ch, use_container_width=True)
+            else:
+                st.info("Không có thảo luận tích cực nào trong khoảng thời gian này.")
+
+    # Column 3: Cập nhật thảo luận tích cực mới nhất
+    with col_pos3:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Cập nhật thảo luận tích cực mới nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if not pos_df.empty:
+                for idx, r in pos_df.head(25).iterrows():
+                    st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
+            else:
+                st.info("Không có thảo luận tích cực.")
 
 
 # =============================================================
 # SCREEN 4: CẬP NHẬT THẢO LUẬN MỚI NHẤT (Image 4)
 # =============================================================
 elif nav_page == "Cập nhật thảo luận mới nhất":
-    st.markdown(f"""
-    <div class="dashboard-card">
-        <div class="card-title">
-            <span>Dòng thời gian thảo luận thời gian thực</span>
+    with st.container(border=True):
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:1rem; font-weight:700; color:#1E293B;">Dòng thời gian thảo luận thời gian thực</span>
             <span style="font-size:0.85rem; font-weight:600; color:#0F766E;">Tổng số: {total_buzz:,} bài viết & bình luận</span>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-    if not df.empty:
-        for idx, r in df.head(30).iterrows():
-            topic_tag = r.get('topic_category') or 'Đánh giá sản phẩm'
-            auth = r.get('author') or 'Facebook User'
-            chan = r.get('channel') or 'Facebook'
-            dt_str = str(r.get('raw_published_date') or r.get('published_at') or 'Gần đây')
-            content = str(r.get('content') or r.get('description') or '')
-            sentiment = str(r.get('sentiment') or 'NEUTRAL').upper()
+    tab_all, tab_pos, tab_neg = st.tabs([
+        f"📋 Tất cả ({total_buzz:,})",
+        f"🟢 Thảo luận tích cực ({pos_cnt:,})",
+        f"🔴 Thảo luận tiêu cực ({neg_cnt:,})"
+    ])
+    
+    with tab_all:
+        if not df.empty:
+            for idx, r in df.head(30).iterrows():
+                st.markdown(render_feed_card(r, str(r.get('sentiment', 'NEUTRAL')).upper()), unsafe_allow_html=True)
+        else:
+            st.info("Không có dữ liệu thảo luận phù hợp với bộ lọc hiện tại.")
             
-            badge_html = '<span class="badge-neu">Trung lập</span>'
-            if sentiment == 'POSITIVE':
-                badge_html = '<span class="badge-pos">Tích cực</span>'
-            elif sentiment == 'NEGATIVE':
-                badge_html = '<span class="badge-neg">Tiêu cực</span>'
-                
-            st.markdown(f"""
-            <div class="feed-card">
-                <span class="feed-topic-tag">🏷️ {topic_tag}</span>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span class="feed-author">{auth}</span> &nbsp;<span style="color:#64748B;">trên</span>&nbsp; <span class="feed-channel">{chan}</span>
-                        <div class="feed-date">🕒 {dt_str}</div>
-                    </div>
-                    <div>{badge_html}</div>
-                </div>
-                <div class="feed-content">{content}</div>
-                <div style="margin-top:8px; font-size:0.8rem; color:#94A3B8;">
-                    👍 Like &nbsp;&nbsp; 💬 Bình luận &nbsp;&nbsp; 🔗 <a href="{r.get('url_comment', '#')}" target="_blank" style="color:#2563EB; text-decoration:none;">Xem bài viết gốc</a>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("Không có dữ liệu thảo luận phù hợp với bộ lọc hiện tại.")
+    with tab_pos:
+        pos_df_all = df[df['sentiment'] == 'POSITIVE']
+        if not pos_df_all.empty:
+            for idx, r in pos_df_all.head(30).iterrows():
+                st.markdown(render_feed_card(r, 'POSITIVE'), unsafe_allow_html=True)
+        else:
+            st.info("Không có thảo luận tích cực.")
+            
+    with tab_neg:
+        neg_df_all = df[df['sentiment'] == 'NEGATIVE']
+        if not neg_df_all.empty:
+            for idx, r in neg_df_all.head(30).iterrows():
+                st.markdown(render_feed_card(r, 'NEGATIVE'), unsafe_allow_html=True)
+        else:
+            st.info("Không có thảo luận tiêu cực.")
 
 
 # =============================================================
