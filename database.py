@@ -11,6 +11,18 @@ load_dotenv()
 def get_database_url(conn_str=None):
     url = conn_str or os.getenv("NEON_DATABASE_URL") or os.getenv("DATABASE_URL")
     if not url:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets"):
+                if "NEON_DATABASE_URL" in st.secrets:
+                    url = st.secrets["NEON_DATABASE_URL"]
+                elif "DATABASE_URL" in st.secrets:
+                    url = st.secrets["DATABASE_URL"]
+                elif "postgres" in st.secrets and "url" in st.secrets["postgres"]:
+                    url = st.secrets["postgres"]["url"]
+        except Exception:
+            pass
+    if not url:
         return None
     if "channel_binding=" in url:
         url = url.split("&channel_binding=")[0].split("?channel_binding=")[0]
@@ -22,7 +34,7 @@ def get_connection(conn_str=None):
     url = get_database_url(conn_str)
     if not url:
         return None
-    return psycopg2.connect(url, connect_timeout=5)
+    return psycopg2.connect(url, connect_timeout=6)
 
 def init_db(conn_str=None):
     """Initializes tables and indexes in Neon PostgreSQL."""
@@ -91,9 +103,39 @@ def load_local_fallback_data():
     if _LOCAL_CACHE_DF is not None:
         return _LOCAL_CACHE_DF
 
+    col_remap = {
+        'UrlComment': 'url_comment',
+        'Content': 'content',
+        'Description': 'description',
+        'SiteName': 'site_name',
+        'Author': 'author',
+        'Type': 'post_type',
+        'PublishedDate': 'raw_published_date',
+        'Sentiment': 'sentiment',
+        'Channel': 'channel'
+    }
+
+    # 1. Fast path: check bundled parquet file
+    seed_paths = [
+        "data_seed.parquet",
+        "analytics/data_seed.parquet",
+        "../data_seed.parquet"
+    ]
+    for sp in seed_paths:
+        if os.path.exists(sp):
+            try:
+                df = pd.read_parquet(sp)
+                for old_c, new_c in col_remap.items():
+                    if old_c in df.columns and new_c not in df.columns:
+                        df[new_c] = df[old_c]
+                _LOCAL_CACHE_DF = df
+                return _LOCAL_CACHE_DF
+            except Exception:
+                pass
+
+    # 2. Excel fallback
     from analysis_engine import enrich_social_record
 
-    # Find available Excel files in priority order
     candidate_paths = [
         "FB_Crawler_Packaged/social_media_output_autoforum_20260908.xlsx",
         "../FB_Crawler_Packaged/social_media_output_autoforum_20260908.xlsx",
@@ -110,7 +152,11 @@ def load_local_fallback_data():
             break
 
     if not excel_path:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=[
+            'id', 'url_comment', 'content', 'description', 'published_at',
+            'raw_published_date', 'sentiment', 'topic_pillar', 'topic_category',
+            'car_model', 'tags', 'site_name', 'channel', 'author', 'post_type'
+        ])
 
     try:
         df_raw = pd.read_excel(excel_path)
@@ -123,14 +169,23 @@ def load_local_fallback_data():
             enriched = enrich_social_record(r_dict, reference_time=file_dt)
             enriched_rows.append(enriched)
 
-        _LOCAL_CACHE_DF = pd.DataFrame(enriched_rows)
+        df = pd.DataFrame(enriched_rows)
+        for old_c, new_c in col_remap.items():
+            if old_c in df.columns and new_c not in df.columns:
+                df[new_c] = df[old_c]
+        _LOCAL_CACHE_DF = df
         return _LOCAL_CACHE_DF
     except Exception:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=[
+            'id', 'url_comment', 'content', 'description', 'published_at',
+            'raw_published_date', 'sentiment', 'topic_pillar', 'topic_category',
+            'car_model', 'tags', 'site_name', 'channel', 'author', 'post_type'
+        ])
 
 def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, limit=15000):
     """
     Fetches discussions from Neon DB with automatic fallback to local enriched data.
+    Uses native psycopg2 cursor for maximum speed and compatibility.
     """
     try:
         conn = get_connection()
@@ -146,19 +201,19 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
             if end_date:
                 conditions.append("published_at <= %s")
                 params.append(end_date)
-            if pillar and pillar != "All":
+            if pillar and pillar not in ("All", "Tất cả"):
                 conditions.append("topic_pillar = %s")
                 params.append(pillar)
-            if topic and topic != "All":
+            if topic and topic not in ("All", "Tất cả"):
                 conditions.append("topic_category = %s")
                 params.append(topic)
-            if car_model and car_model != "All":
+            if car_model and car_model not in ("All", "Tất cả"):
                 conditions.append("car_model = %s")
                 params.append(car_model)
-            if sentiment and sentiment != "All":
+            if sentiment and sentiment not in ("All", "Tất cả"):
                 conditions.append("sentiment = %s")
                 params.append(sentiment.upper())
-            if channel and channel != "All":
+            if channel and channel not in ("All", "Tất cả"):
                 conditions.append("channel = %s")
                 params.append(channel)
 
@@ -172,10 +227,11 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
                 ORDER BY published_at DESC NULLS LAST
                 LIMIT {int(limit)};
             """
-            with conn:
-                df = pd.read_sql_query(sql, conn, params=params)
-                if not df.empty:
-                    return df
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, tuple(params) if params else None)
+                rows = cur.fetchall()
+                if rows:
+                    return pd.DataFrame(rows)
     except Exception:
         pass
 
@@ -184,19 +240,22 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
     if df.empty:
         return df
 
-    if topic and topic != "All" and "topic_category" in df.columns:
+    if topic and topic not in ("All", "Tất cả") and "topic_category" in df.columns:
         df = df[df["topic_category"] == topic]
-    if pillar and pillar != "All" and "topic_pillar" in df.columns:
+    if pillar and pillar not in ("All", "Tất cả") and "topic_pillar" in df.columns:
         df = df[df["topic_pillar"] == pillar]
-    if car_model and car_model != "All" and "car_model" in df.columns:
+    if car_model and car_model not in ("All", "Tất cả") and "car_model" in df.columns:
         df = df[df["car_model"] == car_model]
-    if sentiment and sentiment != "All" and "sentiment" in df.columns:
+    if sentiment and sentiment not in ("All", "Tất cả") and "sentiment" in df.columns:
         df = df[df["sentiment"] == sentiment.upper()]
-    if channel and channel != "All" and "channel" in df.columns:
+    if channel and channel not in ("All", "Tất cả") and "channel" in df.columns:
         df = df[df["channel"] == channel]
     if lookback_hours and "published_at" in df.columns:
-        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=int(lookback_hours))
-        df = df[pd.to_datetime(df["published_at"]) >= cutoff]
+        try:
+            cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=int(lookback_hours))
+            df = df[pd.to_datetime(df["published_at"]) >= cutoff]
+        except Exception:
+            pass
 
     return df.head(limit)
 
