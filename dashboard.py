@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import datetime
 import os
 import sys
+import urllib.parse
 
 # Page Configuration
 st.set_page_config(
@@ -480,15 +481,34 @@ if nav_page == "Tổng quan thảo luận":
                     st.session_state["redirect_page"] = "Thảo luận tiêu cực"
                     st.rerun()
 
+    # Check active topic / pillar drilldown from query parameters or session state
+    active_drill_topic = st.query_params.get("topic") or st.session_state.get("selected_topic")
+    active_drill_pillar = st.query_params.get("pillar") or st.session_state.get("selected_pillar")
+
     # Bottom Right: Sắc thái thảo luận theo chủ đề (Hierarchical 100% Stacked Horizontal Bars matching Image 1)
     with col_b2:
         with st.container(border=True):
-            st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Sắc thái thảo luận theo chủ đề <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
-                <span style="font-size:0.78rem; font-weight:600; color:#64748B;">Tỷ lệ cảm xúc &amp; Tổng buzz</span>
-            </div>
-            """, unsafe_allow_html=True)
+            header_b2_1, header_b2_2 = st.columns([1.3, 1.1])
+            with header_b2_1:
+                st.markdown("""
+                <div style="font-size:1rem; font-weight:700; color:#1E293B;">
+                    Sắc thái thảo luận theo chủ đề <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                </div>
+                <div style="font-size:0.75rem; color:#64748B; margin-top:2px;">
+                    👉 <i>Bấm trực tiếp vào chủ đề để xem danh sách thảo luận</i>
+                </div>
+                """, unsafe_allow_html=True)
+            with header_b2_2:
+                all_subtopics_flat = [st_k for sub_dict in HIERARCHICAL_TOPICS.values() for st_k in sub_dict.keys()]
+                pick_topic = st.selectbox(
+                    "Chọn chủ đề:",
+                    options=["🔍 Chọn chủ đề để xem bài viết..."] + all_subtopics_flat,
+                    label_visibility="collapsed",
+                    key="quick_topic_picker"
+                )
+                if pick_topic and not pick_topic.startswith("🔍"):
+                    active_drill_topic = pick_topic
+                    st.session_state["selected_topic"] = pick_topic
 
             # Build hierarchical topic rows matching Image 1
             topic_html_blocks = []
@@ -515,25 +535,27 @@ if nav_page == "Tổng quan thảo luận":
                         n_label = f"{n_pct}%" if n_pct >= 14 else ""
                         neu_label = f"{neu_pct}%" if neu_pct >= 14 else ""
 
+                        q_topic = urllib.parse.quote(st_name)
                         row_html = (
                             f'<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; min-height:24px;">'
-                            f'<span style="width:160px; font-size:0.84rem; color:#334155; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:22px;" title="{st_name}">{st_name}</span>'
-                            f'<div style="flex-grow:1; margin:0 14px; height:22px; border-radius:11px; overflow:hidden; display:flex; font-size:10.5px; font-weight:700; color:#FFFFFF; text-align:center; line-height:22px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);">'
+                            f'<a href="?topic={q_topic}#topic-discussions-section" target="_self" style="width:160px; font-size:0.84rem; color:#2563EB; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:22px; text-decoration:none; cursor:pointer;" title="Bấm để xem bài viết về {st_name}">{st_name} <span style="font-size:0.75rem;">🔍</span></a>'
+                            f'<a href="?topic={q_topic}#topic-discussions-section" target="_self" style="flex-grow:1; margin:0 14px; height:22px; border-radius:11px; overflow:hidden; display:flex; font-size:10.5px; font-weight:700; color:#FFFFFF; text-align:center; line-height:22px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.06); text-decoration:none; cursor:pointer;" title="Bấm để xem bài viết về {st_name}">'
                             f'<div style="width:{p_pct}%; background:#2DD4BF; display:flex; align-items:center; justify-content:center;" title="Tích cực: {p_pct}%">{p_label}</div>'
                             f'<div style="width:{n_pct}%; background:#EF4444; display:flex; align-items:center; justify-content:center;" title="Tiêu cực: {n_pct}%">{n_label}</div>'
                             f'<div style="width:{neu_pct}%; background:#475569; display:flex; align-items:center; justify-content:center;" title="Trung lập: {neu_pct}%">{neu_label}</div>'
-                            f'</div>'
-                            f'<span style="width:85px; text-align:right; font-size:0.84rem; font-weight:700; color:#475569; line-height:22px;">{cnt:,} buzz</span>'
+                            f'</a>'
+                            f'<a href="?topic={q_topic}#topic-discussions-section" target="_self" style="width:85px; text-align:right; font-size:0.84rem; font-weight:700; color:#475569; line-height:22px; text-decoration:none; cursor:pointer;" title="Bấm để xem bài viết về {st_name}">{cnt:,} buzz</a>'
                             f'</div>'
                         )
                         subtopic_rows_html.append(row_html)
 
                 if subtopic_rows_html or pillar_cnt > 0:
+                    q_pillar = urllib.parse.quote(pillar)
                     pillar_block = (
                         f'<div style="margin-top:18px; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #F1F5F9;">'
                         f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.92rem; font-weight:800; color:#0F172A; margin-bottom:12px;">'
-                        f'<span>* {pillar}</span>'
-                        f'<span style="color:#64748B; font-weight:700; font-size:0.85rem;">{pillar_cnt:,} buzz</span>'
+                        f'<a href="?pillar={q_pillar}#topic-discussions-section" target="_self" style="color:#0F172A; text-decoration:none; cursor:pointer;" title="Bấm để xem toàn bộ bài viết nhóm {pillar}">* {pillar} <span style="font-size:0.8rem; color:#2563EB;">🔍</span></a>'
+                        f'<a href="?pillar={q_pillar}#topic-discussions-section" target="_self" style="color:#64748B; font-weight:700; font-size:0.85rem; text-decoration:none; cursor:pointer;" title="Bấm để xem toàn bộ bài viết nhóm {pillar}">{pillar_cnt:,} buzz</a>'
                         f'</div>'
                         f'{"".join(subtopic_rows_html)}'
                         f'</div>'
@@ -548,6 +570,82 @@ if nav_page == "Tổng quan thảo luận":
                     st.markdown(topics_rendered, unsafe_allow_html=True)
             else:
                 st.info("Chưa có đủ thảo luận theo chủ đề được phân loại cho bộ lọc này.")
+
+    # 3. TOPIC DRILLDOWN DISCUSSION FEED SECTION (Navigated when topic is clicked)
+    if active_drill_topic or active_drill_pillar:
+        filter_label = active_drill_topic if active_drill_topic else f"Nhóm {active_drill_pillar}"
+        if active_drill_topic:
+            topic_feed_df = df[df['topic_category'] == active_drill_topic] if not df.empty and 'topic_category' in df.columns else pd.DataFrame()
+        else:
+            topic_feed_df = df[df['topic_pillar'] == active_drill_pillar] if not df.empty and 'topic_pillar' in df.columns else pd.DataFrame()
+            
+        tf_cnt = len(topic_feed_df)
+        tf_pos = len(topic_feed_df[topic_feed_df['sentiment'] == 'POSITIVE'])
+        tf_neg = len(topic_feed_df[topic_feed_df['sentiment'] == 'NEGATIVE'])
+        tf_neu = len(topic_feed_df[topic_feed_df['sentiment'] == 'NEUTRAL'])
+        
+        st.markdown('<div id="topic-discussions-section"></div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            drill_h1, drill_h2, drill_h3 = st.columns([2.8, 1.4, 0.6])
+            with drill_h1:
+                st.markdown(f"""
+                <div style="font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;">
+                    💬 Danh sách thảo luận về chủ đề: <span style="color:#2563EB;">{filter_label}</span>
+                </div>
+                <div style="font-size:0.85rem; color:#64748B;">
+                    Tổng cộng <b>{tf_cnt:,}</b> bài viết &amp; bình luận &bull; 
+                    <span style="color:#0D9488; font-weight:700;">{tf_pos:,} Tích cực</span> &bull; 
+                    <span style="color:#DC2626; font-weight:700;">{tf_neg:,} Tiêu cực</span> &bull; 
+                    <span style="color:#475569; font-weight:700;">{tf_neu:,} Trung lập</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with drill_h2:
+                if st.button("🚀 Mở trong 'Thảo luận mới nhất' ➔", key="btn_drill_to_screen4"):
+                    st.session_state["filter_topic_screen4"] = filter_label
+                    st.session_state["redirect_page"] = "Cập nhật thảo luận mới nhất"
+                    st.rerun()
+                    
+            with drill_h3:
+                if st.button("✖️ Đóng", key="btn_close_topic_drill"):
+                    if "topic" in st.query_params:
+                        del st.query_params["topic"]
+                    if "pillar" in st.query_params:
+                        del st.query_params["pillar"]
+                    if "selected_topic" in st.session_state:
+                        del st.session_state["selected_topic"]
+                    if "selected_pillar" in st.session_state:
+                        del st.session_state["selected_pillar"]
+                    st.rerun()
+                    
+            t_all, t_pos, t_neg = st.tabs([
+                f"📋 Tất cả ({tf_cnt:,})",
+                f"🟢 Tích cực ({tf_pos:,})",
+                f"🔴 Tiêu cực ({tf_neg:,})"
+            ])
+            
+            with t_all:
+                if not topic_feed_df.empty:
+                    for idx, r in topic_feed_df.head(30).iterrows():
+                        st.markdown(render_feed_card(r, str(r.get('sentiment', 'NEUTRAL')).upper()), unsafe_allow_html=True)
+                else:
+                    st.info(f"Không có thảo luận nào phù hợp cho chủ đề '{filter_label}'.")
+                    
+            with t_pos:
+                pos_tf = topic_feed_df[topic_feed_df['sentiment'] == 'POSITIVE']
+                if not pos_tf.empty:
+                    for idx, r in pos_tf.head(30).iterrows():
+                        st.markdown(render_feed_card(r, 'POSITIVE'), unsafe_allow_html=True)
+                else:
+                    st.info("Không có thảo luận tích cực trong chủ đề này.")
+                    
+            with t_neg:
+                neg_tf = topic_feed_df[topic_feed_df['sentiment'] == 'NEGATIVE']
+                if not neg_tf.empty:
+                    for idx, r in neg_tf.head(30).iterrows():
+                        st.markdown(render_feed_card(r, 'NEGATIVE'), unsafe_allow_html=True)
+                else:
+                    st.info("Không có thảo luận tiêu cực trong chủ đề này.")
 
 
 # =============================================================
@@ -881,6 +979,25 @@ elif nav_page == "Thảo luận tích cực":
 # SCREEN 4: CẬP NHẬT THẢO LUẬN MỚI NHẤT (Image 4)
 # =============================================================
 elif nav_page == "Cập nhật thảo luận mới nhất":
+    active_s4_topic = st.session_state.get("filter_topic_screen4")
+    if active_s4_topic:
+        s4_c1, s4_c2 = st.columns([4, 1.2])
+        with s4_c1:
+            st.info(f"🔎 Đang lọc thảo luận theo chủ đề: **{active_s4_topic}**")
+        with s4_c2:
+            if st.button("❌ Xóa lọc chủ đề", key="btn_clear_s4_topic"):
+                del st.session_state["filter_topic_screen4"]
+                st.rerun()
+        if "Nhóm " in active_s4_topic:
+            p_name = active_s4_topic.replace("Nhóm ", "").strip()
+            df = df[df['topic_pillar'] == p_name] if not df.empty and 'topic_pillar' in df.columns else df
+        else:
+            df = df[df['topic_category'] == active_s4_topic] if not df.empty and 'topic_category' in df.columns else df
+        total_buzz = len(df)
+        sent_counts = df['sentiment'].value_counts() if not df.empty else pd.Series()
+        pos_cnt = sent_counts.get('POSITIVE', 0)
+        neg_cnt = sent_counts.get('NEGATIVE', 0)
+
     with st.container(border=True):
         st.markdown(f"""
         <div style="display:flex; justify-content:space-between; align-items:center;">
