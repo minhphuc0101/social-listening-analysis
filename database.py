@@ -7,10 +7,10 @@ import pandas as pd
 
 load_dotenv()
 
-DEFAULT_NEON_URL = "postgresql://neondb_owner:npg_mwlJ7K6vWkMA@ep-holy-shape-aze8zqv1-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
-
 def get_database_url(conn_str=None):
-    url = conn_str or os.getenv("NEON_DATABASE_URL") or os.getenv("DATABASE_URL") or DEFAULT_NEON_URL
+    url = conn_str or os.getenv("NEON_DATABASE_URL") or os.getenv("DATABASE_URL")
+    if not url:
+        raise ValueError("NEON_DATABASE_URL or DATABASE_URL is not configured in .env or environment.")
     if "channel_binding=" in url:
         url = url.split("&channel_binding=")[0].split("?channel_binding=")[0]
     if "?" not in url and "sslmode=require" not in url:
