@@ -1,0 +1,71 @@
+name: Daily Brand24 Crawler & DB Sync
+
+on:
+  schedule:
+    # Runs daily at 02:00 UTC (09:00 AM Vietnam Time UTC+7)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Target Date (YYYY-MM-DD). Leave blank for yesterday.'
+        required: false
+        default: ''
+      project_id:
+        description: 'Brand24 Project ID (Default: 1397643108 for Toyota)'
+        required: false
+        default: '1397643108'
+
+jobs:
+  crawl-and-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Chromium & OS Dependencies
+        run: |
+          playwright install --with-deps chromium
+
+      - name: Run Brand24 Playwright Crawler & DB Ingestion
+        env:
+          BRAND24_USERNAME: ${{ secrets.BRAND24_USERNAME }}
+          BRAND24_PASSWORD: ${{ secrets.BRAND24_PASSWORD }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          CMD="python brand24_crawler.py"
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            CMD="$CMD --date ${{ github.event.inputs.target_date }}"
+          fi
+          if [ -n "${{ github.event.inputs.project_id }}" ]; then
+            CMD="$CMD --project-id ${{ github.event.inputs.project_id }}"
+          fi
+          echo "Executing: $CMD"
+          eval $CMD
+
+      - name: Archive Downloaded Excel Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: brand24-reports-${{ github.run_id }}
+          path: reports/brand24/
+          retention-days: 30
+
+      - name: Commit & Push Daily Reports to Repo (Optional)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/brand24/ || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(brand24): archive daily report [skip ci]" && git push)
+        continue-on-error: true

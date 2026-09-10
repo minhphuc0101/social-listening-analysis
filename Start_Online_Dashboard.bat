@@ -5,14 +5,10 @@ echo =======================================================
 echo   Launching AutoPulse AI Realtime Online Dashboard
 echo =======================================================
 
-if exist ..\venv\Scripts\activate.bat (
-    call ..\venv\Scripts\activate.bat
-) else if exist venv\Scripts\activate.bat (
-    call venv\Scripts\activate.bat
-)
+call .\venv\Scripts\activate
 
 :: Start Streamlit in the background if not already running
-start /B streamlit run dashboard.py --server.headless true --server.port 8501
+start /B .\venv\Scripts\streamlit.exe run dashboard.py --server.headless true --server.port 8501
 
 :: Give it 3 seconds to boot up
 timeout /t 3 /nobreak > nul

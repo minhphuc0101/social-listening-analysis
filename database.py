@@ -45,10 +45,13 @@ def init_db(conn_str=None):
             return False
         with conn:
             with conn.cursor() as cur:
+                # 1. Social Discussions Table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS social_discussions (
                         id SERIAL PRIMARY KEY,
                         url_comment TEXT,
+                        group_name VARCHAR(255),
+                        campaign VARCHAR(100),
                         content TEXT,
                         description TEXT,
                         published_at TIMESTAMP WITH TIME ZONE,
@@ -66,6 +69,10 @@ def init_db(conn_str=None):
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                     );
 
+                    -- Ensure columns exist in case table was created with older schema
+                    ALTER TABLE social_discussions ADD COLUMN IF NOT EXISTS group_name VARCHAR(255);
+                    ALTER TABLE social_discussions ADD COLUMN IF NOT EXISTS campaign VARCHAR(100);
+
                     CREATE INDEX IF NOT EXISTS idx_sd_published_at ON social_discussions(published_at);
                     CREATE INDEX IF NOT EXISTS idx_sd_pillar ON social_discussions(topic_pillar);
                     CREATE INDEX IF NOT EXISTS idx_sd_topic ON social_discussions(topic_category);
@@ -73,7 +80,28 @@ def init_db(conn_str=None):
                     CREATE INDEX IF NOT EXISTS idx_sd_sentiment ON social_discussions(sentiment);
                     CREATE INDEX IF NOT EXISTS idx_sd_url ON social_discussions(url_comment);
                     CREATE INDEX IF NOT EXISTS idx_sd_hash ON social_discussions(content_hash);
+                    CREATE INDEX IF NOT EXISTS idx_sd_campaign ON social_discussions(campaign);
 
+                    -- 2. Social Media Posts Table (Raw Crawler Schema)
+                    CREATE TABLE IF NOT EXISTS social_media_posts (
+                        id BIGSERIAL PRIMARY KEY,
+                        campaign VARCHAR(100) NOT NULL,
+                        group_name VARCHAR(255),
+                        url_comment TEXT NOT NULL,
+                        content TEXT,
+                        description TEXT,
+                        published_date TEXT,
+                        sentiment VARCHAR(50),
+                        channel VARCHAR(100),
+                        author VARCHAR(255),
+                        type VARCHAR(50),
+                        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_social_posts_unique 
+                    ON social_media_posts (url_comment, md5(COALESCE(content, '')));
+
+                    -- 3. Daily Summaries Table
                     CREATE TABLE IF NOT EXISTS daily_summaries (
                         id SERIAL PRIMARY KEY,
                         report_date DATE UNIQUE,
@@ -88,11 +116,278 @@ def init_db(conn_str=None):
                     );
 
                     CREATE INDEX IF NOT EXISTS idx_ds_date ON daily_summaries(report_date);
+
+                    -- 4. Crawler Run Logs (Tracks daily crawl execution, success, failure & skipped days)
+                    CREATE TABLE IF NOT EXISTS crawler_run_logs (
+                        id SERIAL PRIMARY KEY,
+                        crawler_name VARCHAR(50) DEFAULT 'Brand24',
+                        campaign VARCHAR(100) DEFAULT 'Toyota',
+                        target_date DATE,
+                        status VARCHAR(50) NOT NULL,
+                        total_mentions INT DEFAULT 0,
+                        inserted_count INT DEFAULT 0,
+                        duplicate_count INT DEFAULT 0,
+                        report_file TEXT,
+                        error_message TEXT,
+                        duration_sec FLOAT DEFAULT 0.0,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_crl_date ON crawler_run_logs(target_date);
+                    CREATE INDEX IF NOT EXISTS idx_crl_status ON crawler_run_logs(status);
+                    CREATE INDEX IF NOT EXISTS idx_crl_campaign ON crawler_run_logs(campaign);
                 """)
         return True
     except Exception as e:
         # Fallback to local
         return False
+
+def compute_hash(url_comment, content, author=""):
+    raw = f"{str(url_comment).strip()}||{str(content).strip()}||{str(author).strip()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def insert_discussions_batch(rows, batch_size=500, conn_str=None):
+    """Batch inserts social discussions and crawler posts with atomic deduplication."""
+    if not rows:
+        return 0, 0
+
+    init_db(conn_str)
+    
+    insert_discussions_sql = """
+        INSERT INTO social_discussions (
+            url_comment, group_name, campaign, content, description, published_at, raw_published_date,
+            sentiment, topic_category, car_model, tags, site_name,
+            channel, author, post_type, content_hash
+        ) VALUES %s
+        ON CONFLICT (content_hash) DO NOTHING
+    """
+
+    insert_posts_sql = """
+        INSERT INTO social_media_posts (
+            campaign, group_name, url_comment, content, description,
+            published_date, sentiment, channel, author, type
+        ) VALUES %s
+        ON CONFLICT (url_comment, md5(COALESCE(content, ''))) DO NOTHING
+    """
+    
+    disc_records = []
+    post_records = []
+
+    for r in rows:
+        u_com = str(r.get("UrlComment", "") or r.get("url_comment", "")).strip()
+        grp = str(r.get("GroupName", "") or r.get("group_name", "")).strip()
+        camp = str(r.get("Campaign", "") or r.get("campaign", "") or r.get("Channel", "") or "Toyota").strip()
+        cnt = str(r.get("Content", "") or r.get("content", "")).strip()
+        desc = str(r.get("Description", "") or r.get("description", "")).strip()
+        p_at = r.get("published_at")
+        r_date = str(r.get("PublishedDate", "") or r.get("raw_published_date", "")).strip()
+        sent = str(r.get("Sentiment", "") or r.get("sentiment", "NEUTRAL")).upper().strip()
+        if sent not in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
+            sent = "NEUTRAL"
+        topic = str(r.get("topic_category", "") or r.get("Lable 1", "") or "Tổng quan").strip()
+        model = str(r.get("car_model", "") or r.get("Tag 1", "") or "Khác").strip()
+        tags = r.get("tags", [])
+        if isinstance(tags, str):
+            tags = [t.strip() for t in tags.split(",") if t.strip()]
+        site = str(r.get("SiteName", "") or r.get("site_name", "Brand24")).strip()
+        chan = str(r.get("Channel", "") or r.get("channel", "Community")).strip()
+        auth = str(r.get("Author", "") or r.get("author", "Unknown")).strip()
+        p_type = str(r.get("Type", "") or r.get("post_type", "Comment")).strip()
+        c_hash = r.get("content_hash") or compute_hash(u_com, cnt, auth)
+
+        disc_records.append((
+            u_com, grp, camp, cnt, desc, p_at, r_date,
+            sent, topic, model, tags, site,
+            chan, auth, p_type, c_hash
+        ))
+
+        post_records.append((
+            camp, grp, u_com, cnt, desc,
+            r_date, sent, chan, auth, p_type
+        ))
+
+    total_inserted = 0
+    conn = None
+    try:
+        conn = get_connection(conn_str)
+        if conn:
+            with conn:
+                with conn.cursor() as cur:
+                    for i in range(0, len(disc_records), batch_size):
+                        chunk_disc = disc_records[i:i + batch_size]
+                        chunk_posts = post_records[i:i + batch_size]
+                        execute_values(cur, insert_discussions_sql, chunk_disc)
+                        total_inserted += cur.rowcount
+                        try:
+                            execute_values(cur, insert_posts_sql, chunk_posts)
+                        except Exception as pe:
+                            print(f"[Neon DB] Notice on social_media_posts: {pe}")
+            print(f"[Neon DB] Ingestion complete: {total_inserted} inserted, {len(disc_records) - total_inserted} duplicates skipped.")
+            return total_inserted, len(disc_records) - total_inserted
+    except Exception as e:
+        print(f"[Neon DB] Ingestion error: {e}")
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    # Fallback to local cache if DB is unreachable
+    try:
+        os.makedirs("data", exist_ok=True)
+        backup_file = f"data/brand24_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        pd.DataFrame(rows).to_excel(backup_file, index=False)
+        print(f"[Local Backup] Saved {len(rows)} rows to {backup_file} (DB unavailable)")
+    except Exception as be:
+        print(f"[Local Backup] Failed to save backup: {be}")
+
+    return total_inserted, len(disc_records) - total_inserted
+
+def record_crawl_log(target_date, status, total_mentions=0, inserted_count=0, duplicate_count=0, 
+                     report_file=None, error_message=None, duration_sec=0.0, campaign="Toyota", 
+                     crawler_name="Brand24", conn_str=None):
+    """
+    Records crawl execution result both to Neon DB (crawler_run_logs table)
+    and persists locally to JSON/CSV for high availability and tracking skipped/failed days.
+    """
+    import json
+    init_db(conn_str)
+    
+    # 1. Neon DB insertion
+    db_saved = False
+    conn = None
+    try:
+        conn = get_connection(conn_str)
+        if conn:
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO crawler_run_logs (
+                            crawler_name, campaign, target_date, status,
+                            total_mentions, inserted_count, duplicate_count,
+                            report_file, error_message, duration_sec
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        crawler_name, campaign, target_date, status,
+                        total_mentions, inserted_count, duplicate_count,
+                        report_file, error_message, duration_sec
+                    ))
+            db_saved = True
+    except Exception as e:
+        print(f"[Crawl Log] DB log insert error: {e}")
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    # 2. Local JSON/CSV persistent history log
+    try:
+        os.makedirs("reports/brand24", exist_ok=True)
+        log_file = "reports/brand24/crawl_sync_history.json"
+        history = []
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+            except Exception:
+                history = []
+
+        entry = {
+            "timestamp": datetime.datetime.now().astimezone().isoformat(),
+            "target_date": str(target_date),
+            "campaign": campaign,
+            "crawler_name": crawler_name,
+            "status": status,
+            "total_mentions": total_mentions,
+            "inserted_count": inserted_count,
+            "duplicate_count": duplicate_count,
+            "report_file": report_file,
+            "error_message": error_message,
+            "duration_sec": round(duration_sec, 2),
+            "db_synced": db_saved
+        }
+        history.append(entry)
+        with open(log_file, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+
+        # Also write CSV
+        try:
+            pd.DataFrame(history).to_csv("reports/brand24/crawl_sync_history.csv", index=False)
+        except Exception:
+            pass
+
+        print(f"[Crawl Log] Recorded {status} for {target_date} (DB synced: {db_saved})")
+    except Exception as fe:
+        print(f"[Crawl Log] File log error: {fe}")
+
+def get_crawl_logs(campaign="Toyota", limit=30, conn_str=None):
+    """Fetches the latest crawl execution history from DB or local JSON log."""
+    try:
+        conn = get_connection(conn_str)
+        if conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, crawler_name, campaign, target_date, status,
+                           total_mentions, inserted_count, duplicate_count,
+                           report_file, error_message, duration_sec, created_at
+                    FROM crawler_run_logs
+                    WHERE campaign = %s
+                    ORDER BY target_date DESC, created_at DESC
+                    LIMIT %s;
+                """, (campaign, limit))
+                rows = cur.fetchall()
+                if rows:
+                    return pd.DataFrame(rows)
+    except Exception:
+        pass
+
+    # Fallback to local JSON history
+    log_file = "reports/brand24/crawl_sync_history.json"
+    if os.path.exists(log_file):
+        try:
+            df = pd.read_json(log_file)
+            if campaign and "campaign" in df.columns:
+                df = df[df["campaign"] == campaign]
+            return df.tail(limit).sort_values("target_date", ascending=False)
+        except Exception:
+            pass
+    return pd.DataFrame()
+
+def get_missing_or_failed_days(lookback_days=14, campaign="Toyota"):
+    """
+    Identifies any days in the last `lookback_days` (up to yesterday)
+    that failed or have not been crawled at all.
+    """
+    now = datetime.datetime.now()
+    dates_to_check = [(now - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, lookback_days + 1)]
+    
+    logs_df = get_crawl_logs(campaign=campaign, limit=100)
+    
+    successful_dates = set()
+    failed_dates = set()
+    
+    if not logs_df.empty and "target_date" in logs_df.columns and "status" in logs_df.columns:
+        for _, row in logs_df.iterrows():
+            d_str = str(row["target_date"]).split()[0]
+            st = str(row["status"]).upper()
+            if st in ("SUCCESS", "NO_MENTIONS", "OFFLINE_CACHE"):
+                successful_dates.add(d_str)
+            elif st == "FAILED":
+                failed_dates.add(d_str)
+                
+    missing_dates = []
+    for d in dates_to_check:
+        if d not in successful_dates:
+            missing_dates.append({
+                "target_date": d,
+                "reason": "FAILED" if d in failed_dates else "SKIPPED_NOT_RUN"
+            })
+            
+    return missing_dates
+
 
 # -------------------------------------------------------------
 # LOCAL FALLBACK CACHED DATA LOADER

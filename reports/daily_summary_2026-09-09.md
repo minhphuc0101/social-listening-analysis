@@ -1,74 +1,85 @@
 # Báo Cáo Phân Tích Thông Tin Mạng Xã Hội Ô Tô (48H Scan)
 **Ngày quét:** 09/09/2026
-**Phạm vi:** 48 giờ qua | **Tổng dữ liệu:** 789 tương tác
+**Phạm vi:** 48 giờ qua | **Tổng dữ liệu:** 3,000 tương tác
 
 ## ⚡ Tóm Tắt Nhanh (Executive TL;DR)
-- **Tổng thảo luận 48h**: 789 bài đăng & bình luận được quét qua các hội nhóm ô tô.
-- **Chỉ số cảm xúc**: 20.7% Tích cực | 67.0% Trung lập | 12.3% Tiêu cực.
-- **Chủ đề sôi nổi nhất**: 'Giá bán & Khuyến mãi' với 241 thảo luận.
-- **Dòng xe tâm điểm**: Mitsubishi Xforce dẫn đầu lượng quan tâm trong 48h qua.
+- **Tổng thảo luận 48h**: 3,000 bài đăng & bình luận được quét qua các hội nhóm ô tô.
+- **Chỉ số cảm xúc**: 22.0% Tích cực | 69.2% Trung lập | 8.8% Tiêu cực.
+- **Chủ đề sôi nổi nhất**: 'Giá bán & Khuyến mãi' với 1,417 thảo luận.
+- **Dòng xe tâm điểm**: Honda CR-V / City dẫn đầu lượng quan tâm trong 48h qua.
 
 ### 🔥 Top Thảo Luận Nóng Nhất (48H)
 
-**1. [22 bình luận] Kênh: Community/Page**
-> "B class Chào cụ mợ trong nhóm E mua xe lần đầu, đang cân nhắc Kushaq - vf6 - Yaris cross - Xforce Mỗi dòng có điểm mạnh, yếu khác nhau ( tính năng, cảm giác lái, chi phí ban đầu, c..."
+**1. [24 bình luận] Kênh: Community/Page**
+> "Nay đi làm thấy em này vào giật mình luôn các bác ạ, không nhận ra em nó là xe gì luôn..."
 *Bình luận tiêu biểu:*
-- *"ChiChuiNhungThangNgoo hệ thống phanh kém nhất trong 4 con thì lại ko thấy nói đến…. Phanh là cái lớp"*
-- *"ChiChuiNhungThangNgoo khóc to con cháu iu, iu em lắm"*
-- *"Hồ Thùy Giang khóc to con cháu iu, iu em lắm"*
-[Xem bài viết gốc](https://www.facebook.com/groups/bimatxebiz/posts/934545196393185/?comment_id=934560463058325)
+- *"Chu Tùng"*
+- *"Honda civic độ lên mitsuoka m55..1 hãng độ xe nổi tiếng của nhật lùn"*
+- *"Chu Tùng Nhật lùn ???"*
+[Xem bài viết gốc](https://www.facebook.com/groups/gearupvn/posts/1609631450601983/?comment_id=1609682223930239)
 
-**2. [19 bình luận] Kênh: Community/Page**
-> "MẤY ANH HÁN NÔ BẨN TÍNH - pin catl đang là số 1 thế giới. Byd chưa bằng 1/3 của họ nữa. Tesla hay xiaomi… cũng đều dùng pin CATL. - pin CATL chiếm > 40-50% thị phần - mấy anh bán v..."
+**2. [24 bình luận] Kênh: Community/Page**
+> "Bài viết của Phát Nguyễn..."
 *Bình luận tiêu biểu:*
-- *"Quang Điệp bạn xem Boieng nó lắp Ráp theo bằng sáng chế của Nó hay của hãng TQ. Khác với VF là đi mu"*
-- *"Trần Đức Nghĩa đợi mình ký nhé chắc cũng lâu đấy"*
-- *"Nguyễn Thiên tôi cứ xe xăng phang mỗi tội nó ngốn xăng mất giá :))) thằng byd chắc thích mỗi con sea"*
-[Xem bài viết gốc](https://www.facebook.com/groups/bimatxebiz/posts/935689199612118/?comment_id=935691096278595)
+- *"Long Nguyễn Bác sắm thêm dưỡng sơn Hydra Bilthamber và chăm nội thất của 303 nữa là ngon luôn ạ"*
+- *"Phát Nguyễn"*
+- *"Rửa không chạm có tác dụng làm mềm và rã chất bẩn để xả trôi tối đa bùn đất thô, giúp giảm thiểu xướ"*
+[Xem bài viết gốc](https://www.facebook.com/groups/gearupvn/posts/1608249174073544/?comment_id=1608339867397808)
 
-**3. [17 bình luận] Kênh: Community/Page**
-> "Xe vinfast mà trang bị pin byd với hệ thống quản lý nhiệt độ pin thì thôi chứ bán doanh số còn cao hơn nữa . Sáng sớm mình đưa con đi học bằng con điện byd . Công nhận pin byd đỉnh..."
+**3. [20 bình luận] Kênh: Community/Page**
+> "Bài viết của Văn Văn..."
 *Bình luận tiêu biểu:*
-- *"Xin thông tin chính chủ vf tăng giá pin cái, chứ toàn tăng từ mõm các ông thì chịu. Official hộ cái "*
-- *"Tony Huynh toàn lều báo đăng. Xong vin phải đính chính lại k tăng mà"*
-- *"Nguyen Hung trang chủ quay xe đó. Tui lúc trước mua xe vf6 có trong hội vf6 mà. Nên tui biết"*
-[Xem bài viết gốc](https://www.facebook.com/groups/bimatxebiz/posts/935662996281405/?comment_id=935677139613324)
+- *""Xe nào chi phí bảo dưỡng, sửa chữa và thay thế phụ tùng về sau hợp lý hơn? Xe nào ít lỗi vặt, dễ ch"*
+- *"Peter Duong yaris hơi mỏng đi ồn a ak"*
+- *"Văn Văn Vỏ mỏng nhưng khung gầm ngon hơn."*
+[Xem bài viết gốc](https://www.facebook.com/groups/gearupvn/posts/1609692040595924/?comment_id=1609733017258493)
 
-**4. [12 bình luận] Kênh: Community/Page**
-> "Nhìn chứa chan luôn các bác nhỉ ? S680 maybach lại còn ngũ 8 , kbiet của đại gia nào nhỉ ae ?? Em vừa gặp đoạn nguyễn trãi lúc 15h30..."
+**4. [19 bình luận] Kênh: Community/Page**
+> "Với tầm giá 715tr cho creta n line  thời điểm hiện tại bây giờ có lên quất em nó không các bác , e đang phân vân tài chính hơn 700 các dòng xe cùng phân khúc với creta..."
 *Bình luận tiêu biểu:*
-- *"nhưng đc cái yêu nước , cổ điển tôn trọng"*
-- *""*
-- *"Tony Bờm Lậy bố đi so sánh vf9 với maybach s680"*
-[Xem bài viết gốc](https://www.facebook.com/groups/251696895257703/posts/2538398176587552/?comment_id=2539129833181053)
+- *"700 thì cứ cx5 mà quất, con creta tuổi lone gì?"*
+- *"Tùng Hoàng cùng quan điểm"*
+- *"Tùng Hoàng giờ cx5 làm tiêu chuẩn cho cả hạng B"*
+[Xem bài viết gốc](https://www.facebook.com/groups/gearupvn/posts/1600404094858052/?comment_id=1600577461507382)
 
-**5. [11 bình luận] Kênh: Community/Page**
-> "Xe vinfast mà trang bị pin byd với hệ thống quản lý nhiệt độ pin thì thôi chứ bán doanh số còn cao hơn nữa . Sáng sớm mình đưa con đi học bằng con điện byd . Công nhận pin byd đỉnh..."
+**5. [18 bình luận] Kênh: Community/Page**
+> "Bảo dưỡng cùng đám xe tải - Bĩu môi èo ơi! Máy dầu 1.9 - Bĩu môi yếu thế! Nội thất - Bĩu môi eo ôi dừ thế! Doanh số - Bĩu môi có tí tẹo!!! Nhưng tự dưng, quan điểm cá nhân của em t..."
 *Bình luận tiêu biểu:*
-- *"Tony Huynh đường xá , phong cách giao thông , điều kiện thời tiết ."*
-- *"Bố của vin nô thôi m im đi m ơi :)))"*
-- *"Nguyễn Hoàng Thiên Định xe bán o Việt Nam thì người ta cũng chạy như xe tôi thôi. Chứ xe tui có gì đ"*
-[Xem bài viết gốc](https://www.facebook.com/groups/bimatxebiz/posts/935662996281405/?comment_id=935675582946813)
+- *"Bây giờ mấy ai chê nó xấu nữa đâu. Chê nó chưa đủ rẻ thôi"*
+- *"Bùi Xuân Vương có đợt bắt đáy được 1 đồng 1 đó anh"*
+- *"Trọng em bắt đc đáy hơn cho bản premium 23 hơn 1 tọi chút nè"*
+[Xem bài viết gốc](https://www.facebook.com/groups/gearupvn/posts/1606577450907383/?comment_id=1606583184240143)
 
 
 ### 🗣️ Tiếng Nói Cộng Đồng (Praise & Pain Points)
 
-- **Khen ngợi / Điểm cộng (20.7%)**: Động cơ bền bỉ, độ xe công suất cao, thiết kế nội ngoại thất hiện đại, các gói ưu đãi giá xe.
-- **Phản ánh / Lo ngại (12.3%)**: Khó khăn thủ tục bảo hiểm khi va chạm, lo lắng rớt đăng kiểm, chi phí phụ tùng và bảo dưỡng xe cũ.
+- **Khen ngợi / Điểm cộng (22.0%)**: Động cơ bền bỉ, độ xe công suất cao, thiết kế nội ngoại thất hiện đại, các gói ưu đãi giá xe.
+- **Phản ánh / Lo ngại (8.8%)**: Khó khăn thủ tục bảo hiểm khi va chạm, lo lắng rớt đăng kiểm, chi phí phụ tùng và bảo dưỡng xe cũ.
 
 ### 📈 Nhịp Đập Các Dòng Xe (Model Momentum)
 
 | Dòng Xe | Lượng Thảo Luận | Tích Cực | Tiêu Cực | Đánh Giá |
 | :--- | :--- | :--- | :--- | :--- |
-| **Mitsubishi Xforce** | 117 | 27 | 25 | 🟢 Tích cực |
-| **VinFast VF6** | 95 | 21 | 23 | 🔴 Tiêu cực |
-| **Mitsubishi Pajero Sport** | 35 | 10 | 3 | 🟢 Tích cực |
-| **Mitsubishi Xpander** | 28 | 6 | 0 | 🟢 Tích cực |
-| **VinFast VF8** | 26 | 6 | 6 | ⚪ Cân bằng |
-| **Ford Ranger / Everest** | 18 | 0 | 0 | ⚪ Cân bằng |
-| **Kia Seltos / Sonet** | 7 | 1 | 0 | 🟢 Tích cực |
-| **Honda CR-V / City** | 4 | 3 | 1 | 🟢 Tích cực |
-| **Mazda CX-5** | 3 | 2 | 1 | 🟢 Tích cực |
+| **Honda CR-V / City** | 245 | 68 | 23 | 🟢 Tích cực |
+| **Mazda CX-5** | 230 | 56 | 24 | 🟢 Tích cực |
+| **Mitsubishi Destinator** | 134 | 29 | 17 | 🟢 Tích cực |
+| **Hyundai Creta / SantaFe** | 92 | 32 | 7 | 🟢 Tích cực |
+| **Ford Ranger / Everest** | 75 | 31 | 12 | 🟢 Tích cực |
+| **Kia Seltos / Sonet** | 61 | 17 | 9 | 🟢 Tích cực |
+| **Toyota Vios** | 58 | 20 | 4 | 🟢 Tích cực |
+| **Toyota Corolla Cross** | 46 | 13 | 4 | 🟢 Tích cực |
+| **VinFast VF5** | 38 | 7 | 5 | 🟢 Tích cực |
+| **Mitsubishi Outlander** | 37 | 13 | 5 | 🟢 Tích cực |
+| **Mitsubishi Pajero Sport** | 22 | 6 | 4 | 🟢 Tích cực |
+| **Mitsubishi Xforce** | 22 | 7 | 4 | 🟢 Tích cực |
+| **VinFast VF3** | 16 | 1 | 1 | ⚪ Cân bằng |
+| **Mitsubishi Xpander** | 14 | 4 | 0 | 🟢 Tích cực |
+| **Skoda Kushaq** | 9 | 4 | 0 | 🟢 Tích cực |
+| **VinFast VF6** | 9 | 5 | 3 | 🟢 Tích cực |
+| **VinFast VF8** | 8 | 1 | 1 | ⚪ Cân bằng |
+| **Mercedes-Benz W212 / E400** | 6 | 2 | 0 | 🟢 Tích cực |
+| **VinFast VF7** | 6 | 0 | 0 | ⚪ Cân bằng |
+| **Toyota Yaris Cross** | 3 | 0 | 2 | 🔴 Tiêu cực |
 
 
 ## 🎯 Khuyến Nghị Hành Động

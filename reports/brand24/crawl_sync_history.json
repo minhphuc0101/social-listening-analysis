@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2026-09-10T10:48:41.037709+07:00",
+    "target_date": "2026-09-09",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "NO_MENTIONS",
+    "total_mentions": 0,
+    "inserted_count": 0,
+    "duplicate_count": 0,
+    "report_file": "D:\\AGV_socialcrawl\\reports\\brand24\\toyota_report_2026-09-09.xlsx",
+    "error_message": null,
+    "duration_sec": 31.04,
+    "db_synced": false
+  }
+]

@@ -4,12 +4,6 @@ cd /d "%~dp0"
 echo =======================================================
 echo   Starting AutoPulse AI Dashboard (Local: http://localhost:8501)
 echo =======================================================
-
-if exist ..\venv\Scripts\activate.bat (
-    call ..\venv\Scripts\activate.bat
-) else if exist venv\Scripts\activate.bat (
-    call venv\Scripts\activate.bat
-)
-
+call .\venv\Scripts\activate
 streamlit run dashboard.py
 pause

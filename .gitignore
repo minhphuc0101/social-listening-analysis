@@ -1,15 +1,57 @@
-# Environment variables and credentials
+﻿# Environment and credentials
 .env
+.env.*
+!.env.example
+privacy_cache.json
 
-# Cloudflare portable binary
-cloudflared.exe
-
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-.pytest_cache/
+*.class
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
 
-# OS metadata
+# Large binaries & archives (prevent GitHub >100MB limit errors)
+*.zip
+*.tar.gz
+*.exe
+cloudflared.exe
+FB_Crawler_Packaged.zip
+
+# Browser profiles and scratch artifacts
+chrome_profile/
+scratch/
+scratch_*.png
+downloaded_test_*.xlsx
+sample_*.xlsx
+
+# Temporary outputs & local data dumps
+*.xlsx
+!reports/brand24/*.xlsx
+*.parquet
+!data_seed.parquet
+*.tmp
+*.log
+scraped_history.txt
+input*.txt
+migrate_data.py
+recover_apify_data.py
+main.py
+
+# Standalone modules & sub-repos
+FB_Crawler_Packaged/
+extractors/
+ai_analyzer/
+analytics/
+utils/
+
+# System & IDE
+.system_generated/
+.idea/
+.vscode/
+*.swp
 .DS_Store
-Thumbs.db

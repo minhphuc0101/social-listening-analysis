@@ -24,17 +24,17 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; elif [ -f analytics/requirements.txt ]; then pip install -r analytics/requirements.txt; fi
+          if [ -f analytics/requirements.txt ]; then pip install -r analytics/requirements.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run Daily 48H AI Scan & Sync to Neon DB
         env:
           NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          if [ -f run_daily_summary.py ]; then
-            python run_daily_summary.py
-          elif [ -f analytics/run_daily_summary.py ]; then
+          if [ -f analytics/run_daily_summary.py ]; then
             cd analytics && python run_daily_summary.py
+          elif [ -f run_daily_summary.py ]; then
+            python run_daily_summary.py
           fi
 
       - name: Commit & Archive Daily Report (Optional)
