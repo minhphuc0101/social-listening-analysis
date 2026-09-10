@@ -250,12 +250,16 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
             h = int(hashlib.md5((raw_content + url).encode('utf-8')).hexdigest(), 16)
             auth = viet_names_pool[h % len(viet_names_pool)]
 
-    # Safe datetime formatting (eliminates 'NaT')
     raw_dt = record.get('raw_published_date') or record.get('PublishedDate')
     pub_at = record.get('published_at')
     dt_str = None
     if raw_dt and not pd.isna(raw_dt) and str(raw_dt).strip() not in ('', 'nan', 'NaT', 'None'):
-        dt_str = str(raw_dt).strip()
+        raw_s = str(raw_dt).strip()
+        try:
+            dt_val = pd.to_datetime(raw_s.replace('at ', ''))
+            dt_str = dt_val.strftime('%d/%m/%Y %H:%M')
+        except Exception:
+            dt_str = raw_s
     elif pub_at and not pd.isna(pub_at) and str(pub_at).strip() not in ('', 'nan', 'NaT', 'None'):
         try:
             dt_val = pd.to_datetime(pub_at)
@@ -269,7 +273,6 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
 
     raw_content = str(record.get('content') or record.get('Content') or '').strip()
     raw_desc = str(record.get('description') or record.get('Description') or '').strip()
-    p_type = str(record.get('post_type') or record.get('Type') or '').lower()
     car_model = str(record.get('car_model') or '').strip()
     topic_tag = record.get('topic_category') or 'Chung'
 
@@ -290,59 +293,58 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     if is_distinct_desc:
         clean_desc_single = re.sub(r'\s+', ' ', raw_desc).strip()
         clean_desc_escaped = html.escape(clean_desc_single)
-        desc_preview = clean_desc_escaped[:220] + ('...' if len(clean_desc_escaped) > 220 else '')
+        desc_preview = clean_desc_escaped[:180] + ('...' if len(clean_desc_escaped) > 180 else '')
 
         topic_caption_html = (
-            f'<div style="background:#F8FAFC; border:1px solid #E2E8F0; border-left:3px solid #3B82F6; '
-            f'border-radius:4px; padding:6px 10px; margin:6px 0 8px 0; font-size:0.82rem; color:#475569; line-height:1.4;" '
-            f'title="{clean_desc_escaped}">'
-            f'<span style="font-weight:700; color:#1D4ED8;">📌 Chủ đề bài viết:</span> &ldquo;{desc_preview}&rdquo;'
+            f'<div style="font-size:0.82rem; color:#64748B; margin-bottom:6px; line-height:1.4;" title="{clean_desc_escaped}">'
+            f'<span style="color:#94A3B8;">Bài viết gốc:</span> <span style="color:#475569; font-style:italic;">&ldquo;{desc_preview}&rdquo;</span>'
             f'</div>'
         )
-        content_prefix = '<span style="font-weight:600; color:#64748B;">💬 Bình luận: </span>'
     else:
         topic_caption_html = ''
-        content_prefix = '<span style="font-weight:600; color:#1D4ED8;">📝 Bài viết: </span>' if 'post' in p_type else ''
 
-    model_tag_html = ''
-    if car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all'):
-        model_tag_html = f'<span class="feed-topic-tag" style="margin-bottom:0; background:#EFF6FF; color:#1D4ED8; margin-left:6px;">🚗 {html.escape(car_model)}</span>'
+    model_tag_html = f'<span class="feed-topic-tag" style="margin-bottom:0; background:#EFF6FF; color:#1D4ED8; margin-left:6px;">🚗 {html.escape(car_model)}</span>' if (car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all')) else ''
 
     s_upper = str(sentiment_type).upper()
     if s_upper == 'POSITIVE':
         badge_html = '<span class="badge-pos">Tích cực</span>'
-        border_color = '#2DD4BF'
+        border_color = '#10B981'
     elif s_upper == 'NEGATIVE':
         badge_html = '<span class="badge-neg">Tiêu cực</span>'
         border_color = '#EF4444'
     else:
         badge_html = '<span class="badge-neu">Trung lập</span>'
-        border_color = '#94A3B8'
+        border_color = '#CBD5E1'
         
-    auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700; font-size:0.92rem;" title="Mở liên kết bài viết gốc">{auth} <span style="font-size:0.8rem; color:#2563EB;">↗</span></a>' if has_link else f'<span class="feed-author">{auth}</span>'
+    auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700;" title="Mở bài viết gốc">{auth}</a>' if has_link else f'<span class="feed-author">{auth}</span>'
     
-    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:4px;" title="Mở trên {chan}">🔗 Xem bài viết gốc trên {chan} ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
+    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:500; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
     
-    return (
-        f'<div class="feed-card" style="border-left:4px solid {border_color}; margin-bottom:12px; padding:12px 16px;">'
-        f'<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">'
-        f'<div>'
-        f'{auth_html} &nbsp;<span class="feed-channel">({chan})</span>'
-        f'<div class="feed-date">🕒 {dt_str}</div>'
+    header_html = (
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">'
+        f'<div style="font-size:0.85rem;">'
+        f'{auth_html} <span style="color:#CBD5E1; margin:0 4px;">&bull;</span> '
+        f'<span style="color:#64748B;">{chan}</span> <span style="color:#CBD5E1; margin:0 4px;">&bull;</span> '
+        f'<span style="color:#94A3B8; font-size:0.8rem;">{dt_str}</span>'
         f'</div>'
         f'<div>{badge_html}</div>'
         f'</div>'
+    )
+
+    return (
+        f'<div class="feed-card" style="border-left:4px solid {border_color}; margin-bottom:10px; padding:10px 14px; background:#FFFFFF; border-radius:6px; border:1px solid #E2E8F0;">'
+        f'{header_html}'
         f'{topic_caption_html}'
-        f'<div class="feed-content" style="font-size:0.88rem; color:#1E293B; line-height:1.5;">{content_prefix}{clean_content[:280]}{"..." if len(clean_content) > 280 else ""}</div>'
-        f'<div style="margin-top:10px; padding-top:8px; border-top:1px solid #F1F5F9; display:flex; justify-content:space-between; align-items:center;">'
+        f'<div class="feed-content" style="font-size:0.9rem; color:#0F172A; line-height:1.5; margin-bottom:8px;">{clean_content[:280]}{"..." if len(clean_content) > 280 else ""}</div>'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px solid #F1F5F9;">'
         f'<div>'
-        f'<span class="feed-topic-tag" style="margin-bottom:0;">🏷️ {topic_tag}</span>'
-        f'{model_tag_html}'
+        f'<span class="feed-topic-tag" style="margin-bottom:0;">🏷️ {topic_tag}</span>{model_tag_html}'
         f'</div>'
         f'{link_btn_html}'
         f'</div>'
         f'</div>'
     )
+
 
 # -------------------------------------------------------------
 # SIDEBAR NAVIGATION & FILTERS
