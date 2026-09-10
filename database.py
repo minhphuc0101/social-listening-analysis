@@ -261,6 +261,7 @@ def record_crawl_log(target_date, status, total_mentions=0, inserted_count=0, du
         conn = get_connection(conn_str)
         if conn:
             with conn:
+                with conn.cursor() as cur:
                     cur.execute("""
                         CREATE TABLE IF NOT EXISTS crawler_run_logs (
                             id SERIAL PRIMARY KEY,
