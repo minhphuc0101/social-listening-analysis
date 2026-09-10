@@ -398,9 +398,10 @@ pillar_filter = st.sidebar.selectbox(
 # Car Model Filter
 available_models = [
     "Mitsubishi Pajero Sport", "VinFast VF6", "VinFast VF7", "Mitsubishi Xforce",
-    "VinFast VF8", "Toyota Corolla Cross", "Kia Seltos / Sonet", "Mercedes-Benz W212 / E400",
-    "Ford Ranger / Everest", "Hyundai Creta / SantaFe", "Mitsubishi Xpander", "VinFast VF5",
-    "VinFast VF3", "Skoda Kushaq", "Toyota Yaris Cross", "Toyota Vios", "Mitsubishi Destinator"
+    "VinFast VF8", "Toyota Innova Cross", "Toyota Veloz Cross", "Kia Seltos / Sonet",
+    "Mercedes-Benz W212 / E400", "Ford Ranger / Everest", "Hyundai Creta / SantaFe",
+    "VinFast VF5", "VinFast VF3", "Mitsubishi Xpander", "Skoda Kushaq",
+    "Toyota Yaris Cross", "Toyota Corolla Cross", "Toyota Vios", "Mitsubishi Destinator"
 ]
 model_filter = st.sidebar.selectbox(
     "Thương hiệu / Dòng xe:",

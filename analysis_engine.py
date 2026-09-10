@@ -145,8 +145,10 @@ CAR_MODELS = {
     "VinFast VF7": [r"\bvf7\b", r"\bvf\s*7\b"],
     "VinFast VF8": [r"\bvf8\b", r"\bvf\s*8\b"],
     "VinFast VF5": [r"\bvf5\b", r"\bvf\s*5\b"],
+    "Toyota Veloz Cross": [r"\bveloz\b", r"\bveloz\s*cross\b"],
+    "Toyota Innova Cross": [r"\binnova\s*cross\b", r"\bin\s*cross\b", r"\bỉn\s*cross\b", r"\binnova\b"],
     "Toyota Yaris Cross": [r"\byaris\s*cross\b", r"\byaris\b"],
-    "Toyota Corolla Cross": [r"\bcorolla\s*cross\b", r"\bcross\b"],
+    "Toyota Corolla Cross": [r"\bcorolla\s*cross\b", r"\bcorolla\b"],
     "Toyota Vios": [r"\bvios\b"],
     "Skoda Kushaq": [r"\bkushaq\b", r"\bskoda\b"],
     "Mercedes-Benz W212 / E400": [r"\bw212\b", r"\be400\b", r"\bm276\b", r"\bmer\b", r"\bmercedes\b"],
@@ -258,10 +260,16 @@ def enrich_social_record(record, reference_time=None):
     
     # 2. Car Model
     detected_model = "Khác"
-    for model_name, patterns in CAR_MODELS.items():
-        if any(re.search(pat, full_text, re.IGNORECASE) for pat in patterns):
-            detected_model = model_name
-            break
+    if content:
+        for model_name, patterns in CAR_MODELS.items():
+            if any(re.search(pat, content, re.IGNORECASE) for pat in patterns):
+                detected_model = model_name
+                break
+    if detected_model == "Khác" and description:
+        for model_name, patterns in CAR_MODELS.items():
+            if any(re.search(pat, description, re.IGNORECASE) for pat in patterns):
+                detected_model = model_name
+                break
             
     # 3. Topic Hierarchy
     pillar, sub_topic = classify_topic_hierarchy(full_text)

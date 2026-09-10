@@ -227,6 +227,28 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: "08/09/2026" if pd.isna(x) or str(x).strip() in ("", "NaT", "nan", "None") else str(x).strip()
         )
 
+    # 3. Car model rectification (accurately classifies Toyota Veloz Cross & Toyota Innova Cross)
+    if "car_model" in df.columns:
+        def _clean_car_model(row):
+            m = str(row.get("car_model") or "").strip()
+            c = str(row.get("content") or row.get("Content") or "").lower()
+            d = str(row.get("description") or row.get("Description") or "").lower()
+            full = f"{d} {c}"
+
+            if "veloz" in full:
+                return "Toyota Veloz Cross"
+            if "innova" in full or "in cross" in full or "ỉn cross" in full:
+                return "Toyota Innova Cross"
+            if m == "Toyota Corolla Cross":
+                if "corolla" in full:
+                    return "Toyota Corolla Cross"
+                if "yaris" in full:
+                    return "Toyota Yaris Cross"
+                return "Khác"
+            return m
+
+        df["car_model"] = df.apply(_clean_car_model, axis=1)
+
     return df
 
 def load_local_fallback_data():
