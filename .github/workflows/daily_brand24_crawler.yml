@@ -40,8 +40,8 @@ jobs:
 
       - name: Run Brand24 Playwright Crawler & DB Ingestion
         env:
-          BRAND24_USERNAME: ${{ secrets.BRAND24_USERNAME }}
-          BRAND24_PASSWORD: ${{ secrets.BRAND24_PASSWORD }}
+          BRAND24_USERNAME: ${{ secrets.BRAND24_USERNAME || 'account02@digimind.asia' }}
+          BRAND24_PASSWORD: ${{ secrets.BRAND24_PASSWORD || 'Dgm@7979' }}
           NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
         run: |
           CMD="python brand24_crawler.py"

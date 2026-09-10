@@ -261,8 +261,25 @@ def record_crawl_log(target_date, status, total_mentions=0, inserted_count=0, du
         conn = get_connection(conn_str)
         if conn:
             with conn:
-                with conn.cursor() as cur:
                     cur.execute("""
+                        CREATE TABLE IF NOT EXISTS crawler_run_logs (
+                            id SERIAL PRIMARY KEY,
+                            crawler_name VARCHAR(50) DEFAULT 'Brand24',
+                            campaign VARCHAR(100) DEFAULT 'Toyota',
+                            target_date DATE,
+                            status VARCHAR(50) NOT NULL,
+                            total_mentions INT DEFAULT 0,
+                            inserted_count INT DEFAULT 0,
+                            duplicate_count INT DEFAULT 0,
+                            report_file TEXT,
+                            error_message TEXT,
+                            duration_sec FLOAT DEFAULT 0.0,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                        );
+                        CREATE INDEX IF NOT EXISTS idx_crl_date ON crawler_run_logs(target_date);
+                        CREATE INDEX IF NOT EXISTS idx_crl_status ON crawler_run_logs(status);
+                        CREATE INDEX IF NOT EXISTS idx_crl_campaign ON crawler_run_logs(campaign);
+
                         INSERT INTO crawler_run_logs (
                             crawler_name, campaign, target_date, status,
                             total_mentions, inserted_count, duplicate_count,

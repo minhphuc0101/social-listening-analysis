@@ -23,9 +23,9 @@ from database import (
 )
 
 # Default constants
-DEFAULT_USERNAME = os.getenv("BRAND24_USERNAME", "account02@digimind.asia")
-DEFAULT_PASSWORD = os.getenv("BRAND24_PASSWORD", "Dgm@7979")
-DEFAULT_PROJECT_ID = os.getenv("BRAND24_PROJECT_ID", "1397643108")
+DEFAULT_USERNAME = os.getenv("BRAND24_USERNAME") or "account02@digimind.asia"
+DEFAULT_PASSWORD = os.getenv("BRAND24_PASSWORD") or "Dgm@7979"
+DEFAULT_PROJECT_ID = os.getenv("BRAND24_PROJECT_ID") or "1397643108"
 DEFAULT_CAMPAIGN = "Toyota"
 
 VN_TZ = timezone(timedelta(hours=7))
@@ -59,9 +59,9 @@ def dismiss_popups(page):
             pass
 
 def crawl_brand24_excel(
-    username=DEFAULT_USERNAME,
-    password=DEFAULT_PASSWORD,
-    project_id=DEFAULT_PROJECT_ID,
+    username=None,
+    password=None,
+    project_id=None,
     start_date=None,
     end_date=None,
     output_dir="reports/brand24",
@@ -73,6 +73,10 @@ def crawl_brand24_excel(
     """
     os.makedirs(output_dir, exist_ok=True)
     
+    username = username or DEFAULT_USERNAME
+    password = password or DEFAULT_PASSWORD
+    project_id = project_id or DEFAULT_PROJECT_ID
+
     if not start_date:
         start_date = get_target_date(days_back=1)
     if not end_date:
@@ -120,7 +124,7 @@ def crawl_brand24_excel(
 
         try:
             email_loc.wait_for(state="visible", timeout=20000)
-            print("[Step 1/4] Entering credentials...")
+            print(f"[Step 1/4] Entering credentials for user: {username[:4]}***@{username.split('@')[-1]}...")
             email_loc.fill(username)
             pass_loc.fill(password)
             submit_loc.click()
@@ -133,6 +137,9 @@ def crawl_brand24_excel(
             print("[Brand24] Authenticated successfully into dashboard.")
         except Exception:
             print(f"[Brand24] Current URL after login attempt: {page.url}")
+            if "login" in page.url:
+                raise RuntimeError(f"Brand24 login failed. Please verify credentials. Current URL: {page.url}")
+
 
         # 2. Navigate to target results page
         print(f"[Step 2/4] Navigating to target results URL: {results_url}...")
