@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 import datetime
 from datetime import timezone, timedelta
@@ -253,11 +253,14 @@ def parse_brand24_excel(filepath, campaign=None):
             else:
                 raw_author = 'Brand24 User'
 
-        # 9. Tags -> list
+        # 9. Tags -> list (always includes 'Brand24' for instant DB filtering)
         raw_tags = row.get(col_find.get('tags', ''))
-        tags_list = []
+        tags_list = ['Brand24']
         if pd.notna(raw_tags) and str(raw_tags).strip() and str(raw_tags).lower() != 'nan':
-            tags_list = [t.strip() for t in str(raw_tags).split(',') if t.strip()]
+            extra_tags = [t.strip() for t in str(raw_tags).split(',') if t.strip()]
+            for t in extra_tags:
+                if t not in tags_list:
+                    tags_list.append(t)
 
         record = {
             'UrlComment': raw_source,
