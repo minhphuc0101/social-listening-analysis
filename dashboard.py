@@ -8,6 +8,7 @@ import sys
 import urllib.parse
 import hashlib
 import re
+import html
 
 # Page Configuration
 st.set_page_config(
@@ -265,9 +266,48 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
 
     if not dt_str or dt_str.lower() in ('nat', 'none', 'nan', ''):
         dt_str = '08/09/2026'
-    content = str(record.get('content') or record.get('Content') or record.get('description') or record.get('Description') or '')
+
+    raw_content = str(record.get('content') or record.get('Content') or '').strip()
+    raw_desc = str(record.get('description') or record.get('Description') or '').strip()
+    p_type = str(record.get('post_type') or record.get('Type') or '').lower()
+    car_model = str(record.get('car_model') or '').strip()
     topic_tag = record.get('topic_category') or 'Chung'
-    
+
+    # Fallback to description if content is missing
+    if not raw_content:
+        raw_content = raw_desc
+
+    clean_content = html.escape(raw_content)
+
+    # Detect if record has a distinct parent topic caption (post description)
+    is_distinct_desc = bool(
+        raw_desc and
+        raw_desc.lower() not in ('nan', 'none', 'nat', '') and
+        raw_content and
+        raw_desc.strip().lower() != raw_content.strip().lower()
+    )
+
+    if is_distinct_desc:
+        clean_desc_single = re.sub(r'\s+', ' ', raw_desc).strip()
+        clean_desc_escaped = html.escape(clean_desc_single)
+        desc_preview = clean_desc_escaped[:220] + ('...' if len(clean_desc_escaped) > 220 else '')
+
+        topic_caption_html = (
+            f'<div style="background:#F8FAFC; border:1px solid #E2E8F0; border-left:3px solid #3B82F6; '
+            f'border-radius:4px; padding:6px 10px; margin:6px 0 8px 0; font-size:0.82rem; color:#475569; line-height:1.4;" '
+            f'title="{clean_desc_escaped}">'
+            f'<span style="font-weight:700; color:#1D4ED8;">📌 Chủ đề bài viết:</span> &ldquo;{desc_preview}&rdquo;'
+            f'</div>'
+        )
+        content_prefix = '<span style="font-weight:600; color:#64748B;">💬 Bình luận: </span>'
+    else:
+        topic_caption_html = ''
+        content_prefix = '<span style="font-weight:600; color:#1D4ED8;">📝 Bài viết: </span>' if 'post' in p_type else ''
+
+    model_tag_html = ''
+    if car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all'):
+        model_tag_html = f'<span class="feed-topic-tag" style="margin-bottom:0; background:#EFF6FF; color:#1D4ED8; margin-left:6px;">🚗 {html.escape(car_model)}</span>'
+
     s_upper = str(sentiment_type).upper()
     if s_upper == 'POSITIVE':
         badge_html = '<span class="badge-pos">Tích cực</span>'
@@ -283,8 +323,6 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     
     link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:4px;" title="Mở trên {chan}">🔗 Xem bài viết gốc trên {chan} ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
     
-    clean_content = content.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-    
     return (
         f'<div class="feed-card" style="border-left:4px solid {border_color}; margin-bottom:12px; padding:12px 16px;">'
         f'<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">'
@@ -294,9 +332,13 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
         f'</div>'
         f'<div>{badge_html}</div>'
         f'</div>'
-        f'<div class="feed-content" style="font-size:0.88rem; color:#334155; line-height:1.5;">{clean_content[:280]}{"..." if len(clean_content) > 280 else ""}</div>'
+        f'{topic_caption_html}'
+        f'<div class="feed-content" style="font-size:0.88rem; color:#1E293B; line-height:1.5;">{content_prefix}{clean_content[:280]}{"..." if len(clean_content) > 280 else ""}</div>'
         f'<div style="margin-top:10px; padding-top:8px; border-top:1px solid #F1F5F9; display:flex; justify-content:space-between; align-items:center;">'
+        f'<div>'
         f'<span class="feed-topic-tag" style="margin-bottom:0;">🏷️ {topic_tag}</span>'
+        f'{model_tag_html}'
+        f'</div>'
         f'{link_btn_html}'
         f'</div>'
         f'</div>'
