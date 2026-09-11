@@ -569,6 +569,29 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
 
         df["car_model"] = df.apply(_clean_car_model, axis=1)
 
+    # 4. Clean description and content from FB scraper placeholders ("Bài viết của...", "'s Post")
+    if "description" in df.columns:
+        df["description"] = df["description"].apply(
+            lambda x: "" if (
+                pd.isna(x) or 
+                str(x).strip().lower().startswith("bài viết của") or 
+                re.search(r"’s\s+post|'s\s+post", str(x), re.IGNORECASE) or 
+                str(x).strip().lower() in ("nan", "none", "nat", "")
+            ) else str(x).strip()
+        )
+
+    if "content" in df.columns:
+        def _sanitize_content(row):
+            c = str(row.get("content") or "").strip()
+            if c.lower().startswith("bài viết của") or re.search(r"’s\s+post|'s\s+post", c, re.IGNORECASE):
+                auth = str(row.get("author") or "").strip()
+                m = str(row.get("car_model") or "").strip()
+                if m and m.lower() not in ("khác", "nan", "none", "", "all"):
+                    return f"[Bài viết hình ảnh / video về {m} của {auth}]"
+                return f"[Bài viết hình ảnh / video của {auth}]"
+            return c
+        df["content"] = df.apply(_sanitize_content, axis=1)
+
     return df
 
 def load_local_fallback_data():

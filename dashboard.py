@@ -333,18 +333,40 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     car_model = str(record.get('car_model') or '').strip()
     topic_tag = record.get('topic_category') or 'Chung'
 
+    # Filter out junk Facebook header placeholders from raw_desc
+    if raw_desc and (
+        raw_desc.lower().startswith('bài viết của') or 
+        re.search(r"’s\s+post|'s\s+post", raw_desc, re.IGNORECASE) or
+        raw_desc.lower() in ('nan', 'none', 'nat', '')
+    ):
+        raw_desc = ''
+
+    # Filter out junk Facebook header placeholders from raw_content
+    if raw_content and (
+        raw_content.lower().startswith('bài viết của') or 
+        re.search(r"’s\s+post|'s\s+post", raw_content, re.IGNORECASE)
+    ):
+        auth_clean = str(record.get('author') or record.get('Author') or auth or '').strip()
+        if car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all'):
+            raw_content = f"[Bài viết hình ảnh / video về {car_model} của {auth_clean}]"
+        else:
+            raw_content = f"[Bài viết hình ảnh / video của {auth_clean}]"
+
     # Fallback to description if content is missing
     if not raw_content:
-        raw_content = raw_desc
+        raw_content = raw_desc or (f"Thảo luận về {car_model}" if car_model and car_model.lower() not in ('khác', 'all') else "Thảo luận trên mạng xã hội")
 
     clean_content = html.escape(raw_content)
 
-    # Detect if record has a distinct parent topic caption (post description)
+    # Detect if record has a distinct, genuine parent topic caption (post description)
     is_distinct_desc = bool(
         raw_desc and
         raw_desc.lower() not in ('nan', 'none', 'nat', '') and
+        not raw_desc.lower().startswith('bài viết của') and
+        not re.search(r"’s\s+post|'s\s+post", raw_desc, re.IGNORECASE) and
         raw_content and
-        raw_desc.strip().lower() != raw_content.strip().lower()
+        raw_desc.strip().lower() != raw_content.strip().lower() and
+        len(raw_desc.strip()) > 5
     )
 
     if is_distinct_desc:
