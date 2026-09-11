@@ -486,9 +486,9 @@ DATASET_REF_DATE = datetime.date(2026, 9, 9)
 DATASET_MIN_DATE = datetime.date(2025, 1, 1)
 
 if "ls_date_mode" not in st.session_state:
-    st.session_state["ls_date_mode"] = "All time"
+    st.session_state["ls_date_mode"] = "Last 7 days"
 if "ls_start_date" not in st.session_state:
-    st.session_state["ls_start_date"] = datetime.date(2025, 9, 9)
+    st.session_state["ls_start_date"] = DATASET_REF_DATE - datetime.timedelta(days=7)
 if "ls_end_date" not in st.session_state:
     st.session_state["ls_end_date"] = DATASET_REF_DATE
 
@@ -592,12 +592,12 @@ with col_top2:
                 b_c1, b_c2 = st.columns([1, 1.4])
                 with b_c1:
                     if st.button("Reset", use_container_width=True):
-                        st.session_state["ls_start_date"] = datetime.date(2025, 9, 9)
+                        st.session_state["ls_start_date"] = DATASET_REF_DATE - datetime.timedelta(days=7)
                         st.session_state["ls_end_date"] = DATASET_REF_DATE
-                        st.session_state["ls_date_mode"] = "All time"
-                        st.session_state["ls_temp_start"] = datetime.date(2025, 9, 9)
+                        st.session_state["ls_date_mode"] = "Last 7 days"
+                        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=7)
                         st.session_state["ls_temp_end"] = DATASET_REF_DATE
-                        st.session_state["ls_preset_radio"] = "All time"
+                        st.session_state["ls_preset_radio"] = "Last 7 days"
                         st.rerun()
                 with b_c2:
                     if st.button("Apply / Áp dụng", type="primary", use_container_width=True):
