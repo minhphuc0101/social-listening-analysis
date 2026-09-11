@@ -621,7 +621,7 @@ else:
 # -------------------------------------------------------------
 # DATA RETRIEVAL (WITH SMART CACHING)
 # -------------------------------------------------------------
-@st.cache_data(ttl=20)
+@st.cache_data(ttl=60)
 def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel):
     return get_discussions_df(
         lookback_hours=lookback,
@@ -631,7 +631,7 @@ def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, chan
         car_model=model if model != "Tất cả" else None,
         sentiment=sentiment if sentiment != "Tất cả" else None,
         channel=channel if channel != "Tất cả" else None,
-        limit=12000
+        limit=60000
     )
 
 df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter)
@@ -666,25 +666,27 @@ if nav_page == "Tổng quan thảo luận":
         
         if not df.empty and 'published_at' in df.columns:
             df_daily = df.copy()
-            df_daily['date'] = pd.to_datetime(df_daily['published_at']).dt.date
-            daily_vol = df_daily.groupby('date').size().reset_index(name='buzz_count')
-            daily_vol = daily_vol.sort_values('date')
+            dt_s = pd.to_datetime(df_daily['published_at'], utc=True, errors='coerce')
+            df_daily['date_vn'] = dt_s.dt.tz_convert('Asia/Ho_Chi_Minh').dt.date
+            daily_vol = df_daily.groupby('date_vn').size().reset_index(name='buzz_count')
+            daily_vol = daily_vol.dropna(subset=['date_vn']).sort_values('date_vn')
+            daily_vol['date_str'] = daily_vol['date_vn'].apply(lambda d: d.strftime('%d/%m'))
             
             fig_trend = go.Figure()
             fig_trend.add_trace(go.Bar(
-                x=daily_vol['date'],
+                x=daily_vol['date_str'],
                 y=daily_vol['buzz_count'],
                 marker_color='#38BDF8',
                 marker_line_color='#0284C7',
                 marker_line_width=1,
-                hovertemplate='<b>Ngày:</b> %{x|%d/%m/%Y}<br><b>Số thảo luận:</b> %{y:,} buzz<extra></extra>'
+                hovertemplate='<b>Ngày:</b> %{x}<br><b>Số thảo luận:</b> %{y:,} buzz<extra></extra>'
             ))
             if not daily_vol.empty:
                 max_idx = daily_vol['buzz_count'].idxmax()
                 peak_val = daily_vol.loc[max_idx, 'buzz_count']
-                peak_date = daily_vol.loc[max_idx, 'date']
+                peak_date_str = daily_vol.loc[max_idx, 'date_str']
                 fig_trend.add_annotation(
-                    x=peak_date,
+                    x=peak_date_str,
                     y=peak_val,
                     text=f"<b>{peak_val:,}</b>",
                     showarrow=True,
@@ -703,7 +705,7 @@ if nav_page == "Tổng quan thảo luận":
                 paper_bgcolor='#FFFFFF',
                 margin=dict(t=25, b=20, l=40, r=20),
                 height=260,
-                xaxis=dict(showgrid=True, gridcolor='#F1F5F9', tickformat='%d/%m'),
+                xaxis=dict(type='category', showgrid=True, gridcolor='#F1F5F9'),
                 yaxis=dict(showgrid=True, gridcolor='#F1F5F9')
             )
             st.plotly_chart(fig_trend, use_container_width=True)

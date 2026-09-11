@@ -73,62 +73,65 @@ def parse_timestamp(raw_date, reference_time=None):
 # -------------------------------------------------------------
 HIERARCHICAL_TOPICS = {
     "Thương hiệu": {
+        "Tổng quan": [
+            r"thương hiệu", r"hãng xe", r"độ phủ", r"phổ biến", r"nổi tiếng", r"uy tín", r"tên tuổi"
+        ],
+        "Cộng đồng & Đời sống": [
+            r"cộng đồng", r"đời sống", r"bài viết", r"trollxe", r"fanpage", r"group", r"anh em", r"hội"
+        ],
         "Hoạt động truyền thông": [
             r"truyền thông", r"quảng cáo", r"poster", r"video", r"livestream", r"phỏng vấn",
-            r"bài viết", r"trollxe", r"autodaily", r"autopro", r"xehay", r"bimatxebiz", r"fanpage"
+            r"autodaily", r"autopro", r"xehay", r"bimatxebiz"
         ],
         "Hệ thống phân phối": [
             r"đại lý", r"showroom", r"phân phối", r"giao xe", r"nhận xe", r"đặt cọc", r"cọc", r"sale"
-        ],
-        "Độ phủ chung": [
-            r"thương hiệu", r"hãng xe", r"độ phủ", r"phổ biến", r"nổi tiếng", r"uy tín", r"tên tuổi"
         ],
         "Tình hình kinh doanh": [
             r"doanh số", r"bán chạy", r"thị phần", r"kinh doanh", r"báo cáo", r"tỷ phú", r"doanh thu", r"lãi"
         ],
         "Khởi kiện / Thu hồi": [
             r"thu hồi", r"triệu hồi", r"khởi kiện", r"kiện", r"phốt", r"bồi thường", r"lỗi hàng loạt"
-        ],
-        "Sự kiện": [
-            r"sự kiện", r"triển lãm", r"ra mắt", r"ra mắt xe", r"trải nghiệm", r"lái thử", r"test drive"
-        ],
-        "Pháp lý": [
-            r"pháp lý", r"đăng kiểm", r"rớt đăng kiểm", r"thầy cụt", r"biển số", r"phạt nguội", r"thủ tục"
         ]
     },
     "Sản phẩm": {
-        "Thông tin sản phẩm": [
-            r"thông tin", r"ra mắt", r"thế hệ mới", r"bản mới", r"facelift", r"phiên bản", r"option"
+        "Giá bán & Khuyến mãi": [
+            r"giá", r"khuyến mãi", r"ưu đãi", r"giảm giá", r"lăn bánh", r"trước bạ", r"củ", r"tỏi", r"triệu"
         ],
-        "Khả năng vận hành": [
+        "Động cơ & Vận hành": [
             r"vận hành", r"động cơ", r"máy", r"turbo", r"twin turbo", r"công suất", r"mã lực",
             r"hộp số", r"tăng tốc", r"leo dốc", r"cảm giác lái", r"đầm", r"bốc", r"khung gầm", r"trâu bò"
+        ],
+        "Độ xe & Kỹ thuật": [
+            r"độ", r"kỹ thuật", r"mâm", r"đèn", r"calang", r"màu sơn", r"body", r"form", r"tuning", r"remap"
+        ],
+        "Trang bị & Phụ kiện": [
+            r"trang bị", r"phụ kiện", r"nội thất", r"ghế", r"7 chỗ", r"5 chỗ", r"khoang", r"rộng", r"hẹp", r"da nappa", r"thảm", r"cốp"
+        ],
+        "So sánh & Tư vấn xe": [
+            r"so sánh", r"đối thủ", r"tư vấn", r"hơn", r"kém", r"hạng b", r"hạng c", r"phân vân", r"cân nhắc", r"chọn con"
+        ],
+        "Thông tin sản phẩm": [
+            r"thông tin", r"ra mắt", r"thế hệ mới", r"bản mới", r"facelift", r"phiên bản", r"option"
         ],
         "Công nghệ": [
             r"công nghệ", r"pin", r"catl", r"byd", r"quản lý nhiệt", r"adas", r"màn hình", r"tự lái", r"phần mềm"
         ],
-        "Ngoại thất": [
-            r"ngoại thất", r"thiết kế", r"dáng", r"đẹp", r"mâm", r"đèn", r"calang", r"màu sơn", r"body", r"form"
-        ],
         "Tính năng an toàn": [
             r"an toàn", r"phanh", r"túi khí", r"cảnh báo", r"cảm biến", r"camera", r"va chạm", r"chống lật"
         ],
-        "Nội thất & Không gian": [
-            r"nội thất", r"ghế", r"7 chỗ", r"5 chỗ", r"khoang", r"rộng", r"hẹp", r"da nappa", r"thảm", r"cốp"
-        ],
         "Đánh giá sản phẩm": [
             r"đánh giá", r"review", r"trải nghiệm", r"khen", r"chê", r"nhược điểm", r"ưu điểm", r"chất lượng"
-        ],
-        "Tiêu thụ năng lượng": [
-            r"tiêu thụ", r"hao xăng", r"ăn xăng", r"tiết kiệm", r"pin sụt", r"quãng đường", r"sạc"
-        ],
-        "So sánh với đối thủ": [
-            r"so sánh", r"đối thủ", r"hơn", r"kém", r"hạng b", r"hạng c", r"phân vân", r"cân nhắc", r"chọn con"
         ]
     },
     "Dịch vụ": {
+        "Bảo hiểm & Đăng kiểm": [
+            r"bảo hiểm", r"đăng kiểm", r"rớt đăng kiểm", r"thầy cụt", r"biển số", r"phạt nguội", r"thủ tục", r"pháp lý"
+        ],
+        "Chất lượng & Bảo dưỡng": [
+            r"bảo dưỡng", r"chất lượng", r"sửa chữa", r"gara", r"xưởng", r"phụ tùng", r"thay thế", r"định kỳ"
+        ],
         "Sửa chữa & Bảo hành": [
-            r"sửa chữa", r"bảo dưỡng", r"bảo hành", r"gara", r"xưởng", r"phụ tùng", r"thay thế", r"bảo hiểm"
+            r"sửa chữa", r"bảo dưỡng", r"bảo hành", r"gara", r"xưởng", r"phụ tùng", r"thay thế"
         ],
         "Chính sách bán hàng": [
             r"chính sách", r"trả góp", r"vay", r"ngân hàng", r"hợp đồng", r"ký hợp đồng"
@@ -138,9 +141,6 @@ HIERARCHICAL_TOPICS = {
         ],
         "Trải nghiệm khách hàng": [
             r"trải nghiệm", r"hài lòng", r"thất vọng", r"tệ", r"tuyệt vời", r"bất tiện"
-        ],
-        "Giá / Khuyến mãi": [
-            r"giá", r"khuyến mãi", r"ưu đãi", r"giảm giá", r"lăn bánh", r"trước bạ", r"củ", r"tỏi", r"triệu"
         ]
     }
 }

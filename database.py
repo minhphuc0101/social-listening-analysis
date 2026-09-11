@@ -655,7 +655,7 @@ def load_local_fallback_data():
             'car_model', 'tags', 'site_name', 'channel', 'author', 'post_type'
         ])
 
-def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, limit=15000):
+def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, limit=60000):
     """
     Fetches discussions from Neon DB with automatic fallback to local enriched data.
     Uses native psycopg2 cursor for maximum speed and compatibility.
