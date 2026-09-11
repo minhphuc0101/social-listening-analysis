@@ -358,6 +358,9 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
 
     clean_content = html.escape(raw_content)
 
+    grp_name = str(record.get('group_name') or record.get('GroupName') or '').strip()
+    grp_name_clean = re.sub(r'^\(\d+\)\s*', '', grp_name).strip()
+
     # Detect if record has a distinct, genuine parent topic caption (post description)
     is_distinct_desc = bool(
         raw_desc and
@@ -374,9 +377,36 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
         clean_desc_escaped = html.escape(clean_desc_single)
         desc_preview = clean_desc_escaped[:180] + ('...' if len(clean_desc_escaped) > 180 else '')
 
+        if clean_desc_single.lower().startswith(('thảo luận về', 'chủ đề', 'bài đăng về')):
+            label_text = 'Chủ đề bài viết:'
+        else:
+            label_text = 'Bài viết gốc:'
+
         topic_caption_html = (
             f'<div style="font-size:0.82rem; color:#64748B; margin-bottom:6px; line-height:1.4;" title="{clean_desc_escaped}">'
-            f'<span style="color:#94A3B8;">Bài viết gốc:</span> <span style="color:#475569; font-style:italic;">&ldquo;{desc_preview}&rdquo;</span>'
+            f'<span style="color:#94A3B8;">{label_text}</span> <span style="color:#475569; font-style:italic;">&ldquo;{desc_preview}&rdquo;</span>'
+            f'</div>'
+        )
+    elif 'post' not in p_type:
+        # Synthesize a clean post topic description for comments so the user sees both the post topic and the comment
+        parts = []
+        if car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all'):
+            parts.append(f"Thảo luận về <b>{html.escape(car_model)}</b>")
+        else:
+            parts.append("Thảo luận về xe")
+
+        if topic_tag and topic_tag.lower() not in ('', 'chung', 'nan', 'none'):
+            parts.append(f"Chủ đề <b>{html.escape(topic_tag)}</b>")
+
+        if grp_name_clean and grp_name_clean.lower() not in ('', 'mạng xã hội', 'facebook', 'facebook community', 'nan', 'none'):
+            parts.append(f"nhóm <i>{html.escape(grp_name_clean)}</i>")
+        elif chan and chan.lower() not in ('', 'mạng xã hội', 'facebook', 'facebook community', 'community/page', 'nan', 'none'):
+            parts.append(f"kênh <i>{html.escape(chan)}</i>")
+
+        topic_summary = " &bull; ".join(parts)
+        topic_caption_html = (
+            f'<div style="font-size:0.82rem; color:#64748B; margin-bottom:6px; line-height:1.4;">'
+            f'<span style="color:#94A3B8;">Chủ đề bài viết:</span> <span style="color:#334155; font-style:italic;">&ldquo;{topic_summary}&rdquo;</span>'
             f'</div>'
         )
     else:

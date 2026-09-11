@@ -592,6 +592,11 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
             return c
         df["content"] = df.apply(_sanitize_content, axis=1)
 
+    if "group_name" in df.columns:
+        df["group_name"] = df["group_name"].apply(
+            lambda x: re.sub(r'^\(\d+\)\s*', '', str(x)).strip() if pd.notna(x) and str(x).strip().lower() not in ('nan', 'none', 'none', '') else ''
+        )
+
     return df
 
 def load_local_fallback_data():
@@ -717,7 +722,7 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
             sql = f"""
                 SELECT 
                     id, url_comment, content, description, published_at, raw_published_date,
-                    sentiment, topic_pillar, topic_category, car_model, tags, site_name, channel, author, post_type
+                    sentiment, topic_pillar, topic_category, car_model, tags, site_name, channel, author, post_type, group_name
                 FROM social_discussions
                 {where_clause}
                 ORDER BY published_at DESC NULLS LAST
