@@ -147,9 +147,11 @@ st.markdown("""
     }
     
     /* Looker Studio Date Range Control Styling */
-    div[data-testid="stPopover"] > button {
+    div[data-testid="stPopover"] > button,
+    div[data-testid="stPopover"] > button:focus,
+    div[data-testid="stPopover"] > button:active {
         background-color: #FFFFFF !important;
-        border: 1px solid #CBD5E1 !important;
+        border: 1.5px solid #CBD5E1 !important;
         border-radius: 6px !important;
         color: #1E293B !important;
         font-size: 0.88rem !important;
@@ -168,6 +170,12 @@ st.markdown("""
         color: #2563EB !important;
         background-color: #F8FAFC !important;
     }
+    div[data-testid="stPopover"] > button[aria-expanded="true"] {
+        border: 1.5px solid #2563EB !important;
+        background-color: #EFF6FF !important;
+        color: #1D4ED8 !important;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+    }
     div[data-testid="stPopoverBody"] {
         background-color: #FFFFFF !important;
         border-radius: 8px !important;
@@ -175,6 +183,24 @@ st.markdown("""
         border: 1px solid #E2E8F0 !important;
         padding: 1.15rem !important;
         min-width: 480px !important;
+    }
+    /* Distinct borders for Custom Range Date input boxes */
+    div[data-testid="stPopoverBody"] div[data-baseweb="input"],
+    div[data-testid="stPopoverBody"] div[data-testid="stDateInput"] > div {
+        background-color: #FFFFFF !important;
+        border: 1.5px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-baseweb="input"]:hover,
+    div[data-testid="stPopoverBody"] div[data-testid="stDateInput"] > div:hover {
+        border-color: #94A3B8 !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stPopoverBody"] div[data-testid="stDateInput"] > div:focus-within {
+        border-color: #2563EB !important;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -501,9 +527,9 @@ cur_s = st.session_state["ls_start_date"]
 cur_e = st.session_state["ls_end_date"]
 
 if cur_s == cur_e:
-    btn_label = f"{cur_s.strftime('%b %d, %Y')} ▾"
+    btn_label = f"{cur_s.strftime('%b %d, %Y')}"
 else:
-    btn_label = f"{cur_s.strftime('%b %d, %Y')} – {cur_e.strftime('%b %d, %Y')} ▾"
+    btn_label = f"{cur_s.strftime('%b %d, %Y')} – {cur_e.strftime('%b %d, %Y')}"
 
 col_top1, col_top2 = st.columns([1, 1.4])
 with col_top1:
@@ -517,7 +543,7 @@ with col_top2:
             st.markdown("""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
                 <span style="font-size:0.95rem; font-weight:700; color:#0F172A;">Date Range Control</span>
-                <span style="font-size:0.8rem; color:#64748B;">Khoảng thời gian (Looker Studio)</span>
+                <span style="font-size:0.8rem; color:#64748B;">Khoảng thời gian</span>
             </div>
             """, unsafe_allow_html=True)
             
