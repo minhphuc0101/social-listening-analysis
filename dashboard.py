@@ -145,6 +145,37 @@ st.markdown("""
         padding: 3px 8px;
         border-radius: 4px;
     }
+    
+    /* Looker Studio Date Range Control Styling */
+    div[data-testid="stPopover"] > button {
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+        color: #1E293B !important;
+        font-size: 0.88rem !important;
+        font-weight: 600 !important;
+        padding: 0.45rem 0.85rem !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        height: 38px !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stPopover"] > button:hover {
+        border-color: #2563EB !important;
+        color: #2563EB !important;
+        background-color: #F8FAFC !important;
+    }
+    div[data-testid="stPopoverBody"] {
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid #E2E8F0 !important;
+        padding: 1.15rem !important;
+        min-width: 480px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -423,54 +454,142 @@ elif "Tiêu cực" in sentiment_filter:
     sentiment_arg = "NEGATIVE"
 
 # -------------------------------------------------------------
-# TOP BAR (HEADER, SEARCH & FUNCTIONAL TIME FILTER)
+# TOP BAR (HEADER, SEARCH & LOOKER STUDIO DATE RANGE CONTROL)
 # -------------------------------------------------------------
+DATASET_REF_DATE = datetime.date(2026, 9, 9)
+DATASET_MIN_DATE = datetime.date(2025, 1, 1)
+
+if "ls_date_mode" not in st.session_state:
+    st.session_state["ls_date_mode"] = "All time"
+if "ls_start_date" not in st.session_state:
+    st.session_state["ls_start_date"] = datetime.date(2025, 9, 9)
+if "ls_end_date" not in st.session_state:
+    st.session_state["ls_end_date"] = DATASET_REF_DATE
+
+def on_looker_preset_change():
+    p = st.session_state.get("ls_preset_radio")
+    if p == "Today":
+        st.session_state["ls_temp_start"] = DATASET_REF_DATE
+        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+    elif p == "Yesterday":
+        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=1)
+        st.session_state["ls_temp_end"] = DATASET_REF_DATE - datetime.timedelta(days=1)
+    elif p == "Last 7 days":
+        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=7)
+        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+    elif p == "Last 30 days":
+        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=30)
+        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+    elif p == "This month":
+        st.session_state["ls_temp_start"] = datetime.date(2026, 9, 1)
+        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+    elif p == "All time":
+        st.session_state["ls_temp_start"] = datetime.date(2025, 9, 9)
+        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+
+def on_looker_date_edit():
+    st.session_state["ls_preset_radio"] = "Fixed"
+
+if "ls_temp_start" not in st.session_state:
+    st.session_state["ls_temp_start"] = st.session_state["ls_start_date"]
+if "ls_temp_end" not in st.session_state:
+    st.session_state["ls_temp_end"] = st.session_state["ls_end_date"]
+if "ls_preset_radio" not in st.session_state:
+    st.session_state["ls_preset_radio"] = st.session_state["ls_date_mode"]
+
+cur_s = st.session_state["ls_start_date"]
+cur_e = st.session_state["ls_end_date"]
+
+if cur_s == cur_e:
+    btn_label = f"{cur_s.strftime('%b %d, %Y')} ▾"
+else:
+    btn_label = f"{cur_s.strftime('%b %d, %Y')} – {cur_e.strftime('%b %d, %Y')} ▾"
+
 col_top1, col_top2 = st.columns([1, 1.4])
 with col_top1:
     st.markdown(f'<div class="page-title">{nav_page}</div>', unsafe_allow_html=True)
 with col_top2:
-    search_col, date_col = st.columns([1, 1.35])
+    search_col, date_col = st.columns([1, 1.4])
     with search_col:
         search_kw = st.text_input("Tìm kiếm", placeholder="🔍 Search...", label_visibility="collapsed")
     with date_col:
-        date_preset = st.selectbox(
-            "Khoảng thời gian",
-            options=[
-                "📅 09-09-2025 - 09-09-2026",
-                "📅 48 Giờ Qua (Mới nhất)",
-                "📅 24 Giờ Qua",
-                "📅 7 Ngày Qua",
-                "📅 30 Ngày Qua",
-                "📅 Tùy chọn ngày..."
-            ],
-            index=0,
-            label_visibility="collapsed"
-        )
+        with st.popover(btn_label, use_container_width=True):
+            st.markdown("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+                <span style="font-size:0.95rem; font-weight:700; color:#0F172A;">Date Range Control</span>
+                <span style="font-size:0.8rem; color:#64748B;">Khoảng thời gian (Looker Studio)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col_pick, col_presets = st.columns([1.35, 1.1])
+            
+            with col_presets:
+                st.markdown("<div style='font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;'>Presets</div>", unsafe_allow_html=True)
+                preset_options = [
+                    "Fixed",
+                    "Today",
+                    "Yesterday",
+                    "This month",
+                    "Last 7 days",
+                    "Last 30 days",
+                    "All time"
+                ]
+                st.radio(
+                    "Presets",
+                    options=preset_options,
+                    index=preset_options.index(st.session_state["ls_preset_radio"]) if st.session_state["ls_preset_radio"] in preset_options else 0,
+                    label_visibility="collapsed",
+                    key="ls_preset_radio",
+                    on_change=on_looker_preset_change
+                )
+                
+            with col_pick:
+                st.markdown("<div style='font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;'>Custom Range</div>", unsafe_allow_html=True)
+                new_s = st.date_input(
+                    "Start Date",
+                    value=st.session_state["ls_temp_start"],
+                    min_value=DATASET_MIN_DATE,
+                    max_value=DATASET_REF_DATE,
+                    key="ls_temp_start",
+                    on_change=on_looker_date_edit
+                )
+                new_e = st.date_input(
+                    "End Date",
+                    value=st.session_state["ls_temp_end"],
+                    min_value=DATASET_MIN_DATE,
+                    max_value=DATASET_REF_DATE,
+                    key="ls_temp_end",
+                    on_change=on_looker_date_edit
+                )
+                
+                st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+                b_c1, b_c2 = st.columns([1, 1.4])
+                with b_c1:
+                    if st.button("Reset", use_container_width=True):
+                        st.session_state["ls_start_date"] = datetime.date(2025, 9, 9)
+                        st.session_state["ls_end_date"] = DATASET_REF_DATE
+                        st.session_state["ls_date_mode"] = "All time"
+                        st.session_state["ls_temp_start"] = datetime.date(2025, 9, 9)
+                        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+                        st.session_state["ls_preset_radio"] = "All time"
+                        st.rerun()
+                with b_c2:
+                    if st.button("Apply / Áp dụng", type="primary", use_container_width=True):
+                        if new_s > new_e:
+                            new_s, new_e = new_e, new_s
+                        st.session_state["ls_start_date"] = new_s
+                        st.session_state["ls_end_date"] = new_e
+                        st.session_state["ls_date_mode"] = st.session_state["ls_preset_radio"]
+                        st.rerun()
 
-# Parse time filter from top right selection
 lookback_hours = None
-start_date_arg = None
-end_date_arg = None
+if st.session_state["ls_date_mode"] == "All time":
+    start_date_arg = None
+    end_date_arg = None
+else:
+    start_date_arg = str(st.session_state["ls_start_date"])
+    end_date_arg = str(st.session_state["ls_end_date"])
 
-if "48 Giờ" in date_preset:
-    lookback_hours = 48
-elif "24 Giờ" in date_preset:
-    lookback_hours = 24
-elif "7 Ngày" in date_preset:
-    lookback_hours = 168
-elif "30 Ngày" in date_preset:
-    lookback_hours = 720
-elif "Tùy chọn" in date_preset:
-    col_custom1, col_custom2 = st.columns([1.5, 1])
-    with col_custom2:
-        custom_dates = st.date_input(
-            "Khoảng ngày:",
-            value=(datetime.date(2026, 9, 1), datetime.date(2026, 9, 9)),
-            label_visibility="collapsed"
-        )
-        if isinstance(custom_dates, (list, tuple)) and len(custom_dates) == 2:
-            start_date_arg = str(custom_dates[0])
-            end_date_arg = str(custom_dates[1])
 
 # -------------------------------------------------------------
 # DATA RETRIEVAL (WITH SMART CACHING)
