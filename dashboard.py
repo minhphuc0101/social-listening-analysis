@@ -482,36 +482,37 @@ elif "Tiêu cực" in sentiment_filter:
 # -------------------------------------------------------------
 # TOP BAR (HEADER, SEARCH & LOOKER STUDIO DATE RANGE CONTROL)
 # -------------------------------------------------------------
-DATASET_REF_DATE = datetime.date(2026, 9, 9)
+today = datetime.date.today()
 DATASET_MIN_DATE = datetime.date(2025, 1, 1)
+DATASET_MAX_DATE = today
 
 if "ls_date_mode" not in st.session_state:
     st.session_state["ls_date_mode"] = "Last 7 days"
 if "ls_start_date" not in st.session_state:
-    st.session_state["ls_start_date"] = DATASET_REF_DATE - datetime.timedelta(days=7)
+    st.session_state["ls_start_date"] = today - datetime.timedelta(days=7)
 if "ls_end_date" not in st.session_state:
-    st.session_state["ls_end_date"] = DATASET_REF_DATE
+    st.session_state["ls_end_date"] = today
 
 def on_looker_preset_change():
     p = st.session_state.get("ls_preset_radio")
     if p == "Today":
-        st.session_state["ls_temp_start"] = DATASET_REF_DATE
-        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+        st.session_state["ls_temp_start"] = today
+        st.session_state["ls_temp_end"] = today
     elif p == "Yesterday":
-        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=1)
-        st.session_state["ls_temp_end"] = DATASET_REF_DATE - datetime.timedelta(days=1)
+        st.session_state["ls_temp_start"] = today - datetime.timedelta(days=1)
+        st.session_state["ls_temp_end"] = today - datetime.timedelta(days=1)
     elif p == "Last 7 days":
-        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=7)
-        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+        st.session_state["ls_temp_start"] = today - datetime.timedelta(days=7)
+        st.session_state["ls_temp_end"] = today
     elif p == "Last 30 days":
-        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=30)
-        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+        st.session_state["ls_temp_start"] = today - datetime.timedelta(days=30)
+        st.session_state["ls_temp_end"] = today
     elif p == "This month":
-        st.session_state["ls_temp_start"] = datetime.date(2026, 9, 1)
-        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+        st.session_state["ls_temp_start"] = today.replace(day=1)
+        st.session_state["ls_temp_end"] = today
     elif p == "All time":
-        st.session_state["ls_temp_start"] = datetime.date(2025, 9, 9)
-        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+        st.session_state["ls_temp_start"] = DATASET_MIN_DATE
+        st.session_state["ls_temp_end"] = today
 
 def on_looker_date_edit():
     st.session_state["ls_preset_radio"] = "Fixed"
@@ -575,7 +576,7 @@ with col_top2:
                     "Start Date",
                     value=st.session_state["ls_temp_start"],
                     min_value=DATASET_MIN_DATE,
-                    max_value=DATASET_REF_DATE,
+                    max_value=DATASET_MAX_DATE,
                     key="ls_temp_start",
                     on_change=on_looker_date_edit
                 )
@@ -583,7 +584,7 @@ with col_top2:
                     "End Date",
                     value=st.session_state["ls_temp_end"],
                     min_value=DATASET_MIN_DATE,
-                    max_value=DATASET_REF_DATE,
+                    max_value=DATASET_MAX_DATE,
                     key="ls_temp_end",
                     on_change=on_looker_date_edit
                 )
@@ -592,11 +593,11 @@ with col_top2:
                 b_c1, b_c2 = st.columns([1, 1.4])
                 with b_c1:
                     if st.button("Reset", use_container_width=True):
-                        st.session_state["ls_start_date"] = DATASET_REF_DATE - datetime.timedelta(days=7)
-                        st.session_state["ls_end_date"] = DATASET_REF_DATE
+                        st.session_state["ls_start_date"] = today - datetime.timedelta(days=7)
+                        st.session_state["ls_end_date"] = today
                         st.session_state["ls_date_mode"] = "Last 7 days"
-                        st.session_state["ls_temp_start"] = DATASET_REF_DATE - datetime.timedelta(days=7)
-                        st.session_state["ls_temp_end"] = DATASET_REF_DATE
+                        st.session_state["ls_temp_start"] = today - datetime.timedelta(days=7)
+                        st.session_state["ls_temp_end"] = today
                         st.session_state["ls_preset_radio"] = "Last 7 days"
                         st.rerun()
                 with b_c2:

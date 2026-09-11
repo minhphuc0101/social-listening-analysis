@@ -72,6 +72,7 @@ def init_db(conn_str=None):
                     -- Ensure columns exist in case table was created with older schema
                     ALTER TABLE social_discussions ADD COLUMN IF NOT EXISTS group_name VARCHAR(255);
                     ALTER TABLE social_discussions ADD COLUMN IF NOT EXISTS campaign VARCHAR(100);
+                    ALTER TABLE social_discussions ADD COLUMN IF NOT EXISTS topic_pillar VARCHAR(50) DEFAULT 'Sản phẩm';
 
                     CREATE INDEX IF NOT EXISTS idx_sd_published_at ON social_discussions(published_at);
                     CREATE INDEX IF NOT EXISTS idx_sd_pillar ON social_discussions(topic_pillar);
@@ -181,6 +182,12 @@ def insert_discussions_batch(rows, batch_size=500, conn_str=None):
         desc = str(r.get("Description", "") or r.get("description", "")).strip()
         p_at = r.get("published_at")
         r_date = str(r.get("PublishedDate", "") or r.get("raw_published_date", "")).strip()
+        if not p_at and r_date:
+            try:
+                from analysis_engine import parse_timestamp
+                p_at = parse_timestamp(r_date)
+            except Exception:
+                pass
         sent = str(r.get("Sentiment", "") or r.get("sentiment", "NEUTRAL")).upper().strip()
         if sent not in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
             sent = "NEUTRAL"

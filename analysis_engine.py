@@ -41,6 +41,17 @@ def parse_timestamp(raw_date, reference_time=None):
     clean_fb_date = clean_fb_date.replace(' at ', ' ')
     clean_fb_date = clean_fb_date.replace('\u202f', ' ')
     
+    # Vietnamese Facebook format: "Thứ Năm, 10 Tháng 9, 2026 lúc 11:03" or "10 Tháng 9, 2026"
+    vn_match = re.search(r'(\d{1,2})\s+Tháng\s+(\d{1,2}),?\s+(\d{4})(?:\s+lúc\s+(\d{1,2}):(\d{2}))?', raw_str, re.IGNORECASE)
+    if vn_match:
+        d, mth, y, h, mn = vn_match.groups()
+        hour = int(h) if h is not None else 0
+        minute = int(mn) if mn is not None else 0
+        try:
+            return datetime.datetime(int(y), int(mth), int(d), hour, minute, tzinfo=VN_TZ).astimezone(timezone.utc)
+        except Exception:
+            pass
+
     try:
         dt = dateutil.parser.parse(clean_fb_date)
         if dt.tzinfo is None:
