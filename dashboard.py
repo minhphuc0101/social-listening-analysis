@@ -1880,85 +1880,70 @@ elif nav_page == "Thảo luận tiêu cực":
                         showarrow=False
                     )]
                 )
-                donut_event = st.plotly_chart(
-                    fig_neg_donut,
-                    use_container_width=True,
-                    on_select="rerun",
-                    selection_mode=["points"],
-                    key=f"neg_donut_chart_{neg_donut_ver}"
-                )
+                st.plotly_chart(fig_neg_donut, use_container_width=True)
+                
+                # Quick group filter buttons under donut chart
+                st.markdown("<div style='font-size:0.8rem; font-weight:600; color:#64748B; margin-top:2px; margin-bottom:4px;'>Lọc nhanh theo nhóm:</div>", unsafe_allow_html=True)
+                active_neg_grp = st.session_state.get('active_neg_grp')
+                grp_sub = [g for g in top_neg_grp['Group'].head(5) if g != "Các nhóm khác"]
+                g_cols = st.columns(len(grp_sub))
+                for g_i, g_name in enumerate(grp_sub):
+                    short_g = g_name.replace("Hội Toyota ", "").replace(" Việt Nam", "")
+                    is_g_act = (active_neg_grp == g_name)
+                    with g_cols[g_i]:
+                        if st.button(f"{'✓ ' if is_g_act else ''}{short_g}", key=f"btn_neg_grp_d_{g_i}", type="primary" if is_g_act else "secondary", use_container_width=True):
+                            if is_g_act:
+                                st.session_state['active_neg_grp'] = None
+                            else:
+                                st.session_state['active_neg_grp'] = g_name
+                            st.rerun()
             else:
-                donut_event = None
                 st.success("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
 
-    # Column 2: Top Chủ đề có nhiều phản ánh tiêu cực nhất
+    # Column 2: Top Chủ đề có nhiều phản ánh tiêu cực nhất (Truly Clickable Interactive Bars)
     with col_neg2:
         with st.container(border=True):
             st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top Chủ đề có nhiều phản ánh nhất</span>
-                <span style="font-size:0.75rem; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:10px;">👆 Click thanh để lọc</span>
+                <span style="font-size:0.75rem; color:#EF4444; background:#FEF2F2; border:1px solid #FECACA; padding:2px 8px; border-radius:10px; font-weight:600;">👆 Bấm chủ đề để lọc</span>
             </div>
             """, unsafe_allow_html=True)
             
             if not neg_df.empty:
                 neg_bars = neg_df['topic_category'].value_counts().head(8).reset_index()
                 neg_bars.columns = ['Topic', 'Buzz']
-                neg_bars = neg_bars.sort_values('Buzz', ascending=True)
+                max_buzz = neg_bars['Buzz'].max() if not neg_bars.empty else 1
+                active_neg_topic = st.session_state.get('active_neg_topic')
                 
-                fig_neg_ch = px.bar(
-                    neg_bars,
-                    x='Buzz',
-                    y='Topic',
-                    orientation='h',
-                    color_discrete_sequence=['#EF4444'],
-                    text='Buzz'
-                )
-                fig_neg_ch.update_traces(textposition='outside')
-                fig_neg_ch.update_layout(
-                    clickmode='event+select',
-                    plot_bgcolor='#FFFFFF',
-                    paper_bgcolor='#FFFFFF',
-                    height=420,
-                    margin=dict(t=10, b=10, l=160, r=40),
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận'),
-                    yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
-                )
-                bar_event = st.plotly_chart(
-                    fig_neg_ch,
-                    use_container_width=True,
-                    on_select="rerun",
-                    selection_mode=["points"],
-                    key=f"neg_bar_chart_{neg_bar_ver}"
-                )
+                for idx, r in neg_bars.iterrows():
+                    topic_name = r['Topic']
+                    buzz_cnt = r['Buzz']
+                    pct = int((buzz_cnt / max_buzz) * 100)
+                    is_active = (active_neg_topic == topic_name)
+                    
+                    c_t, c_b = st.columns([1.8, 2.2])
+                    with c_t:
+                        btn_txt = f"✓ {topic_name}" if is_active else topic_name
+                        b_type = "primary" if is_active else "secondary"
+                        if st.button(btn_txt, key=f"btn_neg_top_d_{idx}_{topic_name}", type=b_type, use_container_width=True):
+                            if is_active:
+                                st.session_state['active_neg_topic'] = None
+                            else:
+                                st.session_state['active_neg_topic'] = topic_name
+                            st.rerun()
+                    with c_b:
+                        bar_col = "#DC2626" if is_active else "#EF4444"
+                        st.markdown(f"""
+                        <div style="display:flex; align-items:center; height:38px; gap:8px;">
+                            <div style="flex-grow:1; background:#F1F5F9; border-radius:6px; height:22px; overflow:hidden;">
+                                <div style="width:{pct}%; background:{bar_col}; height:100%; border-radius:6px;"></div>
+                            </div>
+                            <span style="font-size:0.85rem; font-weight:700; color:#1E293B; min-width:28px; text-align:right;">{buzz_cnt}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
             else:
-                bar_event = None
                 st.info("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
-
-    # Extract interactive filter selections from charts
-    clicked_neg_topic = None
-    if bar_event and hasattr(bar_event, "selection") and bar_event.selection:
-        pts = getattr(bar_event.selection, "points", []) or bar_event.selection.get("points", [])
-        if pts and isinstance(pts, list) and len(pts) > 0:
-            pt = pts[0]
-            if isinstance(pt, dict):
-                clicked_neg_topic = pt.get("y")
-                if not clicked_neg_topic and "point_index" in pt:
-                    idx = pt["point_index"]
-                    if 0 <= idx < len(neg_bars):
-                        clicked_neg_topic = str(neg_bars.iloc[idx]["Topic"])
-
-    clicked_neg_grp = None
-    if donut_event and hasattr(donut_event, "selection") and donut_event.selection:
-        pts = getattr(donut_event.selection, "points", []) or donut_event.selection.get("points", [])
-        if pts and isinstance(pts, list) and len(pts) > 0:
-            pt = pts[0]
-            if isinstance(pt, dict):
-                clicked_neg_grp = pt.get("label")
-                if not clicked_neg_grp and "point_number" in pt:
-                    idx = pt["point_number"]
-                    if 0 <= idx < len(top_neg_grp):
-                        clicked_neg_grp = str(top_neg_grp.iloc[idx]["Group"])
 
     # TIER 2: FULL-WIDTH FEED CONTAINER
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
@@ -1974,11 +1959,14 @@ elif nav_page == "Thảo luận tiêu cực":
         </div>
         """, unsafe_allow_html=True)
 
+        active_neg_topic = st.session_state.get('active_neg_topic')
+        active_neg_grp = st.session_state.get('active_neg_grp')
+
         all_neg_topics = ["Tất cả chủ đề"] + sorted(list(neg_df['topic_category'].dropna().unique())) if not neg_df.empty else ["Tất cả chủ đề"]
         all_neg_grps = ["Tất cả hội nhóm"] + list(neg_df['clean_group'].value_counts().index) if not neg_df.empty else ["Tất cả hội nhóm"]
 
-        def_topic_idx = all_neg_topics.index(clicked_neg_topic) if clicked_neg_topic and clicked_neg_topic in all_neg_topics else 0
-        def_grp_idx = all_neg_grps.index(clicked_neg_grp) if clicked_neg_grp and clicked_neg_grp in all_neg_grps else 0
+        def_topic_idx = all_neg_topics.index(active_neg_topic) if active_neg_topic and active_neg_topic in all_neg_topics else 0
+        def_grp_idx = all_neg_grps.index(active_neg_grp) if active_neg_grp and active_neg_grp in all_neg_grps else 0
 
         c_filter_top, c_filter_grp, c_clear_btn = st.columns([2.5, 2.5, 1.2])
         with c_filter_top:
@@ -1986,40 +1974,47 @@ elif nav_page == "Thảo luận tiêu cực":
                 "📌 Lọc theo Chủ đề:",
                 options=all_neg_topics,
                 index=def_topic_idx,
-                key=f"neg_dd_top_{neg_bar_ver}_{clicked_neg_topic}"
+                key=f"neg_dd_top_d_{active_neg_topic}"
             )
+            if selected_feed_topic != (active_neg_topic or "Tất cả chủ đề"):
+                st.session_state['active_neg_topic'] = selected_feed_topic if selected_feed_topic != "Tất cả chủ đề" else None
+                st.rerun()
+
         with c_filter_grp:
             selected_feed_grp = st.selectbox(
                 "🏢 Lọc theo Trang / Hội nhóm:",
                 options=all_neg_grps,
                 index=def_grp_idx,
-                key=f"neg_dd_grp_{neg_donut_ver}_{clicked_neg_grp}"
+                key=f"neg_dd_grp_d_{active_neg_grp}"
             )
+            if selected_feed_grp != (active_neg_grp or "Tất cả hội nhóm"):
+                st.session_state['active_neg_grp'] = selected_feed_grp if selected_feed_grp != "Tất cả hội nhóm" else None
+                st.rerun()
 
-        has_active_filter = (selected_feed_topic != "Tất cả chủ đề") or (selected_feed_grp != "Tất cả hội nhóm")
+        has_active_filter = (active_neg_topic is not None) or (active_neg_grp is not None)
         with c_clear_btn:
             st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
             if has_active_filter:
-                if st.button("❌ Bỏ lọc", key="btn_clear_neg_filters", use_container_width=True):
-                    st.session_state["neg_bar_ver"] = neg_bar_ver + 1
-                    st.session_state["neg_donut_ver"] = neg_donut_ver + 1
+                if st.button("❌ Bỏ lọc", key="btn_clear_neg_filters_d", use_container_width=True):
+                    st.session_state['active_neg_topic'] = None
+                    st.session_state['active_neg_grp'] = None
                     st.rerun()
 
         display_neg_df = neg_df.copy()
         display_pos_df = pos_df.copy()
-        if selected_feed_topic != "Tất cả chủ đề":
-            display_neg_df = display_neg_df[display_neg_df['topic_category'] == selected_feed_topic]
-            display_pos_df = display_pos_df[display_pos_df['topic_category'] == selected_feed_topic]
-        if selected_feed_grp != "Tất cả hội nhóm":
-            display_neg_df = display_neg_df[display_neg_df['clean_group'] == selected_feed_grp]
-            display_pos_df = display_pos_df[display_pos_df['clean_group'] == selected_feed_grp]
+        if active_neg_topic:
+            display_neg_df = display_neg_df[display_neg_df['topic_category'] == active_neg_topic]
+            display_pos_df = display_pos_df[display_pos_df['topic_category'] == active_neg_topic]
+        if active_neg_grp:
+            display_neg_df = display_neg_df[display_neg_df['clean_group'] == active_neg_grp]
+            display_pos_df = display_pos_df[display_pos_df['clean_group'] == active_neg_grp]
 
         if has_active_filter:
             filter_tags = []
-            if selected_feed_topic != "Tất cả chủ đề":
-                filter_tags.append(f"Chủ đề: <b style='color:#DC2626;'>{selected_feed_topic}</b>")
-            if selected_feed_grp != "Tất cả hội nhóm":
-                filter_tags.append(f"Hội nhóm: <b style='color:#DC2626;'>{selected_feed_grp}</b>")
+            if active_neg_topic:
+                filter_tags.append(f"Chủ đề: <b style='color:#DC2626;'>{active_neg_topic}</b>")
+            if active_neg_grp:
+                filter_tags.append(f"Hội nhóm: <b style='color:#DC2626;'>{active_neg_grp}</b>")
             st.markdown(f"""
             <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:8px 14px; margin-bottom:12px; font-size:0.88rem; color:#991B1B;">
                 🎯 <b>Đang áp dụng bộ lọc:</b> {' &nbsp;|&nbsp; '.join(filter_tags)} &nbsp;—&nbsp; <b>{len(display_neg_df):,}</b> thảo luận phù hợp
@@ -2067,8 +2062,8 @@ elif nav_page == "Thảo luận tích cực":
     pos_df = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
     neg_df = df[df['sentiment'] == 'NEGATIVE']
     total_pos = len(pos_df)
-    pos_donut_ver = st.session_state.get('pos_donut_ver', 0)
-    pos_bar_ver = st.session_state.get('pos_bar_ver', 0)
+    active_pos_topic = st.session_state.get('active_pos_topic')
+    active_pos_grp = st.session_state.get('active_pos_grp')
     
     # TIER 1: 2 BALANCED CHARTS SIDE-BY-SIDE
     col_pos1, col_pos2 = st.columns([1, 1.15])
@@ -2079,7 +2074,7 @@ elif nav_page == "Thảo luận tích cực":
             st.markdown("""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:1rem; font-weight:700; color:#1E293B;">Tỷ lệ tích cực theo Trang / Nhóm</span>
-                <span style="font-size:0.75rem; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:10px;">👆 Click để lọc nhóm</span>
+                <span style="font-size:0.75rem; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 8px; border-radius:10px; font-weight:600;">👆 Bấm nhóm bên dưới để lọc</span>
             </div>
             """, unsafe_allow_html=True)
             
@@ -2122,85 +2117,70 @@ elif nav_page == "Thảo luận tích cực":
                         showarrow=False
                     )]
                 )
-                donut_event = st.plotly_chart(
-                    fig_pos_donut,
-                    use_container_width=True,
-                    on_select="rerun",
-                    selection_mode=["points"],
-                    key=f"pos_donut_chart_{pos_donut_ver}"
-                )
+                st.plotly_chart(fig_pos_donut, use_container_width=True)
+                
+                # Quick group filter buttons under donut chart
+                st.markdown("<div style='font-size:0.8rem; font-weight:600; color:#64748B; margin-top:2px; margin-bottom:4px;'>Lọc nhanh theo nhóm:</div>", unsafe_allow_html=True)
+                active_pos_grp = st.session_state.get('active_pos_grp')
+                pos_grp_sub = [g for g in top_pos_grp['Group'].head(5) if g != "Các nhóm khác"]
+                g_pos_cols = st.columns(len(pos_grp_sub))
+                for g_i, g_name in enumerate(pos_grp_sub):
+                    short_g = g_name.replace("Hội Toyota ", "").replace(" Việt Nam", "")
+                    is_g_act = (active_pos_grp == g_name)
+                    with g_pos_cols[g_i]:
+                        if st.button(f"{'✓ ' if is_g_act else ''}{short_g}", key=f"btn_pos_grp_d_{g_i}", type="primary" if is_g_act else "secondary", use_container_width=True):
+                            if is_g_act:
+                                st.session_state['active_pos_grp'] = None
+                            else:
+                                st.session_state['active_pos_grp'] = g_name
+                            st.rerun()
             else:
-                donut_event = None
                 st.info("Không có thảo luận tích cực.")
 
-    # Column 2: Top Chủ đề thảo luận tích cực nhất
+    # Column 2: Top Chủ đề thảo luận tích cực nhất (Truly Clickable Interactive Bars)
     with col_pos2:
         with st.container(border=True):
             st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top Chủ đề thảo luận tích cực nhất</span>
-                <span style="font-size:0.75rem; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:10px;">👆 Click thanh để lọc</span>
+                <span style="font-size:0.75rem; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 8px; border-radius:10px; font-weight:600;">👆 Bấm chủ đề để lọc</span>
             </div>
             """, unsafe_allow_html=True)
             
             if not pos_df.empty:
                 pos_bars = pos_df['topic_category'].value_counts().head(8).reset_index()
                 pos_bars.columns = ['Topic', 'Buzz']
-                pos_bars = pos_bars.sort_values('Buzz', ascending=True)
+                max_buzz_pos = pos_bars['Buzz'].max() if not pos_bars.empty else 1
+                active_pos_topic = st.session_state.get('active_pos_topic')
                 
-                fig_pos_ch = px.bar(
-                    pos_bars,
-                    x='Buzz',
-                    y='Topic',
-                    orientation='h',
-                    color_discrete_sequence=['#10B981'],
-                    text='Buzz'
-                )
-                fig_pos_ch.update_traces(textposition='outside')
-                fig_pos_ch.update_layout(
-                    clickmode='event+select',
-                    plot_bgcolor='#FFFFFF',
-                    paper_bgcolor='#FFFFFF',
-                    height=420,
-                    margin=dict(t=10, b=10, l=160, r=40),
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận'),
-                    yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
-                )
-                bar_event = st.plotly_chart(
-                    fig_pos_ch,
-                    use_container_width=True,
-                    on_select="rerun",
-                    selection_mode=["points"],
-                    key=f"pos_bar_chart_{pos_bar_ver}"
-                )
+                for idx, r in pos_bars.iterrows():
+                    topic_name = r['Topic']
+                    buzz_cnt = r['Buzz']
+                    pct = int((buzz_cnt / max_buzz_pos) * 100)
+                    is_active = (active_pos_topic == topic_name)
+                    
+                    c_t, c_b = st.columns([1.8, 2.2])
+                    with c_t:
+                        btn_txt = f"✓ {topic_name}" if is_active else topic_name
+                        b_type = "primary" if is_active else "secondary"
+                        if st.button(btn_txt, key=f"btn_pos_top_d_{idx}_{topic_name}", type=b_type, use_container_width=True):
+                            if is_active:
+                                st.session_state['active_pos_topic'] = None
+                            else:
+                                st.session_state['active_pos_topic'] = topic_name
+                            st.rerun()
+                    with c_b:
+                        bar_col = "#059669" if is_active else "#10B981"
+                        st.markdown(f"""
+                        <div style="display:flex; align-items:center; height:38px; gap:8px;">
+                            <div style="flex-grow:1; background:#F1F5F9; border-radius:6px; height:22px; overflow:hidden;">
+                                <div style="width:{pct}%; background:{bar_col}; height:100%; border-radius:6px;"></div>
+                            </div>
+                            <span style="font-size:0.85rem; font-weight:700; color:#1E293B; min-width:28px; text-align:right;">{buzz_cnt}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
             else:
-                bar_event = None
                 st.info("Không có thảo luận tích cực nào trong khoảng thời gian này.")
-
-    # Extract interactive filter selections from charts
-    clicked_pos_topic = None
-    if bar_event and hasattr(bar_event, "selection") and bar_event.selection:
-        pts = getattr(bar_event.selection, "points", []) or bar_event.selection.get("points", [])
-        if pts and isinstance(pts, list) and len(pts) > 0:
-            pt = pts[0]
-            if isinstance(pt, dict):
-                clicked_pos_topic = pt.get("y")
-                if not clicked_pos_topic and "point_index" in pt:
-                    idx = pt["point_index"]
-                    if 0 <= idx < len(pos_bars):
-                        clicked_pos_topic = str(pos_bars.iloc[idx]["Topic"])
-
-    clicked_pos_grp = None
-    if donut_event and hasattr(donut_event, "selection") and donut_event.selection:
-        pts = getattr(donut_event.selection, "points", []) or donut_event.selection.get("points", [])
-        if pts and isinstance(pts, list) and len(pts) > 0:
-            pt = pts[0]
-            if isinstance(pt, dict):
-                clicked_pos_grp = pt.get("label")
-                if not clicked_pos_grp and "point_number" in pt:
-                    idx = pt["point_number"]
-                    if 0 <= idx < len(top_pos_grp):
-                        clicked_pos_grp = str(top_pos_grp.iloc[idx]["Group"])
 
     # TIER 2: FULL-WIDTH FEED CONTAINER
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
@@ -2216,11 +2196,14 @@ elif nav_page == "Thảo luận tích cực":
         </div>
         """, unsafe_allow_html=True)
 
+        active_pos_topic = st.session_state.get('active_pos_topic')
+        active_pos_grp = st.session_state.get('active_pos_grp')
+
         all_pos_topics = ["Tất cả chủ đề"] + sorted(list(pos_df['topic_category'].dropna().unique())) if not pos_df.empty else ["Tất cả chủ đề"]
         all_pos_grps = ["Tất cả hội nhóm"] + list(pos_df['clean_group'].value_counts().index) if not pos_df.empty else ["Tất cả hội nhóm"]
 
-        def_pos_topic_idx = all_pos_topics.index(clicked_pos_topic) if clicked_pos_topic and clicked_pos_topic in all_pos_topics else 0
-        def_pos_grp_idx = all_pos_grps.index(clicked_pos_grp) if clicked_pos_grp and clicked_pos_grp in all_pos_grps else 0
+        def_pos_topic_idx = all_pos_topics.index(active_pos_topic) if active_pos_topic and active_pos_topic in all_pos_topics else 0
+        def_pos_grp_idx = all_pos_grps.index(active_pos_grp) if active_pos_grp and active_pos_grp in all_pos_grps else 0
 
         c_filter_top, c_filter_grp, c_clear_btn = st.columns([2.5, 2.5, 1.2])
         with c_filter_top:
@@ -2228,40 +2211,47 @@ elif nav_page == "Thảo luận tích cực":
                 "📌 Lọc theo Chủ đề:",
                 options=all_pos_topics,
                 index=def_pos_topic_idx,
-                key=f"pos_dd_top_{pos_bar_ver}_{clicked_pos_topic}"
+                key=f"pos_dd_top_d_{active_pos_topic}"
             )
+            if selected_feed_topic != (active_pos_topic or "Tất cả chủ đề"):
+                st.session_state['active_pos_topic'] = selected_feed_topic if selected_feed_topic != "Tất cả chủ đề" else None
+                st.rerun()
+
         with c_filter_grp:
             selected_feed_grp = st.selectbox(
                 "🏢 Lọc theo Trang / Hội nhóm:",
                 options=all_pos_grps,
                 index=def_pos_grp_idx,
-                key=f"pos_dd_grp_{pos_donut_ver}_{clicked_pos_grp}"
+                key=f"pos_dd_grp_d_{active_pos_grp}"
             )
+            if selected_feed_grp != (active_pos_grp or "Tất cả hội nhóm"):
+                st.session_state['active_pos_grp'] = selected_feed_grp if selected_feed_grp != "Tất cả hội nhóm" else None
+                st.rerun()
 
-        has_active_filter = (selected_feed_topic != "Tất cả chủ đề") or (selected_feed_grp != "Tất cả hội nhóm")
+        has_active_filter = (active_pos_topic is not None) or (active_pos_grp is not None)
         with c_clear_btn:
             st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
             if has_active_filter:
-                if st.button("❌ Bỏ lọc", key="btn_clear_pos_filters", use_container_width=True):
-                    st.session_state["pos_bar_ver"] = pos_bar_ver + 1
-                    st.session_state["pos_donut_ver"] = pos_donut_ver + 1
+                if st.button("❌ Bỏ lọc", key="btn_clear_pos_filters_d", use_container_width=True):
+                    st.session_state['active_pos_topic'] = None
+                    st.session_state['active_pos_grp'] = None
                     st.rerun()
 
         display_pos_df = pos_df.copy()
         display_neg_df = neg_df.copy()
-        if selected_feed_topic != "Tất cả chủ đề":
-            display_pos_df = display_pos_df[display_pos_df['topic_category'] == selected_feed_topic]
-            display_neg_df = display_neg_df[display_neg_df['topic_category'] == selected_feed_topic]
-        if selected_feed_grp != "Tất cả hội nhóm":
-            display_pos_df = display_pos_df[display_pos_df['clean_group'] == selected_feed_grp]
-            display_neg_df = display_neg_df[display_neg_df['clean_group'] == selected_feed_grp]
+        if active_pos_topic:
+            display_pos_df = display_pos_df[display_pos_df['topic_category'] == active_pos_topic]
+            display_neg_df = display_neg_df[display_neg_df['topic_category'] == active_pos_topic]
+        if active_pos_grp:
+            display_pos_df = display_pos_df[display_pos_df['clean_group'] == active_pos_grp]
+            display_neg_df = display_neg_df[display_neg_df['clean_group'] == active_pos_grp]
 
         if has_active_filter:
             filter_tags = []
-            if selected_feed_topic != "Tất cả chủ đề":
-                filter_tags.append(f"Chủ đề: <b style='color:#059669;'>{selected_feed_topic}</b>")
-            if selected_feed_grp != "Tất cả hội nhóm":
-                filter_tags.append(f"Hội nhóm: <b style='color:#059669;'>{selected_feed_grp}</b>")
+            if active_pos_topic:
+                filter_tags.append(f"Chủ đề: <b style='color:#059669;'>{active_pos_topic}</b>")
+            if active_pos_grp:
+                filter_tags.append(f"Hội nhóm: <b style='color:#059669;'>{active_pos_grp}</b>")
             st.markdown(f"""
             <div style="background:#ECFDF5; border:1px solid #A7F3D0; border-radius:8px; padding:8px 14px; margin-bottom:12px; font-size:0.88rem; color:#065F46;">
                 🎯 <b>Đang áp dụng bộ lọc:</b> {' &nbsp;|&nbsp; '.join(filter_tags)} &nbsp;—&nbsp; <b>{len(display_pos_df):,}</b> thảo luận phù hợp
