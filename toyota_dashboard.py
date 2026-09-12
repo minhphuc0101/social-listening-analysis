@@ -520,9 +520,7 @@ nav_options = [
     "Thảo luận qua các kênh",
     "Thảo luận theo Mẫu xe",
     "Thảo luận tiêu cực",
-    "Thảo luận tích cực & Độ bền",
-    "Cập nhật thảo luận mới nhất",
-    "Báo cáo AI Chiến dịch Toyota"
+    "Thảo luận tích cực & Độ bền"
 ]
 
 if "sidebar_nav_radio" not in st.session_state:
@@ -540,60 +538,12 @@ nav_page = st.sidebar.radio(
     key="sidebar_nav_radio"
 )
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🔍 Bộ Lọc Dữ Liệu")
-
-# Channel Filter
-channel_filter = st.sidebar.selectbox(
-    "Kênh thảo luận:",
-    options=["Tất cả", "TikTok", "Facebook Pages", "Facebook Groups", "Facebook Users", "News", "YouTube", "Forum"]
-)
-
-# Pillar / Category Filter
-pillar_filter = st.sidebar.selectbox(
-    "Nhóm chủ đề chính:",
-    options=["Tất cả", "Thương hiệu", "Sản phẩm", "Dịch vụ"]
-)
-
-# Car Model Filter
-available_models = [
-    "Toyota Vios", "Toyota Innova Cross", "Toyota Altis", "Toyota Fortuner",
-    "Toyota Corolla Cross", "Toyota Hilux", "Toyota Camry", "Toyota Yaris", "Toyota Wigo",
-    "Toyota Veloz Cross", "Toyota Yaris Cross", "Toyota Land Cruiser",
-    "Toyota Raize", "Toyota Alphard", "Toyota (Chung)"
-]
-model_filter = st.sidebar.selectbox(
-    "Dòng xe Toyota:",
-    options=["Tất cả"] + available_models
-)
-
-# Sentiment Filter
-sentiment_filter = st.sidebar.selectbox(
-    "Sắc thái thảo luận:",
-    options=["Tất cả", "Tích cực (POSITIVE)", "Trung lập (NEUTRAL)", "Tiêu cực (NEGATIVE)"]
-)
-
+# Unfiltered defaults for dedicated Toyota dashboard (sidebar data filters removed as requested)
+channel_filter = "Tất cả"
+pillar_filter = "Tất cả"
+model_filter = "Tất cả"
 sentiment_arg = None
-if "Tích cực" in sentiment_filter:
-    sentiment_arg = "POSITIVE"
-elif "Trung lập" in sentiment_filter:
-    sentiment_arg = "NEUTRAL"
-elif "Tiêu cực" in sentiment_filter:
-    sentiment_arg = "NEGATIVE"
-
-# Interaction Type Filter
-interaction_filter = st.sidebar.selectbox(
-    "Loại tương tác:",
-    options=["Tất cả", "📝 Bài viết gốc (Posts)", "💬 Bình luận chính (Top comments)", "↩️ Phản hồi bình luận (Replies)"]
-)
-
 interaction_arg = None
-if "Bài viết" in interaction_filter:
-    interaction_arg = "post"
-elif "Phản hồi" in interaction_filter:
-    interaction_arg = "reply"
-elif "Bình luận" in interaction_filter:
-    interaction_arg = "comment"
 
 # -------------------------------------------------------------
 # TOP BAR (HEADER, SEARCH & LOOKER STUDIO DATE RANGE CONTROL)
@@ -905,17 +855,14 @@ if nav_page == "Tổng quan thảo luận":
                             st.session_state["redirect_page"] = "Thảo luận tiêu cực"
                             st.rerun()
                         elif label == 'Tích cực':
-                            st.session_state["redirect_page"] = "Thảo luận tích cực"
-                            st.rerun()
-                        elif label == 'Trung lập':
-                            st.session_state["redirect_page"] = "Cập nhật thảo luận mới nhất"
+                            st.session_state["redirect_page"] = "Thảo luận tích cực & Độ bền"
                             st.rerun()
 
             # Quick navigation buttons below chart
             btn_c1, btn_c2 = st.columns(2)
             with btn_c1:
                 if st.button(f"🟢 Xem {pos_cnt:,} Tích cực ➔", use_container_width=True, key="btn_to_pos"):
-                    st.session_state["redirect_page"] = "Thảo luận tích cực"
+                    st.session_state["redirect_page"] = "Thảo luận tích cực & Độ bền"
                     st.rerun()
             with btn_c2:
                 if st.button(f"🔴 Xem {neg_cnt:,} Tiêu cực ➔", use_container_width=True, key="btn_to_neg"):
@@ -1095,7 +1042,7 @@ if nav_page == "Tổng quan thảo luận":
         
         st.markdown('<div id="topic-discussions-section"></div>', unsafe_allow_html=True)
         with st.container(border=True):
-            drill_h1, drill_h2, drill_h3 = st.columns([2.8, 1.4, 0.6])
+            drill_h1, drill_h2 = st.columns([4.2, 0.8])
             with drill_h1:
                 st.markdown(f"""
                 <div style="font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;">
@@ -1110,13 +1057,7 @@ if nav_page == "Tổng quan thảo luận":
                 """, unsafe_allow_html=True)
                 
             with drill_h2:
-                if st.button("🚀 Mở trong 'Thảo luận mới nhất' ➔", key="btn_drill_to_screen4"):
-                    st.session_state["filter_topic_screen4"] = filter_label
-                    st.session_state["redirect_page"] = "Cập nhật thảo luận mới nhất"
-                    st.rerun()
-                    
-            with drill_h3:
-                if st.button("✖️ Đóng", key="btn_close_topic_drill"):
+                if st.button("✖️ Đóng", key="btn_close_topic_drill", use_container_width=True):
                     if "topic" in st.query_params:
                         del st.query_params["topic"]
                     if "pillar" in st.query_params:
@@ -2131,104 +2072,4 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
                 st.success("Không có thảo luận tiêu cực phù hợp với bộ lọc.")
 
 
-# =============================================================
-# SCREEN 4: CẬP NHẬT THẢO LUẬN MỚI NHẤT (Image 4)
-# =============================================================
-elif nav_page == "Cập nhật thảo luận mới nhất":
-    active_s4_topic = st.session_state.get("filter_topic_screen4")
-    active_s4_model = st.session_state.get("filter_model_screen4")
-    
-    if active_s4_topic:
-        s4_c1, s4_c2 = st.columns([4, 1.2])
-        with s4_c1:
-            st.info(f"🔎 Đang lọc thảo luận theo chủ đề: **{active_s4_topic}**")
-        with s4_c2:
-            if st.button("❌ Xóa lọc chủ đề", key="btn_clear_s4_topic"):
-                del st.session_state["filter_topic_screen4"]
-                st.rerun()
-        if "Nhóm " in active_s4_topic:
-            p_name = active_s4_topic.replace("Nhóm ", "").strip()
-            df = df[df['topic_pillar'] == p_name] if not df.empty and 'topic_pillar' in df.columns else df
-        else:
-            df = df[df['topic_category'] == active_s4_topic] if not df.empty and 'topic_category' in df.columns else df
 
-    if active_s4_model:
-        s4_m1, s4_m2 = st.columns([4, 1.2])
-        with s4_m1:
-            st.info(f"🚗 Đang lọc thảo luận theo dòng xe: **{active_s4_model}**")
-        with s4_m2:
-            if st.button("❌ Xóa lọc dòng xe", key="btn_clear_s4_model"):
-                del st.session_state["filter_model_screen4"]
-                st.rerun()
-        df = df[df['car_model'] == active_s4_model] if not df.empty and 'car_model' in df.columns else df
-
-    total_buzz = len(df)
-    sent_counts = df['sentiment'].value_counts() if not df.empty else pd.Series()
-    pos_cnt = sent_counts.get('POSITIVE', 0)
-    neg_cnt = sent_counts.get('NEGATIVE', 0)
-
-    with st.container(border=True):
-        st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:1rem; font-weight:700; color:#1E293B;">Dòng thời gian thảo luận thời gian thực</span>
-            <span style="font-size:0.85rem; font-weight:600; color:#0F766E;">Tổng số: {total_buzz:,} bài viết & bình luận</span>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    tab_all, tab_pos, tab_neg = st.tabs([
-        f"📋 Tất cả ({total_buzz:,})",
-        f"🟢 Thảo luận tích cực ({pos_cnt:,})",
-        f"🔴 Thảo luận tiêu cực ({neg_cnt:,})"
-    ])
-    
-    with tab_all:
-        if not df.empty:
-            for idx, r in df.head(30).iterrows():
-                st.markdown(render_feed_card(r, str(r.get('sentiment', 'NEUTRAL')).upper()), unsafe_allow_html=True)
-        else:
-            st.info("Không có dữ liệu thảo luận phù hợp với bộ lọc hiện tại.")
-            
-    with tab_pos:
-        pos_df_all = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
-        if not pos_df_all.empty:
-            for idx, r in pos_df_all.head(30).iterrows():
-                st.markdown(render_feed_card(r, 'POSITIVE'), unsafe_allow_html=True)
-        else:
-            st.info("Không có thảo luận tích cực.")
-            
-    with tab_neg:
-        neg_df_all = df[df['sentiment'] == 'NEGATIVE']
-        if not neg_df_all.empty:
-            for idx, r in neg_df_all.head(30).iterrows():
-                st.markdown(render_feed_card(r, 'NEGATIVE'), unsafe_allow_html=True)
-        else:
-            st.info("Không có thảo luận tiêu cực.")
-
-
-# =============================================================
-# SCREEN 5: BÁO CÁO AI 48H
-# =============================================================
-elif nav_page == "Báo cáo AI Chiến dịch Toyota":
-    c_ai1, c_ai2 = st.columns([3, 1])
-    with c_ai1:
-        st.subheader("⚡ Báo Cáo AI Chiến Dịch Toyota (48H Pulse)")
-        st.caption("Quét toàn bộ luồng thông tin, phát hiện điểm nóng & đề xuất hành động thông minh.")
-    with c_ai2:
-        if st.button("🚀 Chạy Quét AI 48H Mới", type="primary", use_container_width=True):
-            with st.spinner("Đang tổng hợp thông tin và tạo báo cáo AI..."):
-                run_48h_scan()
-                st.success("Đã hoàn tất bản quét 48h mới nhất!")
-                st.rerun()
-
-    latest_summary = get_latest_daily_summary()
-    if latest_summary:
-        st.markdown(latest_summary.get('full_report_markdown', ''))
-        st.divider()
-        st.download_button(
-            "📥 Tải Báo Cáo Markdown (.md)",
-            data=latest_summary.get('full_report_markdown', ''),
-            file_name=f"ai_intelligence_48h_{latest_summary.get('report_date')}.md",
-            mime="text/markdown"
-        )
-    else:
-        st.warning("Chưa có báo cáo 48h. Bấm '🚀 Chạy Quét AI 48H Mới' để khởi tạo ngay.")
