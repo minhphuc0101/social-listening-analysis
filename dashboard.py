@@ -205,6 +205,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+import importlib
+import database
+importlib.reload(database)
 from database import get_discussions_df, get_db_stats, get_latest_daily_summary
 from ai_scanner import run_48h_scan
 from analysis_engine import HIERARCHICAL_TOPICS
@@ -726,7 +729,7 @@ else:
 # DATA RETRIEVAL (WITH SMART CACHING)
 # -------------------------------------------------------------
 @st.cache_data(ttl=60)
-def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel, post_type=None):
+def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel):
     return get_discussions_df(
         lookback_hours=lookback,
         start_date=start_d,
@@ -735,13 +738,12 @@ def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, chan
         car_model=model if model != "Tất cả" else None,
         sentiment=sentiment if sentiment != "Tất cả" else None,
         channel=channel if channel != "Tất cả" else None,
-        post_type=post_type if post_type != "Tất cả" else None,
         limit=60000
     )
 
-df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter, interaction_arg)
+df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter)
 
-# Apply interaction type filter safeguard
+# Apply interaction type filter (post vs comment vs reply)
 if interaction_arg and not df.empty and 'post_type' in df.columns:
     df = df[df['post_type'].astype(str).str.lower().str.contains(interaction_arg, na=False)]
 
