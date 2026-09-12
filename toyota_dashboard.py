@@ -545,6 +545,13 @@ model_filter = "Tất cả"
 sentiment_arg = None
 interaction_arg = None
 
+available_models = [
+    "Toyota Vios", "Toyota Innova Cross", "Toyota Altis", "Toyota Fortuner",
+    "Toyota Corolla Cross", "Toyota Hilux", "Toyota Camry", "Toyota Yaris", "Toyota Wigo",
+    "Toyota Veloz Cross", "Toyota Yaris Cross", "Toyota Land Cruiser",
+    "Toyota Raize", "Toyota Alphard", "Toyota (Chung)"
+]
+
 # -------------------------------------------------------------
 # TOP BAR (HEADER, SEARCH & LOOKER STUDIO DATE RANGE CONTROL)
 # -------------------------------------------------------------
