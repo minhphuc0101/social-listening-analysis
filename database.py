@@ -648,6 +648,8 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
                 return "Toyota Alphard"
             if "vios" in full or "vios" in grp:
                 return "Toyota Vios"
+            if "toyota" in full or "toyota" in grp:
+                return "Toyota (Chung)"
             return m
 
         df["car_model"] = df.apply(_clean_car_model, axis=1)
@@ -805,10 +807,14 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
             if post_type and post_type not in ("All", "Tất cả"):
                 conditions.append("post_type ILIKE %s")
                 params.append(f"%{post_type}%")
-            if campaign and campaign not in ("All", "Tất cả"):
+            if campaign == "Toyota":
+                conditions.append("(campaign = 'Toyota' OR (campaign = 'Autoforum' AND car_model LIKE 'Toyota%'))")
+            elif campaign and campaign not in ("All", "Tất cả"):
                 conditions.append("campaign = %s")
                 params.append(campaign)
-            if exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
+            if exclude_campaign == "Toyota":
+                conditions.append("(campaign != 'Toyota' AND NOT (campaign = 'Autoforum' AND car_model LIKE 'Toyota%'))")
+            elif exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
                 conditions.append("(campaign != %s OR campaign IS NULL)")
                 params.append(exclude_campaign)
 
@@ -835,9 +841,19 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
     if df.empty:
         return df
 
-    if campaign and campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+    if campaign == "Toyota":
+        if "campaign" in df.columns and "car_model" in df.columns:
+            df = df[(df["campaign"] == "Toyota") | ((df["campaign"] == "Autoforum") & (df["car_model"].astype(str).str.startswith("Toyota")))]
+        elif "car_model" in df.columns:
+            df = df[df["car_model"].astype(str).str.startswith("Toyota")]
+    elif campaign and campaign not in ("All", "Tất cả") and "campaign" in df.columns:
         df = df[df["campaign"] == campaign]
-    if exclude_campaign and exclude_campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+    if exclude_campaign == "Toyota":
+        if "campaign" in df.columns and "car_model" in df.columns:
+            df = df[~((df["campaign"] == "Toyota") | ((df["campaign"] == "Autoforum") & (df["car_model"].astype(str).str.startswith("Toyota"))))]
+        elif "car_model" in df.columns:
+            df = df[~df["car_model"].astype(str).str.startswith("Toyota")]
+    elif exclude_campaign and exclude_campaign not in ("All", "Tất cả") and "campaign" in df.columns:
         df = df[df["campaign"] != exclude_campaign]
     if topic and topic not in ("All", "Tất cả") and "topic_category" in df.columns:
         df = df[df["topic_category"] == topic]
@@ -888,10 +904,14 @@ def get_db_stats(campaign=None, exclude_campaign=None):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 where_parts = []
                 params = []
-                if campaign and campaign not in ("All", "Tất cả"):
+                if campaign == "Toyota":
+                    where_parts.append("(campaign = 'Toyota' OR (campaign = 'Autoforum' AND car_model LIKE 'Toyota%'))")
+                elif campaign and campaign not in ("All", "Tất cả"):
                     where_parts.append("campaign = %s")
                     params.append(campaign)
-                if exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
+                if exclude_campaign == "Toyota":
+                    where_parts.append("(campaign != 'Toyota' AND NOT (campaign = 'Autoforum' AND car_model LIKE 'Toyota%'))")
+                elif exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
                     where_parts.append("(campaign != %s OR campaign IS NULL)")
                     params.append(exclude_campaign)
                 where_str = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
@@ -916,9 +936,19 @@ def get_db_stats(campaign=None, exclude_campaign=None):
         pass
 
     df = load_local_fallback_data()
-    if campaign and campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+    if campaign == "Toyota":
+        if "campaign" in df.columns and "car_model" in df.columns:
+            df = df[(df["campaign"] == "Toyota") | ((df["campaign"] == "Autoforum") & (df["car_model"].astype(str).str.startswith("Toyota")))]
+        elif "car_model" in df.columns:
+            df = df[df["car_model"].astype(str).str.startswith("Toyota")]
+    elif campaign and campaign not in ("All", "Tất cả") and "campaign" in df.columns:
         df = df[df["campaign"] == campaign]
-    if exclude_campaign and exclude_campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+    if exclude_campaign == "Toyota":
+        if "campaign" in df.columns and "car_model" in df.columns:
+            df = df[~((df["campaign"] == "Toyota") | ((df["campaign"] == "Autoforum") & (df["car_model"].astype(str).str.startswith("Toyota"))))]
+        elif "car_model" in df.columns:
+            df = df[~df["car_model"].astype(str).str.startswith("Toyota")]
+    elif exclude_campaign and exclude_campaign not in ("All", "Tất cả") and "campaign" in df.columns:
         df = df[df["campaign"] != exclude_campaign]
     return {
         "total_records": len(df),

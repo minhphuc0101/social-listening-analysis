@@ -463,13 +463,15 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
         
     auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700;" title="Mở bài viết gốc">{auth}</a>' if has_link else f'<span class="feed-author">{auth}</span>'
     
-    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:500; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
+    camp = str(record.get('campaign') or '').strip()
+    source_badge_html = '<span style="background:#EFF6FF; color:#1E40AF; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; border:1px solid #BFDBFE; margin-left:4px;" title="Thảo luận thu thập từ diễn đàn ô tô lớn (Autoforum)">🌐 Diễn đàn Autoforum</span>' if camp == 'Autoforum' else ''
     
     header_html = (
         f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
         f'<div style="font-size:0.85rem; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
         f'{auth_html}'
         f'{type_badge_html}'
+        f'{source_badge_html}'
         f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
         f'<span style="color:#64748B;">{chan}</span>'
         f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
@@ -507,8 +509,8 @@ st.sidebar.markdown("""
     <span style="font-size:0.75rem; color:#EB0A1E; font-weight:600;">Toyota Social Intelligence</span>
 </div>
 <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:6px; padding:6px 10px; margin-bottom:12px;">
-    <div style="font-size:0.72rem; font-weight:700; color:#991B1B;">📌 Chiến dịch: Toyota (Độc quyền)</div>
-    <div style="font-size:0.7rem; color:#7F1D1D;">Giám sát dữ liệu chuyên sâu chiến dịch Toyota.</div>
+    <div style="font-size:0.72rem; font-weight:700; color:#991B1B;">📌 Chiến dịch: Toyota & Autoforum</div>
+    <div style="font-size:0.7rem; color:#7F1D1D;">Giám sát dữ liệu chuyên sâu xe Toyota kết hợp nguồn thảo luận từ các diễn đàn ô tô lớn.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -557,7 +559,7 @@ available_models = [
     "Toyota Vios", "Toyota Innova Cross", "Toyota Altis", "Toyota Fortuner",
     "Toyota Corolla Cross", "Toyota Hilux", "Toyota Camry", "Toyota Yaris", "Toyota Wigo",
     "Toyota Veloz Cross", "Toyota Yaris Cross", "Toyota Land Cruiser",
-    "Toyota Raize", "Toyota Alphard"
+    "Toyota Raize", "Toyota Alphard", "Toyota (Chung)"
 ]
 model_filter = st.sidebar.selectbox(
     "Dòng xe Toyota:",
