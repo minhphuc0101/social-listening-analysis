@@ -503,34 +503,47 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
 def render_interactive_donut(df_grp, total_cnt, active_grp=None, chart_type="negative"):
     """
     Builds an interactive Altair donut chart that allows clicking slices to filter comments by group.
+    Polished to match the vibrant colors, centered legend, and clean percentage labels of the original Plotly design.
     """
     df = df_grp.copy()
     if df.empty or total_cnt == 0:
         return None
         
     df['Percent'] = (df['Count'] / total_cnt) * 100
-    df['Pct_Label'] = df['Percent'].apply(lambda p: f"{p:.1f}%" if p >= 5.0 else "")
+    # Only display percentage labels on slices >= 10% to prevent overlapping text
+    df['Pct_Label'] = df['Percent'].apply(lambda p: f"{p:.1f}%" if p >= 10.0 else "")
     
     if chart_type == "negative":
-        palette = ['#DC2626', '#E11D48', '#EF4444', '#F43F5E', '#FB7185', '#991B1B', '#7F1D1D', '#CBD5E1']
+        main_palette = ['#DC2626', '#EF4444', '#E11D48', '#B91C1C', '#991B1B', '#F87171', '#FCA5A5']
         label_color = '#DC2626'
         sub_text = 'Buzz Tiêu Cực'
     else:
-        palette = ['#10B981', '#059669', '#34D399', '#6EE7B7', '#047857', '#0D9488', '#14B8A6', '#CBD5E1']
+        main_palette = ['#10B981', '#059669', '#34D399', '#047857', '#0D9488', '#14B8A6', '#6EE7B7']
         label_color = '#059669'
         sub_text = 'Buzz Tích Cực'
         
-    color_range = palette[:len(df)]
-    
+    color_range = []
+    m_idx = 0
+    for g in df['Group']:
+        if g == 'Các nhóm khác':
+            color_range.append('#CBD5E1')
+        else:
+            color_range.append(main_palette[m_idx % len(main_palette)])
+            m_idx += 1
+            
     sel_kw = {'fields': ['Group'], 'name': 'grp_sel'}
     if active_grp and active_grp in df['Group'].values:
         sel_kw['value'] = [{'Group': active_grp}]
         
     sel = alt.selection_point(**sel_kw)
-    opacity_cond = alt.condition(sel, alt.value(1.0), alt.value(0.35) if active_grp else alt.value(1.0))
+    
+    # Elegant selection: selected slice gets a crisp dark border, while colors remain solid and vibrant
+    stroke_cond = alt.condition(sel, alt.value('#0F172A'), alt.value('#FFFFFF'))
+    stroke_w_cond = alt.condition(sel, alt.value(3.5), alt.value(1.5))
+    opacity_cond = alt.condition(sel, alt.value(1.0), alt.value(0.75) if active_grp else alt.value(1.0))
     
     pie = alt.Chart(df).mark_arc(
-        innerRadius=80, outerRadius=140, stroke='#FFFFFF', strokeWidth=2, cursor='pointer'
+        innerRadius=85, outerRadius=140, cursor='pointer'
     ).encode(
         theta=alt.Theta('Count:Q', stack=True),
         color=alt.Color(
@@ -538,15 +551,18 @@ def render_interactive_donut(df_grp, total_cnt, active_grp=None, chart_type="neg
             scale=alt.Scale(domain=df['Group'].tolist(), range=color_range),
             legend=alt.Legend(
                 orient='bottom',
-                columns=2,
+                direction='horizontal',
+                columns=3,
                 title=None,
                 labelFontSize=11,
                 labelColor='#334155',
                 symbolType='square',
                 symbolSize=100,
-                labelLimit=260
+                labelLimit=240
             )
         ),
+        stroke=stroke_cond,
+        strokeWidth=stroke_w_cond,
         opacity=opacity_cond,
         tooltip=[
             alt.Tooltip('Group:N', title='Trang / Hội nhóm'),
@@ -556,14 +572,14 @@ def render_interactive_donut(df_grp, total_cnt, active_grp=None, chart_type="neg
     ).add_params(sel)
     
     pct_labels = alt.Chart(df).mark_text(
-        radius=110, fill='white', fontWeight='bold', fontSize=10
+        radius=112, fill='white', fontWeight='bold', fontSize=12
     ).encode(
         theta=alt.Theta('Count:Q', stack=True),
         text='Pct_Label:N'
     )
     
     num_txt = alt.Chart(pd.DataFrame([{'t': f'{total_cnt:,}'}])).mark_text(
-        fontSize=24, fontWeight='bold', color='#1E293B', dy=-10
+        fontSize=26, fontWeight='bold', color='#1E293B', dy=-8
     ).encode(text='t:N')
     
     sub_txt = alt.Chart(pd.DataFrame([{'t': sub_text}])).mark_text(
