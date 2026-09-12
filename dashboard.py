@@ -1310,17 +1310,33 @@ elif nav_page == "Thảo luận theo Mẫu xe":
                 fig_sov = go.Figure(data=[go.Pie(
                     labels=top_sov['Model'],
                     values=top_sov['Count'],
-                    hole=0.64,
+                    hole=0.62,
+                    domain={'y': [0.28, 1.0], 'x': [0, 1]},
                     marker_colors=['#2563EB', '#06B6D4', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#64748B', '#F97316', '#CBD5E1'],
                     textinfo='percent',
-                    hoverinfo='label+value+percent'
+                    textposition='inside',
+                    insidetextorientation='horizontal',
+                    hovertemplate='<b>%{label}</b><br>Thị phần: %{percent}<br>Số lượng: %{value:,} buzz<extra></extra>'
                 )])
                 fig_sov.update_layout(
-                    margin=dict(t=15, b=25, l=15, r=15),
-                    height=360,
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    height=480,
                     showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.18, xanchor="center", x=0.5),
-                    annotations=[dict(text=f'<b>{total_tracked_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz Xe</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=0.24,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=10.5)
+                    ),
+                    annotations=[dict(
+                        text=f'<b>{total_tracked_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz Xe</span>',
+                        x=0.5,
+                        y=0.64,
+                        font_size=20,
+                        showarrow=False
+                    )]
                 )
                 st.plotly_chart(fig_sov, use_container_width=True)
             else:
