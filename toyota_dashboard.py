@@ -1685,7 +1685,7 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
 
     col_pos1, col_pos2, col_pos3 = st.columns([1, 1.2, 1.8])
     
-    pos_df = df[df['sentiment'] == 'POSITIVE']
+    pos_df = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
     total_pos = len(pos_df)
     
     # Column 1: Sắc thái thảo luận tích cực (Donut)
@@ -1819,7 +1819,7 @@ elif nav_page == "Cập nhật thảo luận mới nhất":
             st.info("Không có dữ liệu thảo luận phù hợp với bộ lọc hiện tại.")
             
     with tab_pos:
-        pos_df_all = df[df['sentiment'] == 'POSITIVE']
+        pos_df_all = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
         if not pos_df_all.empty:
             for idx, r in pos_df_all.head(30).iterrows():
                 st.markdown(render_feed_card(r, 'POSITIVE'), unsafe_allow_html=True)

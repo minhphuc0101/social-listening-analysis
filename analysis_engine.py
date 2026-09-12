@@ -151,6 +151,25 @@ HIERARCHICAL_TOPICS = {
         ],
         "Trải nghiệm khách hàng": [
             r"trải nghiệm", r"hài lòng", r"thất vọng", r"tệ", r"tuyệt vời", r"bất tiện"
+        ],
+        "Mua bán & Rao vặt": [
+            r"\bbán\s+(xe|chiếc|con|em|vios|cross|veloz|yaris|innova|camry|sedan|suv)\b",
+            r"\bcần\s+(bán|nhượng|sang\s*nhượng|tìm\s*mua)\b",
+            r"\bchính\s*chủ\s*(bán|cần\s*bán|nhượng)\b",
+            r"\bxem\s*xe\s*(tại|ở|trực\s*tiếp)\b",
+            r"\bbao\s*(check|test)\b",
+            r"\b(sđt|lh|zalo|hotline|liên\s*hệ|alo\s*em)\s*[:.]?\s*0\d{8,10}\b",
+            r"\b0[35789]\d{8}\b",
+            r"\bshopee\.vn\b",
+            r"\bcắm\s*(xe|sổ|đăng\s*ký)\b",
+            r"\bthu\s*mua\s*xe\b",
+            r"\bxe\s*lướt\b",
+            r"\bchào\s*bán\b",
+            r"\bđang\s*bán\b",
+            r"\bgiá\s*công\s*khai\b",
+            r"\binbox\s*(e|em)\s*(giá|nhé|nha)\b",
+            r"\bxe\s*sẵn\s*giao\s*ngay\b",
+            r"\bhỗ\s*trợ\s*trả\s*góp\b"
         ]
     }
 }
@@ -217,11 +236,53 @@ NEGATIVE_WORDS = [
 
 NEGATION_WORDS = ["không", "k", "chẳng", "chưa", "đừng", "kô", "ko"]
 
+COMMERCIAL_PATTERNS = [
+    r"\bbán\s+(xe|chiếc|con|em|vios|cross|veloz|yaris|innova|camry|sedan|suv)\b",
+    r"\bcần\s+(bán|nhượng|sang\s*nhượng|tìm\s*mua)\b",
+    r"\bchính\s*chủ\s*(bán|cần\s*bán|nhượng)\b",
+    r"\bxem\s*xe\s*(tại|ở|trực\s*tiếp)\b",
+    r"\bbao\s*(check|test)\b",
+    r"\b(sđt|lh|zalo|hotline|liên\s*hệ|alo\s*em)\s*[:.]?\s*0\d{8,10}\b",
+    r"\b0[35789]\d{8}\b",
+    r"\bshopee\.vn\b",
+    r"\bcắm\s*(xe|sổ|đăng\s*ký)\b",
+    r"\bthu\s*mua\s*xe\b",
+    r"\bxe\s*lướt\b",
+    r"\bchào\s*bán\b",
+    r"\bđang\s*bán\b",
+    r"\bgiá\s*công\s*khai\b",
+    r"\binbox\s*(e|em)\s*(giá|nhé|nha)\b",
+    r"\bxe\s*sẵn\s*giao\s*ngay\b",
+    r"\bhỗ\s*trợ\s*trả\s*góp\b",
+    r"\bmáy\s*số\s*zin\b",
+    r"\bsơn\s*zin\b",
+    r"\blốp\s*theo\s*xe\b",
+    r"\bchạy\s*chuẩn\s*\d+\s*(vạn|v|km)\b",
+    r"\bodo\s*chuẩn\b",
+    r"\bxe\s*còn\s*rất\s*mới\b",
+    r"\bbao\s*hồ\s*sơ\b",
+    r"\bcam\s*kết\s*không\s*(đâm\s*đụng|ngập\s*nước)\b"
+]
+
+def is_commercial_buy_sell(text):
+    if not text:
+        return False
+    text_lower = text.lower()
+    return any(re.search(p, text_lower) for p in COMMERCIAL_PATTERNS)
+
 def analyze_sentiment(text):
     if not text:
         return "NEUTRAL"
     text_lower = text.lower()
     
+    # Commercial buy/sell listings (car ads, sales links) are promotional/commercial, NOT customer praise.
+    if is_commercial_buy_sell(text_lower):
+        words = re.findall(r"\w+", text_lower)
+        neg_count = sum(1 for w in words if w in NEGATIVE_WORDS)
+        if neg_count >= 2:
+            return "NEGATIVE"
+        return "NEUTRAL"
+
     pos_score = 0.0
     neg_score = 0.0
 
@@ -283,6 +344,10 @@ def classify_topic_hierarchy(text):
     """
     text_lower = text.lower()
     
+    # Check commercial buy/sell first
+    if is_commercial_buy_sell(text_lower):
+        return "Dịch vụ", "Mua bán & Rao vặt"
+
     for pillar, sub_dict in HIERARCHICAL_TOPICS.items():
         for sub_topic, patterns in sub_dict.items():
             if any(re.search(pat, text_lower) for pat in patterns):
