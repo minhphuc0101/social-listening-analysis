@@ -555,9 +555,9 @@ pillar_filter = st.sidebar.selectbox(
 # Car Model Filter
 available_models = [
     "Toyota Vios", "Toyota Innova Cross", "Toyota Altis", "Toyota Fortuner",
-    "Toyota Corolla Cross", "Toyota Camry", "Toyota Yaris", "Toyota Wigo",
-    "Toyota Yaris Cross", "Toyota Veloz Cross", "Toyota Land Cruiser",
-    "Toyota Raize", "Toyota Hilux", "Toyota Alphard"
+    "Toyota Corolla Cross", "Toyota Hilux", "Toyota Camry", "Toyota Yaris", "Toyota Wigo",
+    "Toyota Veloz Cross", "Toyota Yaris Cross", "Toyota Land Cruiser",
+    "Toyota Raize", "Toyota Alphard"
 ]
 model_filter = st.sidebar.selectbox(
     "Dòng xe Toyota:",
