@@ -26,5 +26,19 @@
     "error_message": null,
     "duration_sec": 19.76,
     "db_synced": true
+  },
+  {
+    "timestamp": "2026-09-12T06:39:55.596814+00:00",
+    "target_date": "2026-09-11",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "NO_MENTIONS",
+    "total_mentions": 0,
+    "inserted_count": 0,
+    "duplicate_count": 0,
+    "report_file": "/home/runner/work/social-listening-analysis/social-listening-analysis/reports/brand24/toyota_report_2026-09-11.xlsx",
+    "error_message": null,
+    "duration_sec": 19.8,
+    "db_synced": true
   }
 ]
