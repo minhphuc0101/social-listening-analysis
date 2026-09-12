@@ -208,7 +208,7 @@ st.markdown("""
 import importlib
 import database
 importlib.reload(database)
-from database import get_discussions_df, get_db_stats, get_latest_daily_summary
+from database import get_discussions_df, get_db_stats, get_latest_daily_summary, clean_group_name
 from ai_scanner import run_48h_scan
 from analysis_engine import HIERARCHICAL_TOPICS
 
@@ -394,8 +394,8 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     else:
         clean_content = html.escape(body_display)
 
-    grp_name = str(record.get('group_name') or record.get('GroupName') or '').strip()
-    grp_name_clean = re.sub(r'^\(\d+\)\s*', '', grp_name).strip()
+    grp_name = str(record.get('clean_group') or record.get('group_name') or record.get('GroupName') or '').strip()
+    grp_name_clean = clean_group_name(grp_name)
 
     # Detect if record has a distinct, genuine parent topic caption (post description)
     is_distinct_desc = bool(
@@ -765,6 +765,12 @@ if search_kw and not df.empty:
         df['description'].astype(str).str.contains(search_kw, case=False, na=False) |
         df['author'].astype(str).str.contains(search_kw, case=False, na=False)
     ]
+    
+if not df.empty:
+    if 'clean_group' not in df.columns:
+        df['clean_group'] = df['group_name'].apply(clean_group_name) if 'group_name' in df.columns else 'Mạng xã hội chung'
+    else:
+        df['clean_group'] = df['clean_group'].apply(clean_group_name)
 
 total_buzz = len(df)
 sent_counts = df['sentiment'].value_counts() if not df.empty else pd.Series()
@@ -1438,139 +1444,358 @@ elif nav_page == "Thảo luận theo Mẫu xe":
 # SCREEN 2: THẢO LUẬN QUA CÁC KÊNH (Image 2)
 # =============================================================
 elif nav_page == "Thảo luận qua các kênh":
-    col_c1, col_c2 = st.columns([1, 1])
+    t_ch_groups, t_ch_macro = st.tabs([
+        "🏢 Xếp hạng sắc thái theo Từng Hội Nhóm Toyota (Community Benchmark)",
+        "🌐 Theo Kênh Tổng Hợp (Macro Channels)"
+    ])
     
-    # Top Left: Tỷ lệ thảo luận trên các kênh (Donut)
-    with col_c1:
-        with st.container(border=True):
-            st.markdown("""
-            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Tỷ lệ thảo luận trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
-            </div>
-            """, unsafe_allow_html=True)
+    with t_ch_groups:
+        if not df.empty:
+            grp_agg = df.groupby('clean_group').agg(
+                total=('sentiment', 'count'),
+                pos=('sentiment', lambda s: (s == 'POSITIVE').sum()),
+                neg=('sentiment', lambda s: (s == 'NEGATIVE').sum()),
+                neu=('sentiment', lambda s: (s == 'NEUTRAL').sum())
+            ).reset_index()
             
-            channel_counts = df['channel'].value_counts().reset_index()
-            channel_counts.columns = ['Channel', 'Count']
+            grp_agg['pos_pct'] = (grp_agg['pos'] / grp_agg['total'] * 100).round(1)
+            grp_agg['neg_pct'] = (grp_agg['neg'] / grp_agg['total'] * 100).round(1)
+            grp_agg['neu_pct'] = (grp_agg['neu'] / grp_agg['total'] * 100).round(1)
+            grp_agg['net_score'] = (grp_agg['pos_pct'] - grp_agg['neg_pct']).round(1)
             
-            fig_ch_donut = go.Figure(data=[go.Pie(
-                labels=channel_counts['Channel'],
-                values=channel_counts['Count'],
-                hole=0.65,
-                marker_colors=['#3B82F6', '#06B6D4', '#F59E0B', '#8B5CF6', '#10B981', '#EC4899', '#64748B'],
-                textinfo='percent',
-                hoverinfo='label+value+percent'
-            )])
-            fig_ch_donut.update_layout(
-                margin=dict(t=15, b=25, l=15, r=15),
-                height=360,
-                showlegend=True,
-                legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
-                annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
-            )
-            st.plotly_chart(fig_ch_donut, use_container_width=True)
-
-    # Top Right: Xếp hạng nguồn thảo luận
-    with col_c2:
-        with st.container(border=True):
-            st.markdown("""
-            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:12px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
-                Xếp hạng nguồn thảo luận <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
-            </div>
-            """, unsafe_allow_html=True)
+            # Top KPI Summary Cards
+            col_gkpi1, col_gkpi2, col_gkpi3, col_gkpi4 = st.columns(4)
             
-            standard_channels = ["News", "TikTok", "Facebook Pages", "Facebook Users", "Facebook Groups", "YouTube", "Forum", "Social Sites", "E-commerce Sites"]
-            rank_data = []
-            for ch in standard_channels:
-                sub = df[df['channel'] == ch]
-                c_cnt = len(sub)
-                p = len(sub[sub['sentiment'] == 'POSITIVE'])
-                neu = len(sub[sub['sentiment'] == 'NEUTRAL'])
-                neg = len(sub[sub['sentiment'] == 'NEGATIVE'])
-                rank_data.append({
-                    "Channel": ch,
-                    "Buzz": c_cnt,
-                    "Pos_pct": round(p/c_cnt*100, 1) if c_cnt else 0,
-                    "Neu_pct": round(neu/c_cnt*100, 1) if c_cnt else 0,
-                    "Neg_pct": round(neg/c_cnt*100, 1) if c_cnt else 0
-                })
+            sig_groups = grp_agg[grp_agg['total'] >= 10]
+            if sig_groups.empty:
+                sig_groups = grp_agg
                 
-            df_rank = pd.DataFrame(rank_data).sort_values('Buzz', ascending=False).reset_index(drop=True)
+            top_pos_group = sig_groups.sort_values(['net_score', 'pos_pct'], ascending=False).iloc[0] if not sig_groups.empty else None
+            top_neg_group = sig_groups.sort_values(['net_score', 'neg_pct'], ascending=True).iloc[0] if not sig_groups.empty else None
+            overall_net = round((pos_cnt - neg_cnt) / total_buzz * 100, 1) if total_buzz else 0
             
-            rank_rows_html = []
-            for idx, row in df_rank.iterrows():
-                r_html = (
-                    f'<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F8FAFC; min-height:24px;">'
-                    f'<div style="width:160px; font-size:0.85rem; font-weight:600; color:#1E293B; line-height:20px;">'
-                    f'<span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row["Channel"]}'
-                    f'</div>'
-                    f'<div style="flex-grow:1; margin:0 14px; background:#E2E8F0; height:14px; border-radius:7px; overflow:hidden; display:flex;">'
-                    f'<div style="width:{row["Pos_pct"]}%; background:#2DD4BF;"></div>'
-                    f'<div style="width:{row["Neg_pct"]}%; background:#EF4444;"></div>'
-                    f'<div style="width:{row["Neu_pct"]}%; background:#475569;"></div>'
-                    f'</div>'
-                    f'<div style="width:85px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569; line-height:20px;">'
-                    f'{row["Buzz"]:,} buzz'
-                    f'</div>'
-                    f'</div>'
+            with col_gkpi1:
+                st.markdown(f"""
+                <div class="dashboard-card" style="margin-bottom:0.75rem; padding:1rem;">
+                    <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase;">🚗 Cộng đồng Toyota</div>
+                    <div style="font-size:1.6rem; font-weight:800; color:#EB0A1E; margin:4px 0;">{len(grp_agg):,}</div>
+                    <div style="font-size:0.78rem; color:#64748B;">Hội nhóm chuyên sâu theo dòng xe</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col_gkpi2:
+                p_name = top_pos_group['clean_group'] if top_pos_group is not None else "N/A"
+                p_score = f"+{top_pos_group['net_score']}%" if top_pos_group is not None and top_pos_group['net_score'] > 0 else (f"{top_pos_group['net_score']}%" if top_pos_group is not None else "0%")
+                st.markdown(f"""
+                <div class="dashboard-card" style="margin-bottom:0.75rem; padding:1rem; border-left:4px solid #10B981;">
+                    <div style="font-size:0.75rem; font-weight:700; color:#047857; text-transform:uppercase;">🟢 Tích cực nhất</div>
+                    <div style="font-size:1.25rem; font-weight:800; color:#065F46; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{p_name}">{p_name}</div>
+                    <div style="font-size:0.78rem; color:#10B981; font-weight:600;">Net Sentiment: {p_score}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col_gkpi3:
+                n_name = top_neg_group['clean_group'] if top_neg_group is not None else "N/A"
+                n_score = f"{top_neg_group['net_score']}%" if top_neg_group is not None else "0%"
+                st.markdown(f"""
+                <div class="dashboard-card" style="margin-bottom:0.75rem; padding:1rem; border-left:4px solid #EF4444;">
+                    <div style="font-size:0.75rem; font-weight:700; color:#B91C1C; text-transform:uppercase;">🔴 Phản ánh / Tiêu cực nhất</div>
+                    <div style="font-size:1.25rem; font-weight:800; color:#991B1B; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{n_name}">{n_name}</div>
+                    <div style="font-size:0.78rem; color:#EF4444; font-weight:600;">Net Sentiment: {n_score}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col_gkpi4:
+                on_color = "#10B981" if overall_net > 0 else ("#EF4444" if overall_net < 0 else "#64748B")
+                on_prefix = "+" if overall_net > 0 else ""
+                st.markdown(f"""
+                <div class="dashboard-card" style="margin-bottom:0.75rem; padding:1rem; border-left:4px solid {on_color};">
+                    <div style="font-size:0.75rem; font-weight:700; color:#64748B; text-transform:uppercase;">📊 Net Sentiment Toyota</div>
+                    <div style="font-size:1.6rem; font-weight:800; color:{on_color}; margin:4px 0;">{on_prefix}{overall_net}%</div>
+                    <div style="font-size:0.78rem; color:#64748B;">{pos_cnt:,} tích cực &bull; {neg_cnt:,} tiêu cực</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Interactive Benchmark Control & Filter
+            with st.container(border=True):
+                col_ctrl1, col_ctrl2 = st.columns([2.5, 1])
+                with col_ctrl1:
+                    sort_mode = st.radio(
+                        "Sắp xếp bảng xếp hạng hội nhóm:",
+                        options=[
+                            "🔥 Nhiều thảo luận nhất",
+                            "🟢 Tích cực nhất (Net Score cao)",
+                            "🔴 Tiêu cực nhất (Net Score thấp)",
+                            "📈 Tỷ lệ Tiêu cực cao nhất (%)"
+                        ],
+                        horizontal=True,
+                        key="sort_mode_toyota_grp"
+                    )
+                with col_ctrl2:
+                    min_buzz = st.selectbox(
+                        "Lọc theo quy mô:",
+                        options=["Tất cả quy mô", "Trên 50 thảo luận", "Trên 100 thảo luận", "Trên 500 thảo luận"],
+                        index=0,
+                        key="min_buzz_toyota_grp"
+                    )
+                
+                filtered_grp = grp_agg.copy()
+                if min_buzz == "Trên 50 thảo luận":
+                    filtered_grp = filtered_grp[filtered_grp['total'] >= 50]
+                elif min_buzz == "Trên 100 thảo luận":
+                    filtered_grp = filtered_grp[filtered_grp['total'] >= 100]
+                elif min_buzz == "Trên 500 thảo luận":
+                    filtered_grp = filtered_grp[filtered_grp['total'] >= 500]
+
+                if "Nhiều thảo luận" in sort_mode:
+                    filtered_grp = filtered_grp.sort_values('total', ascending=False)
+                elif "Tích cực nhất" in sort_mode:
+                    filtered_grp = filtered_grp.sort_values(['net_score', 'pos_pct'], ascending=False)
+                elif "Tiêu cực nhất" in sort_mode:
+                    filtered_grp = filtered_grp.sort_values(['net_score', 'neg_pct'], ascending=True)
+                elif "Tỷ lệ Tiêu cực" in sort_mode:
+                    filtered_grp = filtered_grp.sort_values(['neg_pct', 'total'], ascending=False)
+                
+                filtered_grp = filtered_grp.reset_index(drop=True)
+
+                st.markdown("""
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:2px solid #E2E8F0; font-size:0.8rem; font-weight:700; color:#64748B;">
+                    <div style="width:240px;">HỘI NHÓM / CỘNG ĐỒNG TOYOTA</div>
+                    <div style="width:130px; text-align:center;">SẮC THÁI NET</div>
+                    <div style="flex-grow:1; margin:0 16px; text-align:center;">PHÂN BỔ SẮC THÁI (🟢 Tích cực / 🔴 Tiêu cực / ⚫ Trung lập)</div>
+                    <div style="width:110px; text-align:right;">TỔNG BUZZ</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                grp_rows_html = []
+                for idx, row in filtered_grp.iterrows():
+                    g_name = html.escape(str(row['clean_group']))
+                    ns = row['net_score']
+                    if ns > 0:
+                        net_badge = f'<span style="background:#DCFCE7; color:#16A34A; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:4px;">🟢 +{ns}% Tích cực</span>'
+                    elif ns < 0:
+                        net_badge = f'<span style="background:#FEE2E2; color:#DC2626; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:4px;">🔴 {ns}% Tiêu cực</span>'
+                    else:
+                        net_badge = f'<span style="background:#F1F5F9; color:#475569; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:4px;">⚪ 0.0% Cân bằng</span>'
+
+                    r_html = f"""
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F1F5F9; min-height:46px;">
+                        <div style="width:240px; font-size:0.88rem; font-weight:700; color:#1E293B; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{g_name}">
+                            <span style="color:#94A3B8; font-weight:600; margin-right:6px;">{idx+1}.</span> {g_name}
+                        </div>
+                        <div style="width:130px; text-align:center;">
+                            {net_badge}
+                        </div>
+                        <div style="flex-grow:1; margin:0 16px;">
+                            <div style="display:flex; height:14px; border-radius:7px; overflow:hidden; background:#E2E8F0; width:100%;" title="Tích cực: {row['pos_pct']}% | Tiêu cực: {row['neg_pct']}% | Trung lập: {row['neu_pct']}%">
+                                <div style="width:{row['pos_pct']}%; background:#2DD4BF;"></div>
+                                <div style="width:{row['neg_pct']}%; background:#EF4444;"></div>
+                                <div style="width:{row['neu_pct']}%; background:#475569;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#64748B; margin-top:3px;">
+                                <span>🟢 {row['pos']:,} ({row['pos_pct']}%)</span>
+                                <span>🔴 {row['neg']:,} ({row['neg_pct']}%)</span>
+                                <span>⚫ {row['neu']:,} ({row['neu_pct']}%)</span>
+                            </div>
+                        </div>
+                        <div style="width:110px; text-align:right; font-size:0.9rem; font-weight:800; color:#1E293B;">
+                            {row['total']:,} <span style="font-size:0.75rem; font-weight:500; color:#64748B;">buzz</span>
+                        </div>
+                    </div>
+                    """
+                    grp_rows_html.append(r_html)
+
+                benchmark_full_html = f'<div style="max-height:520px; overflow-y:auto; padding-right:8px;">{"".join(grp_rows_html)}</div>'
+                if hasattr(st, "html"):
+                    st.html(benchmark_full_html)
+                else:
+                    st.markdown(benchmark_full_html, unsafe_allow_html=True)
+
+            # Drill-down Discussion Feed per Community
+            with st.container(border=True):
+                st.markdown("""
+                <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                    🔍 Chi tiết bài viết & bình luận theo từng Hội nhóm Toyota
+                </div>
+                """, unsafe_allow_html=True)
+                
+                drilldown_group_list = filtered_grp['clean_group'].tolist()
+                selected_drill_group = st.selectbox(
+                    "Chọn Hội nhóm để kiểm tra luồng thảo luận gốc:",
+                    options=drilldown_group_list,
+                    key="select_drill_toyota_group"
                 )
-                rank_rows_html.append(r_html)
                 
-            rank_full_html = f'<div style="max-height:420px; overflow-y:auto; padding-right:6px;">{"".join(rank_rows_html)}</div>'
-            if hasattr(st, "html"):
-                st.html(rank_full_html)
-            else:
-                st.markdown(rank_full_html, unsafe_allow_html=True)
+                group_feed_df = df[df['clean_group'] == selected_drill_group] if not df.empty else pd.DataFrame()
+                g_cnt = len(group_feed_df)
+                g_pos = len(group_feed_df[group_feed_df['sentiment'] == 'POSITIVE'])
+                g_neg = len(group_feed_df[group_feed_df['sentiment'] == 'NEGATIVE'])
+                g_neu = len(group_feed_df[group_feed_df['sentiment'] == 'NEUTRAL'])
+                g_net = round((g_pos - g_neg) / g_cnt * 100, 1) if g_cnt else 0
+                
+                st.caption(f"Đang hiển thị dữ liệu cộng đồng **{selected_drill_group}**: **{g_cnt:,}** buzz (🟢 {g_pos:,} tích cực &bull; 🔴 {g_neg:,} tiêu cực &bull; Net Score: **{'+' if g_net > 0 else ''}{g_net}%**)")
+                
+                t_gf_all, t_gf_pos, t_gf_neg = st.tabs([
+                    f"📋 Tất cả thảo luận ({g_cnt:,})",
+                    f"🟢 Thảo luận tích cực ({g_pos:,})",
+                    f"🔴 Thảo luận tiêu cực ({g_neg:,})"
+                ])
+                with t_gf_all:
+                    if not group_feed_df.empty:
+                        for idx, r in group_feed_df.head(25).iterrows():
+                            st.markdown(render_feed_card(r, str(r.get('sentiment', 'NEUTRAL')).upper()), unsafe_allow_html=True)
+                    else:
+                        st.info("Không có dữ liệu thảo luận.")
+                with t_gf_pos:
+                    pos_g_df = group_feed_df[group_feed_df['sentiment'] == 'POSITIVE']
+                    if not pos_g_df.empty:
+                        for idx, r in pos_g_df.head(25).iterrows():
+                            st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
+                    else:
+                        st.info(f"Không có thảo luận tích cực trong nhóm {selected_drill_group}.")
+                with t_gf_neg:
+                    neg_g_df = group_feed_df[group_feed_df['sentiment'] == 'NEGATIVE']
+                    if not neg_g_df.empty:
+                        for idx, r in neg_g_df.head(25).iterrows():
+                            st.markdown(render_feed_card(r, "NEGATIVE"), unsafe_allow_html=True)
+                    else:
+                        st.success(f"Không có thảo luận tiêu cực trong nhóm {selected_drill_group}.")
+        else:
+            st.info("Không có dữ liệu thảo luận trong khoảng thời gian này.")
 
-    # Bottom: Top nguồn thảo luận trên kênh Tin tức trực tuyến (Image 2)
-    with st.container(border=True):
-        st.markdown("""
-        <div style="margin-bottom:8px;">
-            <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top nguồn thảo luận trên kênh Tin tức trực tuyến <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
-            <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-top:4px; letter-spacing:0.05em;">NEWS</div>
-        </div>
-        """, unsafe_allow_html=True)
+    with t_ch_macro:
+        col_c1, col_c2 = st.columns([1, 1])
         
-        # Extract top news sources or domains from df
-        news_df = df[df['channel'] == 'News'] if not df.empty and 'channel' in df.columns else pd.DataFrame()
-        top_news_sources = []
-        
-        if not news_df.empty and 'site_name' in news_df.columns:
-            source_counts = news_df['site_name'].value_counts().head(10).reset_index()
-            source_counts.columns = ['Source', 'Buzz']
-            top_news_sources = source_counts.to_dict(orient='records')
+        # Top Left: Tỷ lệ thảo luận trên các kênh (Donut)
+        with col_c1:
+            with st.container(border=True):
+                st.markdown("""
+                <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                    Tỷ lệ thảo luận trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                channel_counts = df['channel'].value_counts().reset_index()
+                channel_counts.columns = ['Channel', 'Count']
+                
+                fig_ch_donut = go.Figure(data=[go.Pie(
+                    labels=channel_counts['Channel'],
+                    values=channel_counts['Count'],
+                    hole=0.65,
+                    marker_colors=['#EB0A1E', '#EF4444', '#F87171', '#3B82F6', '#10B981', '#F59E0B', '#64748B'],
+                    textinfo='percent',
+                    hoverinfo='label+value+percent'
+                )])
+                fig_ch_donut.update_layout(
+                    margin=dict(t=15, b=25, l=15, r=15),
+                    height=360,
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+                    annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
+                )
+                st.plotly_chart(fig_ch_donut, use_container_width=True)
+
+        # Top Right: Xếp hạng nguồn thảo luận
+        with col_c2:
+            with st.container(border=True):
+                st.markdown("""
+                <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:12px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
+                    Xếp hạng nguồn thảo luận <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                standard_channels = ["News", "TikTok", "Facebook Pages", "Facebook Users", "Facebook Groups", "YouTube", "Forum", "Social Sites", "E-commerce Sites"]
+                rank_data = []
+                for ch in standard_channels:
+                    sub = df[df['channel'] == ch]
+                    c_cnt = len(sub)
+                    p = len(sub[sub['sentiment'] == 'POSITIVE'])
+                    neu = len(sub[sub['sentiment'] == 'NEUTRAL'])
+                    neg = len(sub[sub['sentiment'] == 'NEGATIVE'])
+                    rank_data.append({
+                        "Channel": ch,
+                        "Buzz": c_cnt,
+                        "Pos_pct": round(p/c_cnt*100, 1) if c_cnt else 0,
+                        "Neu_pct": round(neu/c_cnt*100, 1) if c_cnt else 0,
+                        "Neg_pct": round(neg/c_cnt*100, 1) if c_cnt else 0
+                    })
+                    
+                df_rank = pd.DataFrame(rank_data).sort_values('Buzz', ascending=False).reset_index(drop=True)
+                
+                rank_rows_html = []
+                for idx, row in df_rank.iterrows():
+                    r_html = (
+                        f'<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F8FAFC; min-height:24px;">'
+                        f'<div style="width:160px; font-size:0.85rem; font-weight:600; color:#1E293B; line-height:20px;">'
+                        f'<span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row["Channel"]}'
+                        f'</div>'
+                        f'<div style="flex-grow:1; margin:0 14px; background:#E2E8F0; height:14px; border-radius:7px; overflow:hidden; display:flex;">'
+                        f'<div style="width:{row["Pos_pct"]}%; background:#2DD4BF;"></div>'
+                        f'<div style="width:{row["Neg_pct"]}%; background:#EF4444;"></div>'
+                        f'<div style="width:{row["Neu_pct"]}%; background:#475569;"></div>'
+                        f'</div>'
+                        f'<div style="width:85px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569; line-height:20px;">'
+                        f'{row["Buzz"]:,} buzz'
+                        f'</div>'
+                        f'</div>'
+                    )
+                    rank_rows_html.append(r_html)
+                    
+                rank_full_html = f'<div style="max-height:420px; overflow-y:auto; padding-right:6px;">{"".join(rank_rows_html)}</div>'
+                if hasattr(st, "html"):
+                    st.html(rank_full_html)
+                else:
+                    st.markdown(rank_full_html, unsafe_allow_html=True)
+
+        # Bottom: Top nguồn thảo luận trên kênh Tin tức trực tuyến (Image 2)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="margin-bottom:8px;">
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top nguồn thảo luận trên kênh Tin tức trực tuyến <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
+                <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-top:4px; letter-spacing:0.05em;">NEWS</div>
+            </div>
+            """, unsafe_allow_html=True)
             
-        if not top_news_sources:
-            # Standard benchmark news sources matching Image 2
-            top_news_sources = [
-                {"Source": "baomoi.com", "Buzz": 1500},
-                {"Source": "chuyendongthitruong.vn", "Buzz": 347},
-                {"Source": "autopro.com.vn", "Buzz": 279},
-                {"Source": "soha.vn", "Buzz": 277},
-                {"Source": "24h.com.vn", "Buzz": 245},
-                {"Source": "vietgiaitri.com", "Buzz": 218},
-                {"Source": "znews.vn", "Buzz": 215},
-                {"Source": "cafeF.vn", "Buzz": 172},
-                {"Source": "tinxe.vn", "Buzz": 150},
-                {"Source": "khoahocdoisong.vn", "Buzz": 144}
-            ]
+            # Extract top news sources or domains from df
+            news_df = df[df['channel'] == 'News'] if not df.empty and 'channel' in df.columns else pd.DataFrame()
+            top_news_sources = []
+            
+            if not news_df.empty and 'site_name' in news_df.columns:
+                source_counts = news_df['site_name'].value_counts().head(10).reset_index()
+                source_counts.columns = ['Source', 'Buzz']
+                top_news_sources = source_counts.to_dict(orient='records')
+                
+            if not top_news_sources:
+                top_news_sources = [
+                    {"Source": "baomoi.com", "Buzz": 1500},
+                    {"Source": "chuyendongthitruong.vn", "Buzz": 347},
+                    {"Source": "autopro.com.vn", "Buzz": 279},
+                    {"Source": "soha.vn", "Buzz": 277},
+                    {"Source": "24h.com.vn", "Buzz": 245},
+                    {"Source": "vietgiaitri.com", "Buzz": 218},
+                    {"Source": "znews.vn", "Buzz": 215},
+                    {"Source": "cafeF.vn", "Buzz": 172},
+                    {"Source": "tinxe.vn", "Buzz": 150},
+                    {"Source": "khoahocdoisong.vn", "Buzz": 144}
+                ]
 
-        df_news_src = pd.DataFrame(top_news_sources).sort_values('Buzz', ascending=True)
-        fig_news_src = px.bar(
-            df_news_src,
-            x='Buzz',
-            y='Source',
-            orientation='h',
-            color_discrete_sequence=['#38BDF8']
-        )
-        fig_news_src.update_layout(
-            plot_bgcolor='#FFFFFF',
-            paper_bgcolor='#FFFFFF',
-            height=300,
-            margin=dict(t=10, b=20, l=150, r=40),
-            xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
-            yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
-        )
-        st.plotly_chart(fig_news_src, use_container_width=True)
+            df_news_src = pd.DataFrame(top_news_sources).sort_values('Buzz', ascending=True)
+            fig_news_src = px.bar(
+                df_news_src,
+                x='Buzz',
+                y='Source',
+                orientation='h',
+                color_discrete_sequence=['#EB0A1E']
+            )
+            fig_news_src.update_layout(
+                plot_bgcolor='#FFFFFF',
+                paper_bgcolor='#FFFFFF',
+                height=300,
+                margin=dict(t=10, b=20, l=150, r=40),
+                xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+                yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
+            )
+            st.plotly_chart(fig_news_src, use_container_width=True)
 
 
 # =============================================================
@@ -1588,58 +1813,69 @@ elif nav_page == "Thảo luận tiêu cực":
     neg_df = df[df['sentiment'] == 'NEGATIVE']
     total_neg = len(neg_df)
     
-    # Column 1: Sắc thái thảo luận tiêu cực (Donut)
+    # Column 1: Sắc thái thảo luận tiêu cực theo Trang / Hội nhóm (Donut)
     with col_neg1:
         with st.container(border=True):
             st.markdown("""
             <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Sắc thái thảo luận <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            fig_neg_donut = go.Figure(data=[go.Pie(
-                labels=['Tiêu cực'],
-                values=[total_neg if total_neg > 0 else 1],
-                hole=0.68,
-                marker_colors=['#EF4444'],
-                textinfo='none',
-                hoverinfo='label+value'
-            )])
-            fig_neg_donut.update_layout(
-                margin=dict(t=15, b=20, l=15, r=15),
-                height=320,
-                showlegend=False,
-                annotations=[dict(text=f'<b>{total_neg:,}</b><br><span style="font-size:12px; color:#EF4444;">Buzz Tiêu Cực</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
-            )
-            st.plotly_chart(fig_neg_donut, use_container_width=True)
-
-    # Column 2: Thảo luận tiêu cực trên các kênh
-    with col_neg2:
-        with st.container(border=True):
-            st.markdown("""
-            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Thảo luận tiêu cực trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                Tỷ lệ tiêu cực theo Hội nhóm <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
             </div>
             """, unsafe_allow_html=True)
             
             if not neg_df.empty:
-                neg_channels = neg_df['channel'].value_counts().reset_index()
-                neg_channels.columns = ['Channel', 'Buzz']
-                neg_channels = neg_channels.sort_values('Buzz', ascending=True)
+                top_neg_grp = neg_df['clean_group'].value_counts().head(7).reset_index()
+                top_neg_grp.columns = ['Group', 'Count']
+                other_neg = len(neg_df) - top_neg_grp['Count'].sum()
+                if other_neg > 0:
+                    top_neg_grp = pd.concat([top_neg_grp, pd.DataFrame([{'Group': 'Các nhóm khác', 'Count': other_neg}])], ignore_index=True)
+                
+                fig_neg_donut = go.Figure(data=[go.Pie(
+                    labels=top_neg_grp['Group'],
+                    values=top_neg_grp['Count'],
+                    hole=0.62,
+                    marker_colors=['#DC2626', '#EF4444', '#F87171', '#FCA5A5', '#B91C1C', '#991B1B', '#E11D48', '#CBD5E1'],
+                    textinfo='percent',
+                    hoverinfo='label+value+percent'
+                )])
+                fig_neg_donut.update_layout(
+                    margin=dict(t=10, b=20, l=10, r=10),
+                    height=340,
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
+                    annotations=[dict(text=f'<b>{total_neg:,}</b><br><span style="font-size:11px; color:#EF4444;">Buzz Tiêu Cực</span>', x=0.5, y=0.5, font_size=18, showarrow=False)]
+                )
+                st.plotly_chart(fig_neg_donut, use_container_width=True)
+            else:
+                st.success("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
+
+    # Column 2: Top Trang & Hội nhóm có nhiều phản ánh tiêu cực nhất
+    with col_neg2:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Top Hội nhóm có nhiều phản ánh nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if not neg_df.empty:
+                neg_bars = neg_df['clean_group'].value_counts().head(8).reset_index()
+                neg_bars.columns = ['Group', 'Buzz']
+                neg_bars = neg_bars.sort_values('Buzz', ascending=True)
                 
                 fig_neg_ch = px.bar(
-                    neg_channels,
+                    neg_bars,
                     x='Buzz',
-                    y='Channel',
+                    y='Group',
                     orientation='h',
                     color_discrete_sequence=['#EF4444']
                 )
                 fig_neg_ch.update_layout(
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
-                    height=320,
-                    margin=dict(t=10, b=20, l=110, r=20),
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9')
+                    height=340,
+                    margin=dict(t=10, b=20, l=130, r=20),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+                    yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
                 )
                 st.plotly_chart(fig_neg_ch, use_container_width=True)
             else:
@@ -1688,58 +1924,69 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
     pos_df = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
     total_pos = len(pos_df)
     
-    # Column 1: Sắc thái thảo luận tích cực (Donut)
+    # Column 1: Sắc thái thảo luận tích cực theo Trang / Hội nhóm (Donut)
     with col_pos1:
         with st.container(border=True):
             st.markdown("""
             <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Sắc thái thảo luận tích cực <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            fig_pos_donut = go.Figure(data=[go.Pie(
-                labels=['Tích cực'],
-                values=[total_pos if total_pos > 0 else 1],
-                hole=0.68,
-                marker_colors=['#2DD4BF'],
-                textinfo='none',
-                hoverinfo='label+value'
-            )])
-            fig_pos_donut.update_layout(
-                margin=dict(t=15, b=20, l=15, r=15),
-                height=320,
-                showlegend=False,
-                annotations=[dict(text=f'<b>{total_pos:,}</b><br><span style="font-size:12px; color:#0F766E;">Buzz Tích Cực</span>', x=0.5, y=0.5, font_size=20, showarrow=False)]
-            )
-            st.plotly_chart(fig_pos_donut, use_container_width=True)
-
-    # Column 2: Thảo luận tích cực trên các kênh
-    with col_pos2:
-        with st.container(border=True):
-            st.markdown("""
-            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Thảo luận tích cực trên các kênh <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                Tỷ lệ tích cực theo Hội nhóm <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
             </div>
             """, unsafe_allow_html=True)
             
             if not pos_df.empty:
-                pos_channels = pos_df['channel'].value_counts().reset_index()
-                pos_channels.columns = ['Channel', 'Buzz']
-                pos_channels = pos_channels.sort_values('Buzz', ascending=True)
+                top_pos_grp = pos_df['clean_group'].value_counts().head(7).reset_index()
+                top_pos_grp.columns = ['Group', 'Count']
+                other_pos = len(pos_df) - top_pos_grp['Count'].sum()
+                if other_pos > 0:
+                    top_pos_grp = pd.concat([top_pos_grp, pd.DataFrame([{'Group': 'Các nhóm khác', 'Count': other_pos}])], ignore_index=True)
+                
+                fig_pos_donut = go.Figure(data=[go.Pie(
+                    labels=top_pos_grp['Group'],
+                    values=top_pos_grp['Count'],
+                    hole=0.62,
+                    marker_colors=['#10B981', '#34D399', '#6EE7B7', '#059669', '#047857', '#0D9488', '#14B8A6', '#CBD5E1'],
+                    textinfo='percent',
+                    hoverinfo='label+value+percent'
+                )])
+                fig_pos_donut.update_layout(
+                    margin=dict(t=10, b=20, l=10, r=10),
+                    height=340,
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
+                    annotations=[dict(text=f'<b>{total_pos:,}</b><br><span style="font-size:11px; color:#0F766E;">Buzz Tích Cực</span>', x=0.5, y=0.5, font_size=18, showarrow=False)]
+                )
+                st.plotly_chart(fig_pos_donut, use_container_width=True)
+            else:
+                st.info("Không có thảo luận tích cực.")
+
+    # Column 2: Top Trang & Hội nhóm thảo luận tích cực nhất
+    with col_pos2:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
+                Top Hội nhóm thảo luận tích cực nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if not pos_df.empty:
+                pos_bars = pos_df['clean_group'].value_counts().head(8).reset_index()
+                pos_bars.columns = ['Group', 'Buzz']
+                pos_bars = pos_bars.sort_values('Buzz', ascending=True)
                 
                 fig_pos_ch = px.bar(
-                    pos_channels,
+                    pos_bars,
                     x='Buzz',
-                    y='Channel',
+                    y='Group',
                     orientation='h',
                     color_discrete_sequence=['#2DD4BF']
                 )
                 fig_pos_ch.update_layout(
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
-                    height=320,
-                    margin=dict(t=10, b=20, l=110, r=20),
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9')
+                    height=340,
+                    margin=dict(t=10, b=20, l=130, r=20),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+                    yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
                 )
                 st.plotly_chart(fig_pos_ch, use_container_width=True)
             else:

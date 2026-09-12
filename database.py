@@ -419,6 +419,69 @@ def get_missing_or_failed_days(lookback_days=14, campaign="Toyota"):
 # -------------------------------------------------------------
 _LOCAL_CACHE_DF = None
 
+def clean_group_name(raw_name):
+    """
+    Normalizes social media group and page names by removing notification counters,
+    symbols, emojis, and mapping common automotive communities to standard clean names.
+    """
+    if not raw_name or pd.isna(raw_name) or str(raw_name).strip().lower() in ('nan', 'none', 'nat', ''):
+        return 'Mạng xã hội chung'
+    name = str(raw_name).strip()
+    # Remove leading notification counters like (1), (2), (20+), etc.
+    name = re.sub(r'^\(\d+\+?\)\s*', '', name)
+    # Remove emojis and trailing symbols
+    name = re.sub(r'[\u2700-\u27BF\U0001f300-\U0001f9ff\u2600-\u26ff\u200b-\u200f\uFE0F]+', '', name).strip()
+    name = re.sub(r'\s+', ' ', name).strip()
+    
+    name_lower = name.lower()
+    if 'offb' in name_lower:
+        return 'OFFB'
+    elif 'gearup' in name_lower:
+        return 'GearUpVN'
+    elif 'otofun' in name_lower:
+        return 'Otofun'
+    elif 'bạn hữu đường xa' in name_lower:
+        return 'Bạn Hữu Đường Xa'
+    elif 'anh em mê xe' in name_lower:
+        return 'Anh Em Mê Xe'
+    elif 'nghiện xe' in name_lower:
+        return 'Nghiện Xe'
+    elif 'vios' in name_lower:
+        return 'Hội Toyota Vios Việt Nam'
+    elif 'xem xe analytics' in name_lower:
+        return 'Xem Xe Analytics'
+    elif 'bí mật xe biz' in name_lower or 'bimatxebiz' in name_lower:
+        return 'Bí Mật Xe Biz'
+    elif 'troll xe' in name_lower or 'trollxe' in name_lower:
+        return 'Troll Xe'
+    elif 'xế cưng' in name_lower or 'xecung' in name_lower:
+        return 'Xế Cưng'
+    elif 'otosaigon' in name_lower:
+        return 'Otosaigon'
+    elif 'skoda' in name_lower:
+        return 'Hội Xe Skoda Việt Nam'
+    elif 'outlander' in name_lower:
+        return 'Hội Mitsubishi Outlander'
+    elif 'innova' in name_lower:
+        return 'Hội Toyota Innova Việt Nam'
+    elif 'corolla cross' in name_lower or 'crossclub' in name_lower:
+        return 'Hội Toyota Corolla Cross'
+    elif 'altis' in name_lower:
+        return 'Hội Toyota Corolla Altis'
+    elif 'fortuner' in name_lower:
+        return 'Hội Toyota Fortuner'
+    elif 'camry' in name_lower:
+        return 'Hội Toyota Camry'
+    elif 'yaris' in name_lower:
+        return 'Hội Toyota Yaris Việt Nam'
+    elif 'xe hay' in name_lower:
+        return 'Xe Hay'
+    elif 'mobileye' in name_lower:
+        return 'Công nghệ Ô tô Mobileye'
+    elif 'jeep' in name_lower:
+        return 'Jeep Việt Nam'
+    return name
+
 def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans up discussions DataFrame to prevent 'Unknown' authors, 'NaT' dates,
@@ -593,9 +656,10 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
         df["content"] = df.apply(_sanitize_content, axis=1)
 
     if "group_name" in df.columns:
-        df["group_name"] = df["group_name"].apply(
-            lambda x: re.sub(r'^\(\d+\)\s*', '', str(x)).strip() if pd.notna(x) and str(x).strip().lower() not in ('nan', 'none', 'none', '') else ''
-        )
+        df["group_name"] = df["group_name"].apply(clean_group_name)
+    else:
+        df["group_name"] = "Mạng xã hội chung"
+    df["clean_group"] = df["group_name"]
 
     return df
 
