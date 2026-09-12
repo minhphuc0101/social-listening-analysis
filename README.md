@@ -8,16 +8,19 @@ A standalone, production-ready automotive social media intelligence platform pow
 
 | File | Purpose |
 | :--- | :--- |
-| **`dashboard.py`** | Realtime interactive Streamlit web dashboard with Plotly charts. |
+| **`dashboard.py`** | Autoforum Campaign Dashboard (all auto groups, excluding Toyota Campaign). |
+| **`toyota_dashboard.py`** | **Toyota Dedicated Campaign Dashboard** (Toyota Crimson theme, dedicated models & KPIs). |
 | **`ai_scanner.py`** | 48-hour intelligence scan engine (Gemini AI + Local NLP). |
-| **`database.py`** | High-performance Neon PostgreSQL connection & query layer. |
+| **`database.py`** | High-performance Neon PostgreSQL connection & query layer with campaign isolation. |
 | **`analysis_engine.py`** | Vietnamese automotive taxonomy, model detection & sentiment analysis. |
 | **`run_daily_summary.py`** | CLI runner for scheduled daily scans (used by GitHub Actions). |
 | **`import_to_neon.py`** | Data migration utility to ingest crawled Excel files into Neon DB. |
 | **`share_online.py`** | Cloudflare Tunnel utility for instant 100% free HTTPS sharing. |
 | **`requirements.txt`** | Lightweight dependencies (Streamlit, Plotly, Psycopg2, etc.). |
-| **`Start_Dashboard.bat`** | Windows 1-click local launcher (`http://localhost:8501`). |
-| **`Start_Online_Dashboard.bat`** | Windows 1-click launcher with instant public HTTPS link. |
+| **`Start_Dashboard.bat`** | 1-click launcher for **Autoforum Dashboard** (`http://localhost:8501`). |
+| **`Start_Online_Dashboard.bat`** | 1-click HTTPS tunnel launcher for Autoforum Dashboard. |
+| **`Start_Toyota_Dashboard.bat`** | 1-click launcher for **Toyota Campaign Dashboard** (`http://localhost:8502`). |
+| **`Start_Toyota_Online_Dashboard.bat`** | 1-click HTTPS tunnel launcher for Toyota Campaign Dashboard. |
 | **`.streamlit/config.toml`** | Streamlit UI theme and production server settings. |
 | **`.github/workflows/`** | GitHub Actions daily cron workflow running everyday at 08:00 AM VN time. |
 | **`reports/`** | Directory archiving daily executive summaries in Markdown. |
@@ -26,32 +29,32 @@ A standalone, production-ready automotive social media intelligence platform pow
 
 ## 🚀 How to Run
 
-### 1. Run Locally
-Double-click:
-```bat
-Start_Dashboard.bat
-```
-The dashboard will open automatically in your browser at `http://localhost:8501`.
+### 1. Run Locally (Choose Your Campaign)
+* **Autoforum Dashboard** (port 8501):
+  ```bat
+  Start_Dashboard.bat
+  ```
+* **Toyota Campaign Dashboard** (port 8502):
+  ```bat
+  Start_Toyota_Dashboard.bat
+  ```
 
 ### 2. Share Online Instantly (Free Public HTTPS Link)
-Double-click:
-```bat
-Start_Online_Dashboard.bat
-```
-It starts the dashboard and automatically prints a secure public HTTPS URL (via Cloudflare Tunnel) that you can open on your smartphone or share with teammates anywhere.
+* For Autoforum: `Start_Online_Dashboard.bat`
+* For Toyota: `Start_Toyota_Online_Dashboard.bat`
 
 ### 3. Deploy 24/7 to Streamlit Community Cloud (Free)
-1. Push this folder to your GitHub repository.
-2. Visit [share.streamlit.io](https://share.streamlit.io) and click **New app**.
-3. Configure your app:
-   - **Repository:** Your repo name
-   - **Main file path:** `analytics/dashboard.py` (or `dashboard.py` if pushing this folder directly)
-4. In **Advanced Settings ➔ Secrets**, add:
-   ```toml
-   NEON_DATABASE_URL = "your_neon_database_url_here"
-   GEMINI_API_KEY = "your_gemini_key_here"  # Optional
-   ```
-5. Click **Deploy**!
+You can deploy **two separate independent live apps** from this single GitHub repository:
+1. **App 1: Autoforum Dashboard**:
+   - Main file path: `analytics/dashboard.py` (or `dashboard.py`)
+2. **App 2: Toyota Campaign Dashboard**:
+   - Main file path: `analytics/toyota_dashboard.py` (or `toyota_dashboard.py`)
+
+In both apps' **Advanced Settings ➔ Secrets**, add:
+```toml
+NEON_DATABASE_URL = "your_neon_database_url_here"
+GEMINI_API_KEY = "your_gemini_key_here"  # Optional
+```
 
 ---
 

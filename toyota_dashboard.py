@@ -12,8 +12,8 @@ import html
 
 # Page Configuration
 st.set_page_config(
-    page_title="Dashboard - Tổng Quan Thảo Luận Mạng Xã Hội",
-    page_icon="🖥️",
+    page_title="Toyota Campaign - AutoPulse Social Intelligence",
+    page_icon="🔴",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -39,7 +39,7 @@ st.markdown("""
         gap: 10px;
         font-size: 1.35rem;
         font-weight: 700;
-        color: #0F766E;
+        color: #EB0A1E;
         padding: 0.5rem 0.5rem 1.5rem 0.5rem;
         border-bottom: 1px solid #E2E8F0;
         margin-bottom: 1rem;
@@ -502,13 +502,13 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
 st.sidebar.markdown("""
 <div class="sidebar-brand" style="display:flex; flex-direction:column; gap:4px;">
     <div style="display:flex; align-items:center; gap:8px;">
-        <span>🏢</span> <strong>Autoforum Pulse</strong>
+        <span style="font-size:1.4rem;">🔴</span> <strong>Toyota Campaign Pulse</strong>
     </div>
-    <span style="font-size:0.75rem; color:#64748B; font-weight:normal;">Chiến dịch Diễn đàn ô tô</span>
+    <span style="font-size:0.75rem; color:#EB0A1E; font-weight:600;">Toyota Social Intelligence</span>
 </div>
-<div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:6px 10px; margin-bottom:12px;">
-    <div style="font-size:0.72rem; font-weight:700; color:#475569;">📌 Chiến dịch: Autoforum</div>
-    <div style="font-size:0.7rem; color:#64748B;">Đã loại trừ toàn bộ dữ liệu Toyota Campaign.</div>
+<div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:6px; padding:6px 10px; margin-bottom:12px;">
+    <div style="font-size:0.72rem; font-weight:700; color:#991B1B;">📌 Chiến dịch: Toyota (Độc quyền)</div>
+    <div style="font-size:0.7rem; color:#7F1D1D;">Giám sát dữ liệu chuyên sâu chiến dịch Toyota.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -517,9 +517,9 @@ nav_options = [
     "Thảo luận qua các kênh",
     "Thảo luận theo Mẫu xe",
     "Thảo luận tiêu cực",
-    "Thảo luận tích cực",
+    "Thảo luận tích cực & Độ bền",
     "Cập nhật thảo luận mới nhất",
-    "Báo cáo AI 48H"
+    "Báo cáo AI Chiến dịch Toyota"
 ]
 
 if "sidebar_nav_radio" not in st.session_state:
@@ -554,11 +554,10 @@ pillar_filter = st.sidebar.selectbox(
 
 # Car Model Filter
 available_models = [
-    "Mitsubishi Pajero Sport", "VinFast VF6", "VinFast VF7", "Mitsubishi Xforce",
-    "VinFast VF8", "Toyota Innova Cross", "Toyota Veloz Cross", "Kia Seltos / Sonet",
-    "Mercedes-Benz W212 / E400", "Ford Ranger / Everest", "Hyundai Creta / SantaFe",
-    "VinFast VF5", "VinFast VF3", "Mitsubishi Xpander", "Skoda Kushaq",
-    "Toyota Yaris Cross", "Toyota Corolla Cross", "Toyota Vios", "Mitsubishi Destinator"
+    "Toyota Vios", "Toyota Corolla Cross", "Toyota Veloz Cross", "Toyota Yaris Cross",
+    "Toyota Innova Cross", "Toyota Camry", "Toyota Fortuner", "Toyota Raize",
+    "Toyota Hilux", "Khác", "Kia Seltos / Sonet", "Mazda CX-5", "VinFast VF6",
+    "Honda CR-V / City", "Hyundai Creta / SantaFe"
 ]
 model_filter = st.sidebar.selectbox(
     "Thương hiệu / Dòng xe:",
@@ -745,7 +744,7 @@ def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, chan
         car_model=model if model != "Tất cả" else None,
         sentiment=sentiment if sentiment != "Tất cả" else None,
         channel=channel if channel != "Tất cả" else None,
-        exclude_campaign="Toyota",
+        campaign="Toyota",
         limit=60000
     )
 
@@ -1673,7 +1672,7 @@ elif nav_page == "Thảo luận tiêu cực":
 # =============================================================
 # SCREEN: THẢO LUẬN TÍCH CỰC
 # =============================================================
-elif nav_page == "Thảo luận tích cực":
+elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Độ bền"):
     col_back, _ = st.columns([1.5, 4])
     with col_back:
         if st.button("⬅️ Quay lại Tổng quan thảo luận", key="back_from_pos"):
@@ -1835,10 +1834,10 @@ elif nav_page == "Cập nhật thảo luận mới nhất":
 # =============================================================
 # SCREEN 5: BÁO CÁO AI 48H
 # =============================================================
-elif nav_page == "Báo cáo AI 48H":
+elif nav_page == "Báo cáo AI Chiến dịch Toyota":
     c_ai1, c_ai2 = st.columns([3, 1])
     with c_ai1:
-        st.subheader("⚡ Báo Cáo AI Scan 48 Giờ Qua")
+        st.subheader("⚡ Báo Cáo AI Chiến Dịch Toyota (48H Pulse)")
         st.caption("Quét toàn bộ luồng thông tin, phát hiện điểm nóng & đề xuất hành động thông minh.")
     with c_ai2:
         if st.button("🚀 Chạy Quét AI 48H Mới", type="primary", use_container_width=True):

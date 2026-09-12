@@ -683,9 +683,10 @@ def load_local_fallback_data():
             'car_model', 'tags', 'site_name', 'channel', 'author', 'post_type'
         ])
 
-def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, post_type=None, limit=60000, **kwargs):
+def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, post_type=None, campaign=None, exclude_campaign=None, limit=60000, **kwargs):
     """
     Fetches discussions from Neon DB with automatic fallback to local enriched data.
+    Supports campaign filtering (e.g. campaign='Toyota') and campaign exclusion (e.g. exclude_campaign='Toyota').
     Uses native psycopg2 cursor for maximum speed and compatibility.
     """
     try:
@@ -720,12 +721,18 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
             if post_type and post_type not in ("All", "Tất cả"):
                 conditions.append("post_type ILIKE %s")
                 params.append(f"%{post_type}%")
+            if campaign and campaign not in ("All", "Tất cả"):
+                conditions.append("campaign = %s")
+                params.append(campaign)
+            if exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
+                conditions.append("(campaign != %s OR campaign IS NULL)")
+                params.append(exclude_campaign)
 
             where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
             sql = f"""
                 SELECT 
                     id, url_comment, content, description, published_at, raw_published_date,
-                    sentiment, topic_pillar, topic_category, car_model, tags, site_name, channel, author, post_type, group_name
+                    sentiment, topic_pillar, topic_category, car_model, tags, site_name, channel, author, post_type, group_name, campaign
                 FROM social_discussions
                 {where_clause}
                 ORDER BY published_at DESC NULLS LAST
@@ -744,6 +751,10 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
     if df.empty:
         return df
 
+    if campaign and campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+        df = df[df["campaign"] == campaign]
+    if exclude_campaign and exclude_campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+        df = df[df["campaign"] != exclude_campaign]
     if topic and topic not in ("All", "Tất cả") and "topic_category" in df.columns:
         df = df[df["topic_category"] == topic]
     if pillar and pillar not in ("All", "Tất cả") and "topic_pillar" in df.columns:
@@ -785,24 +796,34 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
 
     return _sanitize_discussions_df(df.head(limit))
 
-def get_db_stats():
-    """Returns database statistics with fallback."""
+def get_db_stats(campaign=None, exclude_campaign=None):
+    """Returns database statistics with fallback, optionally filtered by campaign."""
     try:
         conn = get_connection()
         if conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                where_parts = []
+                params = []
+                if campaign and campaign not in ("All", "Tất cả"):
+                    where_parts.append("campaign = %s")
+                    params.append(campaign)
+                if exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
+                    where_parts.append("(campaign != %s OR campaign IS NULL)")
+                    params.append(exclude_campaign)
+                where_str = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
+                cur.execute(f"""
                     SELECT 
                         COUNT(*) as total_records,
-                        COUNT(*) FILTER (WHERE post_type ILIKE '%post%') as total_posts,
-                        COUNT(*) FILTER (WHERE post_type ILIKE '%comment%') as total_comments,
+                        COUNT(*) FILTER (WHERE post_type ILIKE '%%post%%') as total_posts,
+                        COUNT(*) FILTER (WHERE post_type ILIKE '%%comment%%') as total_comments,
                         COUNT(DISTINCT channel) as unique_channels,
                         COUNT(DISTINCT url_comment) as unique_threads,
                         MIN(published_at) as oldest_post,
                         MAX(published_at) as newest_post,
                         COUNT(*) FILTER (WHERE published_at >= NOW() - INTERVAL '48 hours') as last_48h_count
-                    FROM social_discussions;
-                """)
+                    FROM social_discussions
+                    {where_str};
+                """, tuple(params) if params else None)
                 stats = cur.fetchone()
                 if stats and stats["total_records"] > 0:
                     stats["source"] = "Neon Cloud PostgreSQL"
@@ -811,6 +832,10 @@ def get_db_stats():
         pass
 
     df = load_local_fallback_data()
+    if campaign and campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+        df = df[df["campaign"] == campaign]
+    if exclude_campaign and exclude_campaign not in ("All", "Tất cả") and "campaign" in df.columns:
+        df = df[df["campaign"] != exclude_campaign]
     return {
         "total_records": len(df),
         "total_posts": len(df[df.get("post_type", "").astype(str).str.contains("post", case=False, na=False)]),
@@ -820,7 +845,7 @@ def get_db_stats():
         "oldest_post": df["published_at"].min() if "published_at" in df.columns and not df.empty else None,
         "newest_post": df["published_at"].max() if "published_at" in df.columns and not df.empty else None,
         "last_48h_count": len(df),
-        "source": "Local Storage (Neon password reset in progress)"
+        "source": "Local Storage"
     }
 
 def get_latest_daily_summary():
