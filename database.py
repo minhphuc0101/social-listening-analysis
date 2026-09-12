@@ -24,8 +24,7 @@ def get_database_url(conn_str=None):
         except Exception:
             pass
     if not url:
-        # Fallback to project Neon DB if neither environment variable nor Streamlit secrets is provided
-        url = "postgresql://neondb_owner:npg_UP8dO7jzDnRs@ep-holy-shape-aze8zqv1-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+        return None
     if "channel_binding=" in url:
         url = url.split("&channel_binding=")[0].split("?channel_binding=")[0]
     if "?" not in url and "sslmode=require" not in url:
