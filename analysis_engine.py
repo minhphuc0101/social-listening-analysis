@@ -98,7 +98,9 @@ HIERARCHICAL_TOPICS = {
             r"giá", r"khuyến mãi", r"ưu đãi", r"giảm giá", r"lăn bánh", r"trước bạ", r"củ", r"tỏi", r"triệu"
         ],
         "Động cơ & Vận hành": [
-            r"vận hành", r"động cơ", r"máy", r"turbo", r"twin turbo", r"công suất", r"mã lực",
+            r"vận hành", r"động cơ", r"\bmáy\s+(xăng|dầu|điện|yếu|kêu|bốc|êm|gầm|lạnh)\b",
+            r"\bkhoang\s*máy\b", r"\bchết\s*máy\b", r"\bhỏng\s*máy\b",
+            r"turbo", r"twin turbo", r"công suất", r"mã lực",
             r"hộp số", r"tăng tốc", r"leo dốc", r"cảm giác lái", r"đầm", r"bốc", r"khung gầm", r"trâu bò"
         ],
         "Độ xe & Kỹ thuật": [
@@ -147,7 +149,7 @@ HIERARCHICAL_TOPICS = {
 
 CAR_MODELS = {
     "Mitsubishi Xforce": [r"\bxforce\b", r"\bx-force\b"],
-    "Mitsubishi Pajero Sport": [r"\bpajero\b", r"\bpajero\s*sport\b", r"\bps\b"],
+    "Mitsubishi Pajero Sport": [r"\bpajero\b", r"\bpajero\s*sport\b"],
     "Mitsubishi Destinator": [r"\bdestinator\b", r"\bdst\b"],
     "Mitsubishi Xpander": [r"\bxpander\b", r"\bxpander\s*cross\b"],
     "Mitsubishi Outlander": [r"\boutlander\b"],
@@ -165,7 +167,7 @@ CAR_MODELS = {
     "Mercedes-Benz W212 / E400": [r"\bw212\b", r"\be400\b", r"\bm276\b", r"\bmer\b", r"\bmercedes\b"],
     "Ford Ranger / Everest": [r"\branger\b", r"\beverest\b", r"\bford\b"],
     "Hyundai Creta / SantaFe": [r"\bcreta\b", r"\bsantafe\b", r"\bhyundai\b"],
-    "Kia Seltos / Sonet": [r"\bseltos\b", r"\bsonet\b", r"\bkia\b"]
+    "Kia Seltos / Sonet": [r"\bseltos\b", r"\bsonet\b"]
 }
 
 # -------------------------------------------------------------
