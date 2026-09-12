@@ -356,7 +356,40 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     if not raw_content:
         raw_content = raw_desc or (f"Thảo luận về {car_model}" if car_model and car_model.lower() not in ('khác', 'all') else "Thảo luận trên mạng xã hội")
 
-    clean_content = html.escape(raw_content)
+    # Interaction type distinction (Post vs Comment vs Reply)
+    tag_regex = re.compile(r"^([A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+){1,3})\s+", re.UNICODE)
+    skip_phrases = {'hôm nay', 'chào các', 'năm ngoái', 'bác nào', 'anh em', 'cho em', 'cho mình', 'thấy trường', 'có bác', 'nhiều người', 'thành viên', 'giá xe'}
+
+    is_reply = False
+    reply_to = None
+
+    if 'post' in p_type:
+        type_badge_html = '<span style="background:#F1F5F9; color:#475569; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:600; border:1px solid #E2E8F0; margin-left:6px;">📝 Bài viết</span>'
+    elif 'reply' in p_type:
+        is_reply = True
+        m = tag_regex.match(raw_content)
+        if m and m.group(1).lower() not in skip_phrases:
+            reply_to = m.group(1).strip()
+            type_badge_html = f'<span style="background:#EEF2FF; color:#4F46E5; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:600; border:1px solid #C7D2FE; margin-left:6px;">↩️ Trả lời <b>@{html.escape(reply_to)}</b></span>'
+        else:
+            type_badge_html = '<span style="background:#EEF2FF; color:#4F46E5; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:600; border:1px solid #C7D2FE; margin-left:6px;">↩️ Phản hồi</span>'
+    else:
+        # Check if content has tagged reply target
+        m = tag_regex.match(raw_content)
+        if m and m.group(1).lower() not in skip_phrases:
+            is_reply = True
+            reply_to = m.group(1).strip()
+            type_badge_html = f'<span style="background:#EEF2FF; color:#4F46E5; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:600; border:1px solid #C7D2FE; margin-left:6px;">↩️ Trả lời <b>@{html.escape(reply_to)}</b></span>'
+        else:
+            type_badge_html = '<span style="background:#F0FDF4; color:#166534; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:600; border:1px solid #BBF7D0; margin-left:6px;">💬 Bình luận</span>'
+
+    # Slicing for feed preview (up to 280 chars)
+    body_display = raw_content[:280] + ('...' if len(raw_content) > 280 else '')
+    if is_reply and reply_to and body_display.startswith(reply_to):
+        body_rest = body_display[len(reply_to):].lstrip()
+        clean_content = f'<span style="color:#4F46E5; font-weight:600;">@{html.escape(reply_to)}</span> ' + html.escape(body_rest)
+    else:
+        clean_content = html.escape(body_display)
 
     grp_name = str(record.get('group_name') or record.get('GroupName') or '').strip()
     grp_name_clean = re.sub(r'^\(\d+\)\s*', '', grp_name).strip()
@@ -430,21 +463,26 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:500; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
     
     header_html = (
-        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">'
-        f'<div style="font-size:0.85rem;">'
-        f'{auth_html} <span style="color:#CBD5E1; margin:0 4px;">&bull;</span> '
-        f'<span style="color:#64748B;">{chan}</span> <span style="color:#CBD5E1; margin:0 4px;">&bull;</span> '
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+        f'<div style="font-size:0.85rem; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
+        f'{auth_html}'
+        f'{type_badge_html}'
+        f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
+        f'<span style="color:#64748B;">{chan}</span>'
+        f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
         f'<span style="color:#94A3B8; font-size:0.8rem;">{dt_str}</span>'
         f'</div>'
         f'<div>{badge_html}</div>'
         f'</div>'
     )
 
+    card_bg = "#FBFBFE" if is_reply else "#FFFFFF"
+    card_margin = "margin-left:16px; " if is_reply else ""
     return (
-        f'<div class="feed-card" style="border-left:4px solid {border_color}; margin-bottom:10px; padding:10px 14px; background:#FFFFFF; border-radius:6px; border:1px solid #E2E8F0;">'
+        f'<div class="feed-card" style="{card_margin}border-left:4px solid {border_color}; margin-bottom:10px; padding:10px 14px; background:{card_bg}; border-radius:6px; border:1px solid #E2E8F0;">'
         f'{header_html}'
         f'{topic_caption_html}'
-        f'<div class="feed-content" style="font-size:0.9rem; color:#0F172A; line-height:1.5; margin-bottom:8px;">{clean_content[:280]}{"..." if len(clean_content) > 280 else ""}</div>'
+        f'<div class="feed-content" style="font-size:0.9rem; color:#0F172A; line-height:1.5; margin-bottom:8px;">{clean_content}</div>'
         f'<div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px solid #F1F5F9;">'
         f'<div>'
         f'<span class="feed-topic-tag" style="margin-bottom:0;">🏷️ {topic_tag}</span>{model_tag_html}'
@@ -530,6 +568,20 @@ elif "Trung lập" in sentiment_filter:
     sentiment_arg = "NEUTRAL"
 elif "Tiêu cực" in sentiment_filter:
     sentiment_arg = "NEGATIVE"
+
+# Interaction Type Filter
+interaction_filter = st.sidebar.selectbox(
+    "Loại tương tác:",
+    options=["Tất cả", "📝 Bài viết gốc (Posts)", "💬 Bình luận chính (Top comments)", "↩️ Phản hồi bình luận (Replies)"]
+)
+
+interaction_arg = None
+if "Bài viết" in interaction_filter:
+    interaction_arg = "post"
+elif "Phản hồi" in interaction_filter:
+    interaction_arg = "reply"
+elif "Bình luận" in interaction_filter:
+    interaction_arg = "comment"
 
 # -------------------------------------------------------------
 # TOP BAR (HEADER, SEARCH & LOOKER STUDIO DATE RANGE CONTROL)
@@ -674,7 +726,7 @@ else:
 # DATA RETRIEVAL (WITH SMART CACHING)
 # -------------------------------------------------------------
 @st.cache_data(ttl=60)
-def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel):
+def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel, post_type=None):
     return get_discussions_df(
         lookback_hours=lookback,
         start_date=start_d,
@@ -683,10 +735,15 @@ def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, chan
         car_model=model if model != "Tất cả" else None,
         sentiment=sentiment if sentiment != "Tất cả" else None,
         channel=channel if channel != "Tất cả" else None,
+        post_type=post_type if post_type != "Tất cả" else None,
         limit=60000
     )
 
-df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter)
+df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter, interaction_arg)
+
+# Apply interaction type filter safeguard
+if interaction_arg and not df.empty and 'post_type' in df.columns:
+    df = df[df['post_type'].astype(str).str.lower().str.contains(interaction_arg, na=False)]
 
 # Apply search filter if keyword entered
 if search_kw and not df.empty:

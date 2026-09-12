@@ -683,7 +683,7 @@ def load_local_fallback_data():
             'car_model', 'tags', 'site_name', 'channel', 'author', 'post_type'
         ])
 
-def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, limit=60000):
+def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pillar=None, topic=None, car_model=None, sentiment=None, channel=None, post_type=None, limit=60000):
     """
     Fetches discussions from Neon DB with automatic fallback to local enriched data.
     Uses native psycopg2 cursor for maximum speed and compatibility.
@@ -717,6 +717,9 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
             if channel and channel not in ("All", "Tất cả"):
                 conditions.append("channel = %s")
                 params.append(channel)
+            if post_type and post_type not in ("All", "Tất cả"):
+                conditions.append("post_type ILIKE %s")
+                params.append(f"%{post_type}%")
 
             where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
             sql = f"""
@@ -751,6 +754,8 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
         df = df[df["sentiment"] == sentiment.upper()]
     if channel and channel not in ("All", "Tất cả") and "channel" in df.columns:
         df = df[df["channel"] == channel]
+    if post_type and post_type not in ("All", "Tất cả") and "post_type" in df.columns:
+        df = df[df["post_type"].astype(str).str.contains(post_type, case=False, na=False)]
     if lookback_hours and "published_at" in df.columns:
         try:
             max_dt = pd.to_datetime(df["published_at"]).max()
