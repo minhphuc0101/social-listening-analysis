@@ -556,11 +556,11 @@ pillar_filter = st.sidebar.selectbox(
 available_models = [
     "Toyota Vios", "Toyota Corolla Cross", "Toyota Veloz Cross", "Toyota Yaris Cross",
     "Toyota Innova Cross", "Toyota Camry", "Toyota Fortuner", "Toyota Raize",
-    "Toyota Hilux", "Khác", "Kia Seltos / Sonet", "Mazda CX-5", "VinFast VF6",
-    "Honda CR-V / City", "Hyundai Creta / SantaFe"
+    "Toyota Hilux", "Toyota Land Cruiser", "Toyota Alphard", "Toyota Wigo",
+    "Toyota Yaris", "Toyota Altis"
 ]
 model_filter = st.sidebar.selectbox(
-    "Thương hiệu / Dòng xe:",
+    "Dòng xe Toyota:",
     options=["Tất cả"] + available_models
 )
 
@@ -736,7 +736,7 @@ else:
 # -------------------------------------------------------------
 @st.cache_data(ttl=60)
 def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, channel):
-    return get_discussions_df(
+    df = get_discussions_df(
         lookback_hours=lookback,
         start_date=start_d,
         end_date=end_d,
@@ -747,6 +747,10 @@ def fetch_filtered_data(lookback, start_d, end_d, pillar, model, sentiment, chan
         campaign="Toyota",
         limit=60000
     )
+    # Strictly isolate to only Toyota models
+    if not df.empty and 'car_model' in df.columns:
+        df = df[df['car_model'].astype(str).str.startswith('Toyota')]
+    return df
 
 df = fetch_filtered_data(lookback_hours, start_date_arg, end_date_arg, pillar_filter, model_filter, sentiment_arg, channel_filter)
 
