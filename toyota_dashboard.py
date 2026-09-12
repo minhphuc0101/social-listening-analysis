@@ -1833,24 +1833,24 @@ elif nav_page == "Thảo luận tiêu cực":
             else:
                 st.success("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
 
-    # Column 2: Top Trang & Hội nhóm có nhiều phản ánh tiêu cực nhất
+    # Column 2: Top Chủ đề có nhiều phản ánh tiêu cực nhất
     with col_neg2:
         with st.container(border=True):
             st.markdown("""
             <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Top Hội nhóm có nhiều phản ánh nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                Top Chủ đề có nhiều phản ánh nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
             </div>
             """, unsafe_allow_html=True)
             
             if not neg_df.empty:
-                neg_bars = neg_df['clean_group'].value_counts().head(8).reset_index()
-                neg_bars.columns = ['Group', 'Buzz']
+                neg_bars = neg_df['topic_category'].value_counts().head(8).reset_index()
+                neg_bars.columns = ['Topic', 'Buzz']
                 neg_bars = neg_bars.sort_values('Buzz', ascending=True)
                 
                 fig_neg_ch = px.bar(
                     neg_bars,
                     x='Buzz',
-                    y='Group',
+                    y='Topic',
                     orientation='h',
                     color_discrete_sequence=['#EF4444'],
                     text='Buzz'
@@ -1860,7 +1860,7 @@ elif nav_page == "Thảo luận tiêu cực":
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
                     height=420,
-                    margin=dict(t=10, b=10, l=140, r=40),
+                    margin=dict(t=10, b=10, l=160, r=40),
                     xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận'),
                     yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
                 )
@@ -1990,24 +1990,24 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
             else:
                 st.info("Không có thảo luận tích cực.")
 
-    # Column 2: Top Trang & Hội nhóm thảo luận tích cực nhất
+    # Column 2: Top Chủ đề thảo luận tích cực nhất
     with col_pos2:
         with st.container(border=True):
             st.markdown("""
             <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Top Hội nhóm thảo luận tích cực nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+                Top Chủ đề thảo luận tích cực nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
             </div>
             """, unsafe_allow_html=True)
             
             if not pos_df.empty:
-                pos_bars = pos_df['clean_group'].value_counts().head(8).reset_index()
-                pos_bars.columns = ['Group', 'Buzz']
+                pos_bars = pos_df['topic_category'].value_counts().head(8).reset_index()
+                pos_bars.columns = ['Topic', 'Buzz']
                 pos_bars = pos_bars.sort_values('Buzz', ascending=True)
                 
                 fig_pos_ch = px.bar(
                     pos_bars,
                     x='Buzz',
-                    y='Group',
+                    y='Topic',
                     orientation='h',
                     color_discrete_sequence=['#10B981'],
                     text='Buzz'
@@ -2017,7 +2017,7 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
                     height=420,
-                    margin=dict(t=10, b=10, l=140, r=40),
+                    margin=dict(t=10, b=10, l=160, r=40),
                     xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận'),
                     yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
                 )
