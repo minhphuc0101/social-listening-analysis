@@ -465,6 +465,7 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     
     camp = str(record.get('campaign') or '').strip()
     source_badge_html = '<span style="background:#EFF6FF; color:#1E40AF; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; border:1px solid #BFDBFE; margin-left:4px;" title="Thảo luận thu thập từ diễn đàn ô tô lớn (Autoforum)">🌐 Diễn đàn Autoforum</span>' if camp == 'Autoforum' else ''
+    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:500; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Nguồn: {chan}</span>'
     
     header_html = (
         f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
