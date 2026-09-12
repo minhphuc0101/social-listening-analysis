@@ -1822,9 +1822,10 @@ elif nav_page == "Thảo luận tiêu cực":
             st.session_state["redirect_page"] = "Tổng quan thảo luận"
             st.rerun()
 
-    col_neg1, col_neg2, col_neg3 = st.columns([1, 1.2, 1.8])
+    col_neg1, col_neg2 = st.columns([1, 1.15])
     
     neg_df = df[df['sentiment'] == 'NEGATIVE']
+    pos_df = df[df['sentiment'] == 'POSITIVE']
     total_neg = len(neg_df)
     
     # Column 1: Sắc thái thảo luận tiêu cực theo Trang / Hội nhóm (Donut)
@@ -1846,17 +1847,33 @@ elif nav_page == "Thảo luận tiêu cực":
                 fig_neg_donut = go.Figure(data=[go.Pie(
                     labels=top_neg_grp['Group'],
                     values=top_neg_grp['Count'],
-                    hole=0.62,
+                    hole=0.60,
                     marker_colors=['#DC2626', '#EF4444', '#F87171', '#FCA5A5', '#B91C1C', '#991B1B', '#E11D48', '#CBD5E1'],
                     textinfo='percent',
-                    hoverinfo='label+value+percent'
+                    textposition='inside',
+                    insidetextorientation='radial',
+                    hoverinfo='label+value+percent',
+                    domain={'y': [0.26, 1.0], 'x': [0, 1.0]}
                 )])
                 fig_neg_donut.update_layout(
-                    margin=dict(t=10, b=20, l=10, r=10),
-                    height=340,
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    height=420,
                     showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
-                    annotations=[dict(text=f'<b>{total_neg:,}</b><br><span style="font-size:11px; color:#EF4444;">Buzz Tiêu Cực</span>', x=0.5, y=0.5, font_size=18, showarrow=False)]
+                    legend=dict(
+                        orientation="h",
+                        y=0.22,
+                        yanchor="top",
+                        x=0.5,
+                        xanchor="center",
+                        font=dict(size=11)
+                    ),
+                    annotations=[dict(
+                        text=f'<b>{total_neg:,}</b><br><span style="font-size:12px; color:#EF4444;">Buzz Tiêu Cực</span>',
+                        x=0.5,
+                        y=0.63,
+                        font_size=20,
+                        showarrow=False
+                    )]
                 )
                 st.plotly_chart(fig_neg_donut, use_container_width=True)
             else:
@@ -1881,46 +1898,74 @@ elif nav_page == "Thảo luận tiêu cực":
                     x='Buzz',
                     y='Group',
                     orientation='h',
-                    color_discrete_sequence=['#EF4444']
+                    color_discrete_sequence=['#EF4444'],
+                    text='Buzz'
                 )
+                fig_neg_ch.update_traces(textposition='outside')
                 fig_neg_ch.update_layout(
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
-                    height=340,
-                    margin=dict(t=10, b=20, l=130, r=20),
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+                    height=420,
+                    margin=dict(t=10, b=10, l=140, r=40),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận'),
                     yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
                 )
                 st.plotly_chart(fig_neg_ch, use_container_width=True)
             else:
                 st.info("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
 
-    # Column 3: Cập nhật thảo luận tiêu cực & tích cực
-    with col_neg3:
-        with st.container(border=True):
-            st.markdown("""
-            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Cập nhật thảo luận theo sắc thái <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+    # TIER 2: FULL-WIDTH FEED CONTAINER
+    st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+            <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
+                📋 Chi tiết Thảo luận & Phản ánh của Khách hàng
             </div>
-            """, unsafe_allow_html=True)
-            
-            tab_neg_list, tab_pos_list = st.tabs([
-                f"🔴 Tiêu cực ({len(neg_df):,})",
-                f"🟢 Tích cực ({len(df[df['sentiment'] == 'POSITIVE']):,})"
-            ])
-            with tab_neg_list:
-                if not neg_df.empty:
-                    for idx, r in neg_df.head(25).iterrows():
+            <div style="font-size:0.85rem; color:#64748B;">
+                Tổng số thảo luận tiêu cực: <b style="color:#EF4444;">{total_neg:,}</b> buzz
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        neg_grp_options = ["Tất cả hội nhóm"] + list(neg_df['clean_group'].value_counts().index) if not neg_df.empty else ["Tất cả hội nhóm"]
+        c_filter_feed, _ = st.columns([2.5, 3.5])
+        with c_filter_feed:
+            selected_feed_grp = st.selectbox(
+                "Lọc theo Trang / Hội nhóm:",
+                options=neg_grp_options,
+                key="neg_feed_grp_filter"
+            )
+        
+        display_neg_df = neg_df if selected_feed_grp == "Tất cả hội nhóm" else neg_df[neg_df['clean_group'] == selected_feed_grp]
+        display_pos_df = pos_df if selected_feed_grp == "Tất cả hội nhóm" else pos_df[pos_df['clean_group'] == selected_feed_grp]
+
+        tab_neg_list, tab_pos_list = st.tabs([
+            f"🔴 Thảo luận tiêu cực ({len(display_neg_df):,})",
+            f"🟢 Thảo luận tích cực đối chiếu ({len(display_pos_df):,})"
+        ])
+        
+        with tab_neg_list:
+            if not display_neg_df.empty:
+                col_f1, col_f2 = st.columns(2)
+                records = display_neg_df.head(40).to_dict('records')
+                for i, r in enumerate(records):
+                    target_col = col_f1 if i % 2 == 0 else col_f2
+                    with target_col:
                         st.markdown(render_feed_card(r, "NEGATIVE"), unsafe_allow_html=True)
-                else:
-                    st.success("Không có thảo luận tiêu cực.")
-            with tab_pos_list:
-                pos_df = df[df['sentiment'] == 'POSITIVE']
-                if not pos_df.empty:
-                    for idx, r in pos_df.head(25).iterrows():
+            else:
+                st.success("Không có thảo luận tiêu cực phù hợp với bộ lọc.")
+
+        with tab_pos_list:
+            if not display_pos_df.empty:
+                col_f1, col_f2 = st.columns(2)
+                records = display_pos_df.head(40).to_dict('records')
+                for i, r in enumerate(records):
+                    target_col = col_f1 if i % 2 == 0 else col_f2
+                    with target_col:
                         st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
-                else:
-                    st.info("Không có thảo luận tích cực.")
+            else:
+                st.info("Không có thảo luận tích cực phù hợp.")
 
 
 # =============================================================
@@ -1933,10 +1978,12 @@ elif nav_page == "Thảo luận tích cực":
             st.session_state["redirect_page"] = "Tổng quan thảo luận"
             st.rerun()
 
-    col_pos1, col_pos2, col_pos3 = st.columns([1, 1.2, 1.8])
-    
     pos_df = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
+    neg_df = df[df['sentiment'] == 'NEGATIVE']
     total_pos = len(pos_df)
+    
+    # TIER 1: 2 BALANCED CHARTS SIDE-BY-SIDE
+    col_pos1, col_pos2 = st.columns([1, 1.15])
     
     # Column 1: Sắc thái thảo luận tích cực theo Trang / Hội nhóm (Donut)
     with col_pos1:
@@ -1957,17 +2004,33 @@ elif nav_page == "Thảo luận tích cực":
                 fig_pos_donut = go.Figure(data=[go.Pie(
                     labels=top_pos_grp['Group'],
                     values=top_pos_grp['Count'],
-                    hole=0.62,
+                    hole=0.60,
                     marker_colors=['#10B981', '#34D399', '#6EE7B7', '#059669', '#047857', '#0D9488', '#14B8A6', '#CBD5E1'],
                     textinfo='percent',
-                    hoverinfo='label+value+percent'
+                    textposition='inside',
+                    insidetextorientation='radial',
+                    hoverinfo='label+value+percent',
+                    domain={'y': [0.26, 1.0], 'x': [0, 1.0]}
                 )])
                 fig_pos_donut.update_layout(
-                    margin=dict(t=10, b=20, l=10, r=10),
-                    height=340,
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    height=420,
                     showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
-                    annotations=[dict(text=f'<b>{total_pos:,}</b><br><span style="font-size:11px; color:#0F766E;">Buzz Tích Cực</span>', x=0.5, y=0.5, font_size=18, showarrow=False)]
+                    legend=dict(
+                        orientation="h",
+                        y=0.22,
+                        yanchor="top",
+                        x=0.5,
+                        xanchor="center",
+                        font=dict(size=11)
+                    ),
+                    annotations=[dict(
+                        text=f'<b>{total_pos:,}</b><br><span style="font-size:12px; color:#0F766E;">Buzz Tích Cực</span>',
+                        x=0.5,
+                        y=0.63,
+                        font_size=20,
+                        showarrow=False
+                    )]
                 )
                 st.plotly_chart(fig_pos_donut, use_container_width=True)
             else:
@@ -1992,34 +2055,74 @@ elif nav_page == "Thảo luận tích cực":
                     x='Buzz',
                     y='Group',
                     orientation='h',
-                    color_discrete_sequence=['#2DD4BF']
+                    color_discrete_sequence=['#10B981'],
+                    text='Buzz'
                 )
+                fig_pos_ch.update_traces(textposition='outside')
                 fig_pos_ch.update_layout(
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
-                    height=340,
-                    margin=dict(t=10, b=20, l=130, r=20),
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+                    height=420,
+                    margin=dict(t=10, b=10, l=140, r=40),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận'),
                     yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
                 )
                 st.plotly_chart(fig_pos_ch, use_container_width=True)
             else:
                 st.info("Không có thảo luận tích cực nào trong khoảng thời gian này.")
 
-    # Column 3: Cập nhật thảo luận tích cực mới nhất
-    with col_pos3:
-        with st.container(border=True):
-            st.markdown("""
-            <div style="font-size:1rem; font-weight:700; color:#1E293B; margin-bottom:8px;">
-                Cập nhật thảo luận tích cực mới nhất <span style="font-size:0.75rem; color:#94A3B8;">✕</span>
+    # TIER 2: FULL-WIDTH FEED CONTAINER
+    st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+            <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
+                📋 Chi tiết Thảo luận & Khen ngợi của Khách hàng
             </div>
-            """, unsafe_allow_html=True)
-            
-            if not pos_df.empty:
-                for idx, r in pos_df.head(25).iterrows():
-                    st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
+            <div style="font-size:0.85rem; color:#64748B;">
+                Tổng số thảo luận tích cực: <b style="color:#10B981;">{total_pos:,}</b> buzz
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        pos_grp_options = ["Tất cả hội nhóm"] + list(pos_df['clean_group'].value_counts().index) if not pos_df.empty else ["Tất cả hội nhóm"]
+        c_filter_feed, _ = st.columns([2.5, 3.5])
+        with c_filter_feed:
+            selected_feed_grp = st.selectbox(
+                "Lọc theo Trang / Hội nhóm:",
+                options=pos_grp_options,
+                key="pos_feed_grp_filter"
+            )
+        
+        display_pos_df = pos_df if selected_feed_grp == "Tất cả hội nhóm" else pos_df[pos_df['clean_group'] == selected_feed_grp]
+        display_neg_df = neg_df if selected_feed_grp == "Tất cả hội nhóm" else neg_df[neg_df['clean_group'] == selected_feed_grp]
+
+        tab_pos_list, tab_neg_list = st.tabs([
+            f"🟢 Thảo luận tích cực ({len(display_pos_df):,})",
+            f"🔴 Thảo luận tiêu cực đối chiếu ({len(display_neg_df):,})"
+        ])
+        
+        with tab_pos_list:
+            if not display_pos_df.empty:
+                col_f1, col_f2 = st.columns(2)
+                records = display_pos_df.head(40).to_dict('records')
+                for i, r in enumerate(records):
+                    target_col = col_f1 if i % 2 == 0 else col_f2
+                    with target_col:
+                        st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
             else:
-                st.info("Không có thảo luận tích cực.")
+                st.info("Không có thảo luận tích cực phù hợp.")
+
+        with tab_neg_list:
+            if not display_neg_df.empty:
+                col_f1, col_f2 = st.columns(2)
+                records = display_neg_df.head(40).to_dict('records')
+                for i, r in enumerate(records):
+                    target_col = col_f1 if i % 2 == 0 else col_f2
+                    with target_col:
+                        st.markdown(render_feed_card(r, "NEGATIVE"), unsafe_allow_html=True)
+            else:
+                st.success("Không có thảo luận tiêu cực phù hợp với bộ lọc.")
 
 
 # =============================================================
