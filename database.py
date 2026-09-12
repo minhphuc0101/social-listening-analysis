@@ -610,24 +610,43 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: "08/09/2026" if pd.isna(x) or str(x).strip() in ("", "NaT", "nan", "None") else str(x).strip()
         )
 
-    # 3. Car model rectification (accurately classifies Toyota Veloz Cross & Toyota Innova Cross)
+    # 3. Car model rectification (accurately classifies all Toyota models and preserves model identity)
     if "car_model" in df.columns:
         def _clean_car_model(row):
             m = str(row.get("car_model") or "").strip()
             c = str(row.get("content") or row.get("Content") or "").lower()
             d = str(row.get("description") or row.get("Description") or "").lower()
+            grp = str(row.get("group_name") or row.get("GroupName") or "").lower()
             full = f"{d} {c}"
 
             if "veloz" in full:
                 return "Toyota Veloz Cross"
             if "innova" in full or "in cross" in full or "ỉn cross" in full:
                 return "Toyota Innova Cross"
-            if m == "Toyota Corolla Cross":
-                if "corolla" in full:
-                    return "Toyota Corolla Cross"
-                if "yaris" in full:
-                    return "Toyota Yaris Cross"
-                return "Khác"
+            if "yaris cross" in full:
+                return "Toyota Yaris Cross"
+            if "corolla cross" in full:
+                return "Toyota Corolla Cross"
+            if "altis" in full or "corolla altis" in full or "altis" in grp:
+                return "Toyota Altis"
+            if "camry" in full or "camry" in grp:
+                return "Toyota Camry"
+            if "fortuner" in full or "fortuner" in grp:
+                return "Toyota Fortuner"
+            if "wigo" in full or "wigo" in grp:
+                return "Toyota Wigo"
+            if "yaris" in full or "yaris" in grp:
+                return "Toyota Yaris Cross" if "cross" in full else "Toyota Yaris"
+            if "raize" in full:
+                return "Toyota Raize"
+            if "hilux" in full:
+                return "Toyota Hilux"
+            if "land cruiser" in full or "prado" in full:
+                return "Toyota Land Cruiser"
+            if "alphard" in full:
+                return "Toyota Alphard"
+            if "vios" in full or "vios" in grp:
+                return "Toyota Vios"
             return m
 
         df["car_model"] = df.apply(_clean_car_model, axis=1)
