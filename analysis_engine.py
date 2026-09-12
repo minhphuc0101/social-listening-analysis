@@ -95,11 +95,14 @@ HIERARCHICAL_TOPICS = {
     },
     "Sản phẩm": {
         "Giá bán & Khuyến mãi": [
-            r"giá", r"khuyến mãi", r"ưu đãi", r"giảm giá", r"lăn bánh", r"trước bạ", r"củ", r"tỏi", r"triệu"
+            r"(?<!đánh\s)\bgiá\b", r"\bkhuyến\s*mãi\b", r"\bưu\s*đãi\b", r"\bgiảm\s*giá\b",
+            r"\blăn\s*bánh\b", r"\btrước\s*bạ\b", r"\b\d+\s*củ\b", r"\b(vài|mấy|nhiêu)\s*củ\b",
+            r"\b\d+\s*tỏi\b", r"\b(vài|mấy)\s*tỏi\b", r"\btriệu\b"
         ],
         "Động cơ & Vận hành": [
             r"vận hành", r"động cơ", r"\bmáy\s+(xăng|dầu|điện|yếu|kêu|bốc|êm|gầm|lạnh)\b",
             r"\bkhoang\s*máy\b", r"\bchết\s*máy\b", r"\bhỏng\s*máy\b",
+            r"\bđộ\s*bền\b", r"\bbền\s*bỉ\b", r"\bbền\s*lành\b", r"\bxe\s*lành\b",
             r"turbo", r"twin turbo", r"công suất", r"mã lực",
             r"hộp số", r"tăng tốc", r"leo dốc", r"cảm giác lái", r"đầm", r"bốc", r"khung gầm", r"trâu bò"
         ],
@@ -110,7 +113,8 @@ HIERARCHICAL_TOPICS = {
             r"trang bị", r"phụ kiện", r"nội thất", r"ghế", r"7 chỗ", r"5 chỗ", r"khoang", r"rộng", r"hẹp", r"da nappa", r"thảm", r"cốp"
         ],
         "So sánh & Tư vấn xe": [
-            r"so sánh", r"đối thủ", r"tư vấn", r"hơn", r"kém", r"hạng b", r"hạng c", r"phân vân", r"cân nhắc", r"chọn con"
+            r"so sánh", r"đối thủ", r"tư vấn", r"\b(ngon|tốt|đẹp|bền|ăn|hơn\s*hẳn)\s+hơn\b", r"\bhơn\s+(con|xe|tiền)\b",
+            r"\bkém\s*hơn\b", r"\bthua\s*kém\b", r"hạng b", r"hạng c", r"phân vân", r"cân nhắc", r"chọn con"
         ],
         "Thông tin sản phẩm": [
             r"thông tin", r"ra mắt", r"thế hệ mới", r"bản mới", r"facelift", r"phiên bản", r"option"
@@ -130,7 +134,11 @@ HIERARCHICAL_TOPICS = {
             r"bảo hiểm", r"đăng kiểm", r"rớt đăng kiểm", r"thầy cụt", r"biển số", r"phạt nguội", r"thủ tục", r"pháp lý"
         ],
         "Chất lượng & Bảo dưỡng": [
-            r"bảo dưỡng", r"chất lượng", r"sửa chữa", r"gara", r"xưởng", r"phụ tùng", r"thay thế", r"định kỳ"
+            r"\bbảo\s*dưỡng\b", r"\bchất\s*lượng\b", r"\bsửa\s*chữa\b", r"\bgara\b", r"\bxưởng\b",
+            r"\bphụ\s*tùng\b", r"\bthay\s*thế\b", r"\bđịnh\s*kỳ\b",
+            r"\bắc\s*quy\b", r"\bbình\s*ắc\s*quy\b", r"\bbình\s*xe\b",
+            r"\bthay\s*nhớt\b", r"\bnhớt\b", r"\blọc\s*nhớt\b", r"\blọc\s*gió\b",
+            r"\bmá\s*phanh\b", r"\bthay\s*dầu\b", r"\bdầu\s*máy\b"
         ],
         "Sửa chữa & Bảo hành": [
             r"sửa chữa", r"bảo dưỡng", r"bảo hành", r"gara", r"xưởng", r"phụ tùng", r"thay thế"
@@ -173,16 +181,38 @@ CAR_MODELS = {
 # -------------------------------------------------------------
 # 3. SENTIMENT ANALYSIS
 # -------------------------------------------------------------
+POSITIVE_PHRASES = [
+    r"\bxuất\s*sắc\b", r"\bquá\s*xuất\s*sắc\b", r"\btuyệt\s*vời\b", r"\btrâu\s*bò\b",
+    r"\bđáng\s*tiền\b", r"\bphà\s*phà\b", r"\bhài\s*lòng\b", r"\bquá\s*ngon\b",
+    r"\bquá\s*đẹp\b", r"\bquá\s*tốt\b", r"\bquá\s*đỉnh\b", r"\bquá\s*bền\b",
+    r"\bbền\s*bỉ\b", r"\bđộ\s*bền\s*(cao|tốt|ổn|ngon|nhỉnh|hơn)\b", r"\bchất\s*lượng\s*tốt\b",
+    r"\bgọn\s*gàng\b", r"\blan\s*tỏa\b", r"\bsang\s*xịn\b", r"\bđáng\s*mua\b",
+    r"\bchạy\s*sướng\b", r"\bđi\s*sướng\b", r"\bêm\s*ái\b", r"\btiết\s*kiệm\s*xăng\b",
+    r"\btiết\s*kiệm\b", r"\bchắc\s*chắn\b", r"\bchạy\s*bốc\b", r"\bmáy\s*bốc\b",
+    r"\bmáy\s*êm\b", r"\brất\s*ổn\b", r"\brất\s*tốt\b", r"\brất\s*bền\b", r"\bquá\s*ổn\b",
+    r"\brất\s*ngon\b", r"\bkhá\s*ngon\b", r"\bkhá\s*ổn\b", r"\bbền\s*lành\b",
+    r"\bxe\s*lành\b", r"\bít\s*hỏng\s*(vặt|hóc)?\b", r"\bchẳng\s*hỏng\b",
+    r"\bkhông\s*hỏng\b", r"\bchưa\s*hỏng\b"
+]
+
 POSITIVE_WORDS = [
-    "bền", "ngon", "đẹp", "mượt", "keng", "trâu bò", "chất", "ưng", "hài lòng", "yêu",
-    "thích", "lực", "tiện", "rẻ", "đáng tiền", "tuyệt", "tốt", "ok", "ổn", "phà phà",
-    "gọn gàng", "lan tỏa", "ưu đãi", "sang xịn", "zin", "chuẩn", "đỉnh"
+    "bền", "ngon", "đẹp", "mượt", "keng", "chất", "ưng", "yêu",
+    "thích", "lực", "tiện", "rẻ", "tuyệt", "tốt", "ok", "ổn",
+    "ưu đãi", "zin", "chuẩn", "đỉnh", "sướng", "êm", "khen", "lành"
+]
+
+NEGATIVE_PHRASES = [
+    r"\bhao\s*xăng\b", r"\btắc\s*đường\b", r"\bngáo\s*giá\b", r"\bbẩn\s*tính\b",
+    r"\brớt\s*đăng\s*kiểm\b", r"\bhỏng\s*hóc\b", r"\blỗi\s*lầm\b", r"\bbị\s*lỗi\b",
+    r"\blỗi\s*thước\s*lái\b", r"\blỗi\s*hộp\s*số\b", r"\bchảy\s*dầu\b", r"\bkém\s*chất\s*lượng\b",
+    r"\bquá\s*tệ\b", r"\bquá\s*chán\b", r"\bquá\s*đắt\b", r"\bquá\s*ồn\b",
+    r"\bthất\s*vọng\b", r"\blừa\s*đảo\b", r"\bphốt\b", r"\bcháy\s*xe\b"
 ]
 
 NEGATIVE_WORDS = [
-    "lỗi", "hỏng", "kém", "ồn", "hao xăng", "đắt", "chán", "bất tiện", "móp", "xước",
-    "rớt", "tắc đường", "đíu", "đéo", "đm", "cay", "chê", "thất vọng", "ngáo giá",
-    "ngáo", "nguy hiểm", "chết", "chửi", "lừa", "tệ", "yếu", "lỏ", "bẩn tính"
+    "lỗi", "hỏng", "kém", "ồn", "đắt", "chán", "bất tiện", "móp", "xước",
+    "rớt", "đíu", "đéo", "đm", "cay", "chê",
+    "ngáo", "nguy hiểm", "chết", "chửi", "lừa", "tệ", "yếu", "lỏ"
 ]
 
 NEGATION_WORDS = ["không", "k", "chẳng", "chưa", "đừng", "kô", "ko"]
@@ -192,10 +222,31 @@ def analyze_sentiment(text):
         return "NEUTRAL"
     text_lower = text.lower()
     
-    pos_score = 0
-    neg_score = 0
+    pos_score = 0.0
+    neg_score = 0.0
+
+    # 1. Check multi-word positive phrases (weight 2.0)
+    for p in POSITIVE_PHRASES:
+        for m in re.finditer(p, text_lower):
+            start = m.start()
+            prefix = text_lower[max(0, start-15):start]
+            if any(nw in prefix.split() for nw in NEGATION_WORDS):
+                neg_score += 1.5
+            else:
+                pos_score += 2.0
+
+    # 2. Check multi-word negative phrases (weight 2.0)
+    for p in NEGATIVE_PHRASES:
+        for m in re.finditer(p, text_lower):
+            start = m.start()
+            prefix = text_lower[max(0, start-15):start]
+            if any(nw in prefix.split() for nw in NEGATION_WORDS):
+                pos_score += 1.5
+            else:
+                neg_score += 2.0
+
+    # 3. Check individual words
     words = re.findall(r"\w+", text_lower)
-    
     for i, w in enumerate(words):
         is_negated = False
         if i > 0 and words[i-1] in NEGATION_WORDS:
@@ -209,7 +260,9 @@ def analyze_sentiment(text):
             else:
                 pos_score += 1.0
         elif w in NEGATIVE_WORDS:
-            if is_negated:
+            if i > 0 and words[i-1] in ["ít", "hiếm", "không", "chẳng", "chưa"]:
+                pos_score += 1.5
+            elif is_negated:
                 pos_score += 1.0
             else:
                 neg_score += 1.5
