@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 import plotly.express as px
 import plotly.graph_objects as go
 import datetime
@@ -497,6 +498,83 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
         f'</div>'
         f'</div>'
     )
+
+
+def render_interactive_donut(df_grp, total_cnt, active_grp=None, chart_type="negative"):
+    """
+    Builds an interactive Altair donut chart that allows clicking slices to filter comments by group.
+    """
+    df = df_grp.copy()
+    if df.empty or total_cnt == 0:
+        return None
+        
+    df['Percent'] = (df['Count'] / total_cnt) * 100
+    df['Pct_Label'] = df['Percent'].apply(lambda p: f"{p:.1f}%" if p >= 5.0 else "")
+    
+    if chart_type == "negative":
+        palette = ['#DC2626', '#E11D48', '#EF4444', '#F43F5E', '#FB7185', '#991B1B', '#7F1D1D', '#CBD5E1']
+        label_color = '#DC2626'
+        sub_text = 'Buzz Tiêu Cực'
+    else:
+        palette = ['#10B981', '#059669', '#34D399', '#6EE7B7', '#047857', '#0D9488', '#14B8A6', '#CBD5E1']
+        label_color = '#059669'
+        sub_text = 'Buzz Tích Cực'
+        
+    color_range = palette[:len(df)]
+    
+    sel_kw = {'fields': ['Group'], 'name': 'grp_sel'}
+    if active_grp and active_grp in df['Group'].values:
+        sel_kw['value'] = [{'Group': active_grp}]
+        
+    sel = alt.selection_point(**sel_kw)
+    opacity_cond = alt.condition(sel, alt.value(1.0), alt.value(0.35) if active_grp else alt.value(1.0))
+    
+    pie = alt.Chart(df).mark_arc(
+        innerRadius=80, outerRadius=140, stroke='#FFFFFF', strokeWidth=2, cursor='pointer'
+    ).encode(
+        theta=alt.Theta('Count:Q', stack=True),
+        color=alt.Color(
+            'Group:N',
+            scale=alt.Scale(domain=df['Group'].tolist(), range=color_range),
+            legend=alt.Legend(
+                orient='bottom',
+                columns=2,
+                title=None,
+                labelFontSize=11,
+                labelColor='#334155',
+                symbolType='square',
+                symbolSize=100,
+                labelLimit=260
+            )
+        ),
+        opacity=opacity_cond,
+        tooltip=[
+            alt.Tooltip('Group:N', title='Trang / Hội nhóm'),
+            alt.Tooltip('Count:Q', title='Lượt thảo luận', format=',d'),
+            alt.Tooltip('Percent:Q', title='Tỷ lệ (%)', format='.1f')
+        ]
+    ).add_params(sel)
+    
+    pct_labels = alt.Chart(df).mark_text(
+        radius=110, fill='white', fontWeight='bold', fontSize=10
+    ).encode(
+        theta=alt.Theta('Count:Q', stack=True),
+        text='Pct_Label:N'
+    )
+    
+    num_txt = alt.Chart(pd.DataFrame([{'t': f'{total_cnt:,}'}])).mark_text(
+        fontSize=24, fontWeight='bold', color='#1E293B', dy=-10
+    ).encode(text='t:N')
+    
+    sub_txt = alt.Chart(pd.DataFrame([{'t': sub_text}])).mark_text(
+        fontSize=12, fontWeight='bold', color=label_color, dy=12
+    ).encode(text='t:N')
+    
+    chart = (pie + pct_labels + num_txt + sub_txt).properties(
+        height=390
+    ).configure_view(strokeOpacity=0)
+    
+    return chart
 
 
 # -------------------------------------------------------------
@@ -1778,19 +1856,20 @@ elif nav_page == "Thảo luận tiêu cực":
     neg_df = df[df['sentiment'] == 'NEGATIVE']
     pos_df = df[df['sentiment'] == 'POSITIVE']
     total_neg = len(neg_df)
+    active_neg_grp = st.session_state.get('active_neg_grp')
     neg_donut_ver = st.session_state.get('neg_donut_ver', 0)
     neg_bar_ver = st.session_state.get('neg_bar_ver', 0)
     
     # TIER 1: 2 BALANCED CHARTS SIDE-BY-SIDE
     col_neg1, col_neg2 = st.columns([1, 1.15])
     
-    # Column 1: Sắc thái thảo luận tiêu cực theo Trang / Hội nhóm (Donut)
+    # Column 1: Sắc thái thảo luận tiêu cực theo Trang / Hội nhóm (Interactive Altair Donut)
     with col_neg1:
         with st.container(border=True):
             st.markdown("""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:1rem; font-weight:700; color:#1E293B;">Tỷ lệ tiêu cực theo Hội nhóm / Nguồn</span>
-                <span style="font-size:0.75rem; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:10px;">👆 Click để lọc nhóm</span>
+                <span style="font-size:0.75rem; color:#EF4444; background:#FEF2F2; border:1px solid #FECACA; padding:2px 8px; border-radius:10px; font-weight:600;">👆 Click biểu đồ để lọc nhóm</span>
             </div>
             """, unsafe_allow_html=True)
             
@@ -1801,54 +1880,28 @@ elif nav_page == "Thảo luận tiêu cực":
                 if other_neg > 0:
                     top_neg_grp = pd.concat([top_neg_grp, pd.DataFrame([{'Group': 'Các nhóm khác', 'Count': other_neg}])], ignore_index=True)
                 
-                fig_neg_donut = go.Figure(data=[go.Pie(
-                    labels=top_neg_grp['Group'],
-                    values=top_neg_grp['Count'],
-                    hole=0.60,
-                    marker_colors=['#DC2626', '#EF4444', '#F87171', '#FCA5A5', '#B91C1C', '#991B1B', '#E11D48', '#CBD5E1'],
-                    textinfo='percent',
-                    textposition='inside',
-                    insidetextorientation='radial',
-                    hoverinfo='label+value+percent',
-                    domain={'y': [0.26, 1.0], 'x': [0, 1.0]}
-                )])
-                fig_neg_donut.update_layout(
-                    clickmode='event+select',
-                    margin=dict(t=10, b=10, l=10, r=10),
-                    height=420,
-                    showlegend=True,
-                    legend=dict(
-                        orientation="h",
-                        y=0.22,
-                        yanchor="top",
-                        x=0.5,
-                        xanchor="center",
-                        font=dict(size=11)
-                    ),
-                    annotations=[dict(
-                        text=f'<b>{total_neg:,}</b><br><span style="font-size:12px; color:#EF4444;">Buzz Tiêu Cực</span>',
-                        x=0.5,
-                        y=0.63,
-                        font_size=20,
-                        showarrow=False
-                    )]
+                donut_chart = render_interactive_donut(
+                    top_neg_grp, total_neg, active_neg_grp, chart_type="negative"
                 )
-                st.plotly_chart(fig_neg_donut, use_container_width=True)
+                donut_event = st.altair_chart(
+                    donut_chart,
+                    use_container_width=True,
+                    on_select="rerun",
+                    key=f"neg_donut_chart_{neg_donut_ver}"
+                )
                 
-                # Quick group filter buttons under donut chart
-                st.markdown("<div style='font-size:0.8rem; font-weight:600; color:#64748B; margin-top:2px; margin-bottom:4px;'>Lọc nhanh theo nhóm:</div>", unsafe_allow_html=True)
-                active_neg_grp = st.session_state.get('active_neg_grp')
-                grp_sub = [g for g in top_neg_grp['Group'].head(5) if g != "Các nhóm khác"]
-                g_cols = st.columns(len(grp_sub))
-                for g_i, g_name in enumerate(grp_sub):
-                    short_g = g_name.replace("Hội Toyota ", "").replace(" Việt Nam", "")
-                    is_g_act = (active_neg_grp == g_name)
-                    with g_cols[g_i]:
-                        if st.button(f"{'✓ ' if is_g_act else ''}{short_g}", key=f"btn_neg_grp_{g_i}", type="primary" if is_g_act else "secondary", use_container_width=True):
-                            if is_g_act:
-                                st.session_state['active_neg_grp'] = None
-                            else:
-                                st.session_state['active_neg_grp'] = g_name
+                # Directly extract click selection from interactive donut chart
+                if donut_event and hasattr(donut_event, "selection") and donut_event.selection:
+                    sel_grp = donut_event.selection.get("grp_sel")
+                    if isinstance(sel_grp, list):
+                        if len(sel_grp) > 0:
+                            clicked_g = sel_grp[0].get("Group")
+                            if clicked_g and clicked_g != active_neg_grp:
+                                st.session_state['active_neg_grp'] = clicked_g
+                                st.rerun()
+                        elif active_neg_grp is not None:
+                            # Deselected by clicking on the slice again
+                            st.session_state['active_neg_grp'] = None
                             st.rerun()
             else:
                 st.success("Không có thảo luận tiêu cực nào trong khoảng thời gian này.")
@@ -1942,6 +1995,7 @@ elif nav_page == "Thảo luận tiêu cực":
             )
             if selected_feed_grp != (active_neg_grp or "Tất cả hội nhóm"):
                 st.session_state['active_neg_grp'] = selected_feed_grp if selected_feed_grp != "Tất cả hội nhóm" else None
+                st.session_state['neg_donut_ver'] = st.session_state.get('neg_donut_ver', 0) + 1
                 st.rerun()
 
         has_active_filter = (active_neg_topic is not None) or (active_neg_grp is not None)
@@ -1951,6 +2005,7 @@ elif nav_page == "Thảo luận tiêu cực":
                 if st.button("❌ Bỏ lọc", key="btn_clear_neg_filters", use_container_width=True):
                     st.session_state['active_neg_topic'] = None
                     st.session_state['active_neg_grp'] = None
+                    st.session_state['neg_donut_ver'] = st.session_state.get('neg_donut_ver', 0) + 1
                     st.rerun()
 
         display_neg_df = neg_df.copy()
@@ -2015,19 +2070,20 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
     pos_df = df[(df['sentiment'] == 'POSITIVE') & (df['topic_category'] != 'Mua bán & Rao vặt')]
     neg_df = df[df['sentiment'] == 'NEGATIVE']
     total_pos = len(pos_df)
+    active_pos_grp = st.session_state.get('active_pos_grp')
     pos_donut_ver = st.session_state.get('pos_donut_ver', 0)
     pos_bar_ver = st.session_state.get('pos_bar_ver', 0)
     
     # TIER 1: 2 BALANCED CHARTS SIDE-BY-SIDE
     col_pos1, col_pos2 = st.columns([1, 1.15])
     
-    # Column 1: Sắc thái thảo luận tích cực theo Trang / Hội nhóm (Donut)
+    # Column 1: Sắc thái thảo luận tích cực theo Trang / Hội nhóm (Interactive Altair Donut)
     with col_pos1:
         with st.container(border=True):
             st.markdown("""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:1rem; font-weight:700; color:#1E293B;">Tỷ lệ tích cực theo Hội nhóm / Nguồn</span>
-                <span style="font-size:0.75rem; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:10px;">👆 Click để lọc nhóm</span>
+                <span style="font-size:0.75rem; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 8px; border-radius:10px; font-weight:600;">👆 Click biểu đồ để lọc nhóm</span>
             </div>
             """, unsafe_allow_html=True)
             
@@ -2038,54 +2094,28 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
                 if other_pos > 0:
                     top_pos_grp = pd.concat([top_pos_grp, pd.DataFrame([{'Group': 'Các nhóm khác', 'Count': other_pos}])], ignore_index=True)
                 
-                fig_pos_donut = go.Figure(data=[go.Pie(
-                    labels=top_pos_grp['Group'],
-                    values=top_pos_grp['Count'],
-                    hole=0.60,
-                    marker_colors=['#10B981', '#34D399', '#6EE7B7', '#059669', '#047857', '#0D9488', '#14B8A6', '#CBD5E1'],
-                    textinfo='percent',
-                    textposition='inside',
-                    insidetextorientation='radial',
-                    hoverinfo='label+value+percent',
-                    domain={'y': [0.26, 1.0], 'x': [0, 1.0]}
-                )])
-                fig_pos_donut.update_layout(
-                    clickmode='event+select',
-                    margin=dict(t=10, b=10, l=10, r=10),
-                    height=420,
-                    showlegend=True,
-                    legend=dict(
-                        orientation="h",
-                        y=0.22,
-                        yanchor="top",
-                        x=0.5,
-                        xanchor="center",
-                        font=dict(size=11)
-                    ),
-                    annotations=[dict(
-                        text=f'<b>{total_pos:,}</b><br><span style="font-size:12px; color:#0F766E;">Buzz Tích Cực</span>',
-                        x=0.5,
-                        y=0.63,
-                        font_size=20,
-                        showarrow=False
-                    )]
+                donut_chart_pos = render_interactive_donut(
+                    top_pos_grp, total_pos, active_pos_grp, chart_type="positive"
                 )
-                st.plotly_chart(fig_pos_donut, use_container_width=True)
+                donut_event_pos = st.altair_chart(
+                    donut_chart_pos,
+                    use_container_width=True,
+                    on_select="rerun",
+                    key=f"pos_donut_chart_{pos_donut_ver}"
+                )
                 
-                # Quick group filter buttons under donut chart
-                st.markdown("<div style='font-size:0.8rem; font-weight:600; color:#64748B; margin-top:2px; margin-bottom:4px;'>Lọc nhanh theo nhóm:</div>", unsafe_allow_html=True)
-                active_pos_grp = st.session_state.get('active_pos_grp')
-                pos_grp_sub = [g for g in top_pos_grp['Group'].head(5) if g != "Các nhóm khác"]
-                g_pos_cols = st.columns(len(pos_grp_sub))
-                for g_i, g_name in enumerate(pos_grp_sub):
-                    short_g = g_name.replace("Hội Toyota ", "").replace(" Việt Nam", "")
-                    is_g_act = (active_pos_grp == g_name)
-                    with g_pos_cols[g_i]:
-                        if st.button(f"{'✓ ' if is_g_act else ''}{short_g}", key=f"btn_pos_grp_{g_i}", type="primary" if is_g_act else "secondary", use_container_width=True):
-                            if is_g_act:
-                                st.session_state['active_pos_grp'] = None
-                            else:
-                                st.session_state['active_pos_grp'] = g_name
+                # Directly extract click selection from interactive donut chart
+                if donut_event_pos and hasattr(donut_event_pos, "selection") and donut_event_pos.selection:
+                    sel_grp_pos = donut_event_pos.selection.get("grp_sel")
+                    if isinstance(sel_grp_pos, list):
+                        if len(sel_grp_pos) > 0:
+                            clicked_g = sel_grp_pos[0].get("Group")
+                            if clicked_g and clicked_g != active_pos_grp:
+                                st.session_state['active_pos_grp'] = clicked_g
+                                st.rerun()
+                        elif active_pos_grp is not None:
+                            # Deselected by clicking on the slice again
+                            st.session_state['active_pos_grp'] = None
                             st.rerun()
             else:
                 st.info("Không có thảo luận tích cực.")
@@ -2179,6 +2209,7 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
             )
             if selected_feed_grp != (active_pos_grp or "Tất cả hội nhóm"):
                 st.session_state['active_pos_grp'] = selected_feed_grp if selected_feed_grp != "Tất cả hội nhóm" else None
+                st.session_state['pos_donut_ver'] = st.session_state.get('pos_donut_ver', 0) + 1
                 st.rerun()
 
         has_active_filter = (active_pos_topic is not None) or (active_pos_grp is not None)
@@ -2188,6 +2219,7 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
                 if st.button("❌ Bỏ lọc", key="btn_clear_pos_filters", use_container_width=True):
                     st.session_state['active_pos_topic'] = None
                     st.session_state['active_pos_grp'] = None
+                    st.session_state['pos_donut_ver'] = st.session_state.get('pos_donut_ver', 0) + 1
                     st.rerun()
 
         display_pos_df = pos_df.copy()
