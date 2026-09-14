@@ -743,13 +743,35 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
         from analysis_engine import analyze_sentiment
         def _enrich_sentiment(row):
             s = str(row.get("sentiment") or "").strip().upper()
+            p_type = str(row.get("post_type") or "").lower()
+            cnt = str(row.get("content") or "").strip()
+            desc = str(row.get("description") or "").strip()
+            
+            # For comments and replies, evaluate the comment itself rather than parent thread description
+            is_comment = p_type in ('comment', 'reply', 'groupreply', 'postcomment') or (cnt and cnt != desc)
+            text_to_analyze = cnt if is_comment else (cnt or desc)
+            
+            if not text_to_analyze:
+                return "NEUTRAL"
+                
+            # Sales consultations, inbox requests, pricing inquiries are strictly NEUTRAL
+            if any(k in text_to_analyze.lower() for k in [
+                'xem tin nhắn', 'xem ib', 'inbox em', 'inbox giúp', 'check ib', 'tư vấn em', 'tư vấn ạ', 'cho 1 năm'
+            ]):
+                return "NEUTRAL"
+                
+            nlp_sent = analyze_sentiment(text_to_analyze)
+            
+            # If comment was falsely tagged as NEGATIVE by thread inheritance, re-align to its actual text
+            if is_comment:
+                if nlp_sent == "NEUTRAL":
+                    return "NEUTRAL"
+                return nlp_sent
+                
             if s in ("POSITIVE", "NEGATIVE"):
                 return s
-            full_text = (str(row.get("description") or "") + " " + str(row.get("content") or "")).strip()
-            if full_text:
-                nlp_sent = analyze_sentiment(full_text)
-                if nlp_sent in ("POSITIVE", "NEGATIVE"):
-                    return nlp_sent
+            if nlp_sent in ("POSITIVE", "NEGATIVE"):
+                return nlp_sent
             return "NEUTRAL"
         df["sentiment"] = df.apply(_enrich_sentiment, axis=1)
 

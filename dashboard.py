@@ -558,6 +558,13 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
         badge_html = '<span class="badge-neu">Trung lập</span>'
         border_col = '#94A3B8'
         
+    raw_desc = str(record.get('description') or record.get('Description') or '').strip()
+    topic_caption_html = ""
+    if raw_desc and raw_content and raw_desc.lower() != raw_content.lower() and len(raw_desc) > 5 and not raw_desc.lower().startswith('bài viết của'):
+        clean_desc = re.sub(r'\s+', ' ', raw_desc).strip()
+        clean_desc_esc = html.escape(clean_desc[:140] + ('...' if len(clean_desc) > 140 else ''))
+        topic_caption_html = f'<div style="font-size:0.8rem; color:#64748B; margin-bottom:6px; font-style:italic;"><span style="color:#94A3B8;">Bài viết gốc:</span> &ldquo;{clean_desc_esc}&rdquo;</div>'
+
     auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700;" title="Mở bài viết gốc">{html.escape(auth)}</a>' if has_link else f'<span class="feed-author">{html.escape(auth)}</span>'
     link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Kênh: {chan}</span>'
     model_tag_html = f'<span class="feed-topic-tag" style="margin-bottom:0; background:#EFF6FF; color:#1D4ED8; margin-left:6px; font-weight:700;">🚗 {html.escape(car_model)}</span>' if (car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all')) else ''
@@ -575,6 +582,7 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
         f'<div>{badge_html}</div>'
         f'</div>'
         f'<div style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:4px;">{badges_str}</div>'
+        f'{topic_caption_html}'
         f'<div class="feed-content" style="font-size:0.9rem; color:#0F172A; line-height:1.55; margin-bottom:10px;">{clean_content}</div>'
         f'<div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #F1F5F9;">'
         f'<div>{model_tag_html}</div>'
@@ -2528,7 +2536,11 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             toyota_df = toyota_df[toyota_df['car_model'].astype(str).str.startswith('Toyota')]
 
     def detect_pp_record(row):
-        txt = f"{row.get('content', '')} {row.get('description', '')}"
+        p_type = str(row.get('post_type') or '').lower()
+        cnt = str(row.get('content') or '').strip()
+        desc = str(row.get('description') or '').strip()
+        is_comment = p_type in ('comment', 'reply', 'groupreply', 'postcomment') or (cnt and cnt != desc)
+        txt = cnt if is_comment else (cnt or desc)
         return extract_toyota_pain_points(txt)
 
     if not toyota_df.empty:

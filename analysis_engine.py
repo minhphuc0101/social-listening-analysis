@@ -376,6 +376,12 @@ def is_pain_point_negated(full_text, match_start, match_end, term):
     suffix = full_text[match_end:min(len(full_text), match_end+30)].strip().lower()
     if term == 'chê' and re.search(r'^vào\s*đâu\s*(được|nữa)', suffix):
         return True
+    # Exclude traffic police tickets & road violations: dính lỗi, bắt lỗi, phạt lỗi, lỗi vi phạm, lỗi giao thông, lỗi làn/lane...
+    if term == 'lỗi':
+        if re.search(r'\b(bắt|dính|phạt|bị\s*bắt|bị\s*phạt|mắc)\s*$', prefix):
+            return True
+        if re.search(r'^(:\s*)?(vi\s*phạm|giao\s*thông|phạt|làn|lane|tốc\s*độ|vượt|đèn|đỗ|dừng|nguội|lộn\s*lane)', suffix):
+            return True
     return False
 
 def extract_toyota_pain_points(text):
