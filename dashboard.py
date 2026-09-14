@@ -2856,8 +2856,8 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     with st.container(border=True):
         st.markdown("""
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-size:1rem; font-weight:700; color:#1E293B;">🎯 Bộ chọn Trọng điểm & Từ khóa nhạy cảm</span>
-            <span style="font-size:0.78rem; color:#64748B;">Bấm vào nhóm hoặc từ khóa để lọc biểu đồ & danh sách bài viết bên dưới</span>
+            <span style="font-size:1rem; font-weight:700; color:#1E293B;">🎯 Bộ chọn Trọng điểm Định kiến Thương hiệu</span>
+            <span style="font-size:0.78rem; color:#64748B;">Bấm vào nhóm để lọc dữ liệu (hoặc bấm trực tiếp vào biểu đồ từ khóa & mẫu xe bên dưới)</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2883,26 +2883,8 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         st.session_state['active_pp_kw'] = None
                     st.rerun()
 
-        # Row 2: 21 Clickable Keywords Chips (sorted by buzz volume)
-        st.markdown("<div style='margin-top:10px; font-size:0.8rem; font-weight:700; color:#475569; text-transform:uppercase;'>21 Từ khóa chi tiết:</div>", unsafe_allow_html=True)
+        # Sorted keywords for the charts below
         sorted_kws = sorted(kw_counts.items(), key=lambda x: x[1], reverse=True)
-        
-        k_chunk_size = 7
-        for chunk_idx in range(0, len(sorted_kws), k_chunk_size):
-            chunk = sorted_kws[chunk_idx:chunk_idx+k_chunk_size]
-            c_cols = st.columns(k_chunk_size)
-            for i, (kw, cnt) in enumerate(chunk):
-                with c_cols[i]:
-                    is_k_act = (active_pp_kw == kw)
-                    kw_display = f"{kw} ({cnt})"
-                    b_style = "primary" if is_k_act else "secondary"
-                    if st.button(kw_display, key=f"btn_kw_pill_{kw}", type=b_style, use_container_width=True):
-                        if is_k_act:
-                            st.session_state['active_pp_kw'] = None
-                        else:
-                            st.session_state['active_pp_kw'] = kw
-                            st.session_state['active_pp_pillar'] = TOYOTA_PAIN_POINTS[kw]['pillar']
-                        st.rerun()
 
     # Filter pp_df according to current selection
     active_pp_pillar = st.session_state.get('active_pp_pillar')
