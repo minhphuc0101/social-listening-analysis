@@ -2650,7 +2650,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             with p_cols[idx]:
                 cnt = pillar_counts.get(p_name, 0)
                 is_act = (active_pp_pillar == p_name and active_pp_kw is None)
-                label_p = f"{p_meta['icon']} {p_name.split(' ')[0]} ({cnt})"
+                label_p = f"{p_meta['icon']} {p_meta.get('short_name', p_name)} ({cnt})"
                 if st.button(label_p, key=f"btn_pillar_{idx}", type="primary" if is_act else "secondary", use_container_width=True):
                     if is_act:
                         st.session_state['active_pp_pillar'] = None

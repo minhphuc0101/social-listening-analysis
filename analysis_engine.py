@@ -349,12 +349,12 @@ COMPILED_PAIN_POINTS = {
 }
 
 PAIN_POINT_PILLARS = {
-    'Giá bán & Bán hàng': {'icon': '💰', 'color': '#DC2626', 'keywords': ['ngáo giá', 'ngáo', 'mắc', 'lạc', 'ảo tưởng', 'khinh thường', 'xem thường']},
-    'An toàn & Triệu hồi': {'icon': '⚠️', 'color': '#EA580C', 'keywords': ['lỗi', 'thu hồi', 'túi khí', 'thùng tôn']},
-    'Cách âm & Tiêu hao': {'icon': '🔊', 'color': '#D97706', 'keywords': ['ồn', 'tốn xăng', 'ăn xăng']},
-    'Thiết kế & Trang bị': {'icon': '🚗', 'color': '#4F46E5', 'keywords': ['xe xấu', 'xấu', 'cùi']},
-    'Doanh số & Thị trường': {'icon': '📉', 'color': '#9333EA', 'keywords': ['ế', 'hết thời']},
-    'Thái độ & Trải nghiệm': {'icon': '🗣️', 'color': '#E11D48', 'keywords': ['chê', 'không thích']}
+    'Giá bán & Bán hàng': {'icon': '💰', 'color': '#DC2626', 'short_name': 'Giá & Bán hàng', 'keywords': ['ngáo giá', 'ngáo', 'mắc', 'lạc', 'ảo tưởng', 'khinh thường', 'xem thường']},
+    'An toàn & Triệu hồi': {'icon': '⚠️', 'color': '#EA580C', 'short_name': 'An toàn & Triệu hồi', 'keywords': ['lỗi', 'thu hồi', 'túi khí', 'thùng tôn']},
+    'Cách âm & Tiêu hao': {'icon': '🔊', 'color': '#D97706', 'short_name': 'Cách âm & Tiêu hao', 'keywords': ['ồn', 'tốn xăng', 'ăn xăng']},
+    'Thiết kế & Trang bị': {'icon': '🚗', 'color': '#4F46E5', 'short_name': 'Thiết kế & Trang bị', 'keywords': ['xe xấu', 'xấu', 'cùi']},
+    'Doanh số & Thị trường': {'icon': '📉', 'color': '#9333EA', 'short_name': 'Doanh số & Thị trường', 'keywords': ['ế', 'hết thời']},
+    'Thái độ & Trải nghiệm': {'icon': '🗣️', 'color': '#E11D48', 'short_name': 'Thái độ & Trải nghiệm', 'keywords': ['chê', 'không thích']}
 }
 
 PAIN_POINT_NEGATIONS = [
