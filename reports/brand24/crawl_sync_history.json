@@ -82,5 +82,19 @@
     "error_message": null,
     "duration_sec": 27.01,
     "db_synced": true
+  },
+  {
+    "timestamp": "2026-09-14T14:41:48.611566+07:00",
+    "target_date": "2026-09-13",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "SUCCESS",
+    "total_mentions": 397,
+    "inserted_count": 3,
+    "duplicate_count": 394,
+    "report_file": "D:\\AGV_socialcrawl\\reports\\brand24\\toyota_report_2026-09-13.xlsx",
+    "error_message": null,
+    "duration_sec": 50.08,
+    "db_synced": true
   }
 ]

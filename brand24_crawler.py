@@ -39,7 +39,37 @@ def get_target_date(days_back=1, custom_date=None):
     return target_dt.strftime("%Y-%m-%d")
 
 def dismiss_popups(page):
-    """Dismisses common Brand24 onboarding / product update tooltips and popups."""
+    """Dismisses OneTrust cookie consent banners, dark overlays, and onboarding popups."""
+    # 1. OneTrust cookie consent buttons
+    cookie_selectors = [
+        "#onetrust-accept-btn-handler",
+        "button:has-text('Accept All Cookies')",
+        "button:has-text('Accept all')",
+        "button:has-text('Accept All')",
+        "button:has-text('Accept')",
+        "#onetrust-reject-all-handler"
+    ]
+    for c_sel in cookie_selectors:
+        try:
+            loc = page.locator(c_sel).first
+            if loc.is_visible(timeout=1000):
+                loc.click(timeout=1000)
+                print(f"[Brand24] Handled cookie consent popup ({c_sel}).")
+                page.wait_for_timeout(500)
+                break
+        except Exception:
+            pass
+
+    # Force remove OneTrust consent overlays and dark filters from DOM
+    try:
+        page.evaluate("""() => {
+            document.getElementById('onetrust-consent-sdk')?.remove();
+            document.querySelectorAll('.onetrust-pc-dark-filter, .ot-fade-in, [id*="onetrust"]').forEach(el => el.remove());
+        }""")
+    except Exception:
+        pass
+
+    # 2. General Brand24 onboarding modals / tooltips
     selectors = [
         "button[aria-label='Close']",
         "[data-testid='close-button']",
@@ -57,6 +87,7 @@ def dismiss_popups(page):
                 print(f"[Brand24] Dismissed overlay popup ({sel}).")
         except Exception:
             pass
+
 
 def crawl_brand24_excel(
     username=None,
@@ -149,6 +180,7 @@ def crawl_brand24_excel(
 
         # 3. Click 'Excel report' in left sidebar
         print("[Step 3/4] Locating 'Excel report' button...")
+        dismiss_popups(page)
         excel_selectors = [
             "text='Excel report'",
             "span:has-text('Excel report')",
@@ -169,8 +201,15 @@ def crawl_brand24_excel(
             excel_btn = page.locator("text='Excel report'").first
             excel_btn.wait_for(state="visible", timeout=20000)
 
-        excel_btn.scroll_into_view_if_needed()
-        excel_btn.click()
+        dismiss_popups(page)
+        try:
+            excel_btn.scroll_into_view_if_needed()
+            excel_btn.click(timeout=8000)
+        except Exception as click_err:
+            print(f"[Brand24] Standard click intercepted, retrying with force=True: {click_err}")
+            dismiss_popups(page)
+            excel_btn.click(force=True)
+
         print("[Brand24] Clicked 'Excel report'. Waiting for modal...")
         page.wait_for_timeout(3000)
         dismiss_popups(page)
@@ -196,8 +235,15 @@ def crawl_brand24_excel(
             dl_btn.wait_for(state="visible", timeout=20000)
 
         print("[Brand24] Initiating report download...")
-        with page.expect_download(timeout=60000) as dl_info:
-            dl_btn.click()
+        try:
+            with page.expect_download(timeout=60000) as dl_info:
+                dl_btn.click(timeout=8000)
+        except Exception as dl_err:
+            print(f"[Brand24] Standard download click failed, retrying with force=True: {dl_err}")
+            dismiss_popups(page)
+            with page.expect_download(timeout=60000) as dl_info:
+                dl_btn.click(force=True)
+
 
         download = dl_info.value
         filename = f"toyota_report_{start_date}.xlsx"
