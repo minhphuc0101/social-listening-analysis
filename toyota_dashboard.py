@@ -1739,19 +1739,32 @@ elif nav_page == "Thảo luận qua các kênh":
                 channel_counts = df['channel'].value_counts().reset_index()
                 channel_counts.columns = ['Channel', 'Count']
                 
+                channel_color_map = {
+                    "Facebook Groups": "#1D4ED8",
+                    "TikTok": "#0F172A",
+                    "News": "#EB0A1E",
+                    "YouTube": "#DC2626",
+                    "Social Sites": "#0284C7",
+                    "Forum": "#D97706",
+                    "Facebook Pages": "#3B82F6",
+                    "E-commerce Sites": "#10B981",
+                    "Facebook Users": "#64748B"
+                }
+                donut_colors = [channel_color_map.get(ch, '#94A3B8') for ch in channel_counts['Channel']]
+                
                 fig_ch_donut = go.Figure(data=[go.Pie(
                     labels=channel_counts['Channel'],
                     values=channel_counts['Count'],
-                    hole=0.65,
-                    marker_colors=['#EB0A1E', '#EF4444', '#F87171', '#3B82F6', '#10B981', '#F59E0B', '#64748B'],
+                    hole=0.62,
+                    marker_colors=donut_colors,
                     textinfo='percent',
                     hoverinfo='label+value+percent'
                 )])
                 fig_ch_donut.update_layout(
                     margin=dict(t=15, b=25, l=15, r=15),
-                    height=360,
+                    height=370,
                     showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
                     annotations=[dict(text=f'<b>{total_buzz:,}</b><br><span style="font-size:12px; color:#64748B;">Buzz</span>', x=0.5, y=0.5, font_size=22, showarrow=False)]
                 )
                 st.plotly_chart(fig_ch_donut, use_container_width=True)
@@ -1785,15 +1798,21 @@ elif nav_page == "Thảo luận qua các kênh":
                 
                 rank_rows_html = []
                 for idx, row in df_rank.iterrows():
+                    bar_content = (
+                        f'<div style="width:{row["Pos_pct"]}%; background:#2DD4BF;"></div>'
+                        f'<div style="width:{row["Neg_pct"]}%; background:#EF4444;"></div>'
+                        f'<div style="width:{row["Neu_pct"]}%; background:#475569;"></div>'
+                    ) if row["Buzz"] > 0 else ''
+                    
+                    tooltip_title = f'Tích cực: {row["Pos_pct"]}% | Tiêu cực: {row["Neg_pct"]}% | Trung lập: {row["Neu_pct"]}%' if row["Buzz"] > 0 else 'Chưa có thảo luận'
+                    
                     r_html = (
                         f'<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F8FAFC; min-height:24px;">'
                         f'<div style="width:160px; font-size:0.85rem; font-weight:600; color:#1E293B; line-height:20px;">'
                         f'<span style="color:#94A3B8; margin-right:8px;">{idx+1}.</span> {row["Channel"]}'
                         f'</div>'
-                        f'<div style="flex-grow:1; margin:0 14px; background:#E2E8F0; height:14px; border-radius:7px; overflow:hidden; display:flex;">'
-                        f'<div style="width:{row["Pos_pct"]}%; background:#2DD4BF;"></div>'
-                        f'<div style="width:{row["Neg_pct"]}%; background:#EF4444;"></div>'
-                        f'<div style="width:{row["Neu_pct"]}%; background:#475569;"></div>'
+                        f'<div style="flex-grow:1; margin:0 14px; background:#E2E8F0; height:14px; border-radius:7px; overflow:hidden; display:flex;" title="{tooltip_title}">'
+                        f'{bar_content}'
                         f'</div>'
                         f'<div style="width:85px; text-align:right; font-size:0.85rem; font-weight:700; color:#475569; line-height:20px;">'
                         f'{row["Buzz"]:,} buzz'
@@ -1802,29 +1821,31 @@ elif nav_page == "Thảo luận qua các kênh":
                     )
                     rank_rows_html.append(r_html)
                     
-                rank_full_html = f'<div style="max-height:420px; overflow-y:auto; padding-right:6px;">{"".join(rank_rows_html)}</div>'
+                rank_full_html = f'<div style="max-height:370px; overflow-y:auto; padding-right:6px;">{"".join(rank_rows_html)}</div>'
                 if hasattr(st, "html"):
                     st.html(rank_full_html)
                 else:
                     st.markdown(rank_full_html, unsafe_allow_html=True)
 
-        # Bottom: Top nguồn thảo luận trên kênh Tin tức trực tuyến (Image 2)
+        # Bottom: Top nguồn thảo luận trên kênh Tin tức trực tuyến (Brand24 Media Coverage)
         with st.container(border=True):
             st.markdown("""
             <div style="margin-bottom:8px;">
                 <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top nguồn thảo luận trên kênh Tin tức trực tuyến <span style="font-size:0.75rem; color:#94A3B8;">✕</span></span>
-                <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-top:4px; letter-spacing:0.05em;">NEWS</div>
+                <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-top:4px; letter-spacing:0.05em;">NEWS (BRAND24 COVERAGE)</div>
             </div>
             """, unsafe_allow_html=True)
             
-            # Extract top news sources or domains from df
+            # Extract top news sources or domains from Brand24 data in df
             news_df = df[df['channel'] == 'News'] if not df.empty and 'channel' in df.columns else pd.DataFrame()
-            top_news_sources = []
             
             if not news_df.empty and 'site_name' in news_df.columns:
-                source_counts = news_df['site_name'].value_counts().head(10).reset_index()
-                source_counts.columns = ['Source', 'Buzz']
-                top_news_sources = source_counts.to_dict(orient='records')
+                src_counts = news_df['site_name'].value_counts()
+                # Clean generic placeholders
+                src_counts = src_counts[~src_counts.index.isin(['Brand24', 'Facebook', '', 'nan', 'None'])]
+                top_news_sources = [{'Source': k, 'Buzz': int(v)} for k, v in src_counts.head(10).items()]
+            else:
+                top_news_sources = []
                 
             if not top_news_sources:
                 top_news_sources = [
@@ -1851,12 +1872,76 @@ elif nav_page == "Thảo luận qua các kênh":
             fig_news_src.update_layout(
                 plot_bgcolor='#FFFFFF',
                 paper_bgcolor='#FFFFFF',
-                height=300,
-                margin=dict(t=10, b=20, l=150, r=40),
-                xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=''),
+                height=320,
+                margin=dict(t=10, b=20, l=160, r=40),
+                xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title='Lượt thảo luận / bài viết'),
                 yaxis=dict(title='', tickfont=dict(size=11, color='#1E293B'))
             )
             st.plotly_chart(fig_news_src, use_container_width=True)
+
+        # Drill-down Discussion Feed per Macro Channel (Brand24 & Multi-channel Stream)
+        with st.container(border=True):
+            st.markdown("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="font-size:1rem; font-weight:700; color:#1E293B;">
+                    🔍 Chi tiết bài viết & thảo luận đa kênh (Brand24 & Multi-Channel Feed)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            macro_available = [ch for ch in standard_channels if len(df[df['channel'] == ch]) > 0]
+            if not macro_available:
+                macro_available = ["Tất cả kênh"]
+            else:
+                macro_available = ["Tất cả kênh"] + macro_available
+
+            col_mc_sel, col_mc_stat = st.columns([1.5, 2])
+            with col_mc_sel:
+                selected_macro_ch = st.selectbox(
+                    "Lọc theo kênh phân tích:",
+                    options=macro_available,
+                    index=0,
+                    key="macro_ch_filter_select"
+                )
+            with col_mc_stat:
+                if selected_macro_ch == "Tất cả kênh":
+                    ch_feed_df = df.copy()
+                else:
+                    ch_feed_df = df[df['channel'] == selected_macro_ch]
+                st.markdown(f"""
+                <div style="display:flex; align-items:center; height:100%; padding-top:24px; gap:16px; font-size:0.85rem; color:#475569;">
+                    <span>Tổng số: <b>{len(ch_feed_df):,}</b> thảo luận</span>
+                    <span>🟢 <b>{len(ch_feed_df[ch_feed_df['sentiment']=='POSITIVE']):,}</b></span>
+                    <span>🔴 <b>{len(ch_feed_df[ch_feed_df['sentiment']=='NEGATIVE']):,}</b></span>
+                    <span>⚫ <b>{len(ch_feed_df[ch_feed_df['sentiment']=='NEUTRAL']):,}</b></span>
+                </div>
+                """, unsafe_allow_html=True)
+
+            t_mcf_all, t_mcf_pos, t_mcf_neg = st.tabs([
+                f"📋 Tất cả ({len(ch_feed_df):,})",
+                f"🟢 Tích cực ({len(ch_feed_df[ch_feed_df['sentiment']=='POSITIVE']):,})",
+                f"🔴 Tiêu cực ({len(ch_feed_df[ch_feed_df['sentiment']=='NEGATIVE']):,})"
+            ])
+            with t_mcf_all:
+                if not ch_feed_df.empty:
+                    for idx, r in ch_feed_df.head(20).iterrows():
+                        st.markdown(render_feed_card(r, str(r.get('sentiment', 'NEUTRAL')).upper()), unsafe_allow_html=True)
+                else:
+                    st.info("Không có dữ liệu thảo luận cho kênh này.")
+            with t_mcf_pos:
+                pos_m_df = ch_feed_df[ch_feed_df['sentiment'] == 'POSITIVE']
+                if not pos_m_df.empty:
+                    for idx, r in pos_m_df.head(20).iterrows():
+                        st.markdown(render_feed_card(r, "POSITIVE"), unsafe_allow_html=True)
+                else:
+                    st.info("Không có thảo luận tích cực.")
+            with t_mcf_neg:
+                neg_m_df = ch_feed_df[ch_feed_df['sentiment'] == 'NEGATIVE']
+                if not neg_m_df.empty:
+                    for idx, r in neg_m_df.head(20).iterrows():
+                        st.markdown(render_feed_card(r, "NEGATIVE"), unsafe_allow_html=True)
+                else:
+                    st.success("Không có thảo luận tiêu cực.")
 
 
 # =============================================================

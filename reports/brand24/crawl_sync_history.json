@@ -54,5 +54,33 @@
     "error_message": null,
     "duration_sec": 28.84,
     "db_synced": true
+  },
+  {
+    "timestamp": "2026-09-14T09:36:52.532526+07:00",
+    "target_date": "2026-09-13",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "SUCCESS",
+    "total_mentions": 263,
+    "inserted_count": 63,
+    "duplicate_count": 200,
+    "report_file": "D:\\AGV_socialcrawl\\reports\\brand24\\toyota_report_2026-09-13.xlsx",
+    "error_message": null,
+    "duration_sec": 42.51,
+    "db_synced": true
+  },
+  {
+    "timestamp": "2026-09-14T09:37:22.729402+07:00",
+    "target_date": "2026-09-14",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "NO_MENTIONS",
+    "total_mentions": 0,
+    "inserted_count": 0,
+    "duplicate_count": 0,
+    "report_file": "D:\\AGV_socialcrawl\\reports\\brand24\\toyota_report_2026-09-14.xlsx",
+    "error_message": null,
+    "duration_sec": 27.01,
+    "db_synced": true
   }
 ]

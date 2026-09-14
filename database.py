@@ -650,6 +650,9 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
                 return "Toyota Vios"
             if "toyota" in full or "toyota" in grp:
                 return "Toyota (Chung)"
+            camp = str(row.get("campaign") or "").strip()
+            if camp == "Toyota":
+                return "Toyota (Chung)" if m in ("", "Khác", "Khc", "None", "nan") else m
             return m
 
         df["car_model"] = df.apply(_clean_car_model, axis=1)
@@ -682,6 +685,73 @@ def _sanitize_discussions_df(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df["group_name"] = "Mạng xã hội chung"
     df["clean_group"] = df["group_name"]
+
+    # 5. Channel normalization into 9 standard channels
+    if "channel" in df.columns:
+        def _clean_channel(row):
+            ch = str(row.get("channel") or "").strip()
+            site = str(row.get("site_name") or "").lower()
+            url = str(row.get("url_comment") or "").lower()
+            grp = str(row.get("clean_group") or row.get("group_name") or "").lower()
+            pt = str(row.get("post_type") or "").lower()
+            tags = row.get("tags") or []
+            if isinstance(tags, str):
+                tags = [tags]
+
+            # 1. TikTok
+            if "tiktok" in ch.lower() or "tiktok" in site or "tiktok" in url or "tiktok" in pt:
+                return "TikTok"
+            # 2. YouTube
+            if "youtube" in ch.lower() or "youtube" in site or "youtube" in url or "youtu.be" in url or "video" in pt:
+                return "YouTube"
+            # 3. Social Sites (Twitter/X, Threads, Instagram)
+            if site == "x.com" or any(k in site or k in url or k in pt for k in ["twitter", "x (twitter)", "threads.net", "instagram", "podcast"]):
+                return "Social Sites"
+            # 4. Forum
+            if site == "voz.vn" or any(k in site or k in url or k in ch.lower() for k in ["otofun", "otosaigon", "forum", "tinhte"]):
+                return "Forum"
+            # 5. E-commerce Sites
+            if any(k in site or k in url for k in ["bonbanh", "chotot", "shopee", "lazada", "tiki", "oto.com.vn"]):
+                return "E-commerce Sites"
+            # 6. News
+            if ch == "News" or "news" in pt or "blog" in pt or "web" in pt or any(site_k in site or site_k in url for site_k in [
+                "baomoi", "vnexpress", "dantri", "autopro", "autodaily", "24h", "cafef", "tinxe", 
+                "vietnamnet", "thanhnien", "tuoitre", "soha", "znews", "zing", "vietgiaitri", 
+                "khoahocdoisong", "vietnamplus", "vov.vn", "vtv.vn", "vneconomy", "nguoiduatin", 
+                "nguoiquansat", "doanhnhan", "thuonghieu", "techz", "vietnam.vn"
+            ]):
+                return "News"
+            # 7. Brand24 general web/news
+            if "Brand24" in tags and "." in site and not any(fb in site for fb in ["facebook", "fb.me", "fb.com"]):
+                return "News"
+            # 8. Facebook classification (Groups vs Pages vs Users)
+            if ch in ("Community/Page", "Community", "Facebook Pages", "Facebook Groups"):
+                if "/groups/" in url or any(k in grp for k in ["hội", "nhóm", "club", "offb", "otofun"]):
+                    return "Facebook Groups"
+                elif any(k in grp for k in ["troll xe", "xế cưng", "bí mật xe biz", "xe hay", "gearupvn"]) or "/posts/" in url or "reel" in url:
+                    return "Facebook Pages"
+                elif "/user/" in url or "profile" in url or "user" in ch.lower():
+                    return "Facebook Users"
+                else:
+                    return "Facebook Groups" if "/groups/" in url else "Facebook Pages"
+            return ch or "Facebook Pages"
+
+        df["channel"] = df.apply(_clean_channel, axis=1)
+
+    # 6. Sentiment enrichment for mentions that lack sentiment classification
+    if "sentiment" in df.columns:
+        from analysis_engine import analyze_sentiment
+        def _enrich_sentiment(row):
+            s = str(row.get("sentiment") or "").strip().upper()
+            if s in ("POSITIVE", "NEGATIVE"):
+                return s
+            full_text = (str(row.get("description") or "") + " " + str(row.get("content") or "")).strip()
+            if full_text:
+                nlp_sent = analyze_sentiment(full_text)
+                if nlp_sent in ("POSITIVE", "NEGATIVE"):
+                    return nlp_sent
+            return "NEUTRAL"
+        df["sentiment"] = df.apply(_enrich_sentiment, axis=1)
 
     return df
 
@@ -808,12 +878,12 @@ def get_discussions_df(lookback_hours=None, start_date=None, end_date=None, pill
                 conditions.append("post_type ILIKE %s")
                 params.append(f"%{post_type}%")
             if campaign == "Toyota":
-                conditions.append("(campaign = 'Toyota' OR (campaign = 'Autoforum' AND car_model LIKE 'Toyota%'))")
+                conditions.append("(campaign = 'Toyota' OR (campaign = 'Autoforum' AND car_model LIKE 'Toyota%%'))")
             elif campaign and campaign not in ("All", "Tất cả"):
                 conditions.append("campaign = %s")
                 params.append(campaign)
             if exclude_campaign == "Toyota":
-                conditions.append("(campaign != 'Toyota' AND NOT (campaign = 'Autoforum' AND car_model LIKE 'Toyota%'))")
+                conditions.append("(campaign != 'Toyota' AND NOT (campaign = 'Autoforum' AND car_model LIKE 'Toyota%%'))")
             elif exclude_campaign and exclude_campaign not in ("All", "Tất cả"):
                 conditions.append("(campaign != %s OR campaign IS NULL)")
                 params.append(exclude_campaign)

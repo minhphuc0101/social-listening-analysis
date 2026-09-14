@@ -3,3 +3,5 @@ timestamp,target_date,campaign,crawler_name,status,total_mentions,inserted_count
 2026-09-10T04:43:25.070919+00:00,2026-09-09,Toyota,Brand24,NO_MENTIONS,0,0,0,/home/runner/work/social-listening-analysis/social-listening-analysis/reports/brand24/toyota_report_2026-09-09.xlsx,,19.76,True
 2026-09-12T06:39:55.596814+00:00,2026-09-11,Toyota,Brand24,NO_MENTIONS,0,0,0,/home/runner/work/social-listening-analysis/social-listening-analysis/reports/brand24/toyota_report_2026-09-11.xlsx,,19.8,True
 2026-09-13T22:13:24.163480+00:00,2026-09-12,Toyota,Brand24,SUCCESS,458,58,400,/home/runner/work/social-listening-analysis/social-listening-analysis/reports/brand24/toyota_report_2026-09-12.xlsx,,28.84,True
+2026-09-14T09:36:52.532526+07:00,2026-09-13,Toyota,Brand24,SUCCESS,263,63,200,D:\AGV_socialcrawl\reports\brand24\toyota_report_2026-09-13.xlsx,,42.51,True
+2026-09-14T09:37:22.729402+07:00,2026-09-14,Toyota,Brand24,NO_MENTIONS,0,0,0,D:\AGV_socialcrawl\reports\brand24\toyota_report_2026-09-14.xlsx,,27.01,True

@@ -365,29 +365,47 @@ def classify_topic_hierarchy(text):
     # Fallback to general product topic
     return "Sản phẩm", "Đánh giá sản phẩm"
 
-def normalize_channel(raw_channel, url="", post_type=""):
+def normalize_channel(raw_channel, url="", post_type="", category=""):
     """
-    Normalizes channel into standard Vietnamese social media channels:
-    'TikTok', 'Facebook Pages', 'Facebook Groups', 'Facebook Users', 'News', 'YouTube', 'Forum'
+    Normalizes channel into standard automotive listening channels:
+    'News', 'TikTok', 'Facebook Pages', 'Facebook Users', 'Facebook Groups', 'YouTube', 'Forum', 'Social Sites', 'E-commerce Sites'
     """
     raw = str(raw_channel or "").lower()
     u = str(url or "").lower()
+    cat = str(category or "").lower()
+    pt = str(post_type or "").lower()
     
-    if "tiktok" in raw or "tiktok" in u:
+    if "tiktok" in raw or "tiktok" in u or "tiktok" in cat or "tiktok" in pt:
         return "TikTok"
-    if "youtube" in raw or "youtube" in u or "youtu.be" in u:
+    if "youtube" in raw or "youtube" in u or "youtu.be" in u or "video" in cat or "video" in pt:
         return "YouTube"
-    if "otofun" in raw or "otosaigon" in raw or "forum" in raw:
+    if site_matches := any(k in raw or k in u or k in cat or k in pt for k in ["x (twitter)", "twitter", "x.com", "threads.net", "instagram", "podcast"]):
+        return "Social Sites"
+    if any(k in raw or k in u or k in cat for k in ["otofun", "otosaigon", "forum", "voz.vn", "tinhte", "webtretho"]):
         return "Forum"
-    if any(site in u for site in ["baomoi", "autopro", "autodaily", "24h", "vnexpress", "dantri"]):
+    if any(k in raw or k in u for k in ["bonbanh", "chotot", "shopee", "lazada", "tiki", "oto.com.vn", "carmudi"]):
+        return "E-commerce Sites"
+    if cat in ["news", "web", "blogs", "blog"] or "news" in pt or "blog" in pt or "web" in pt:
+        return "News"
+    if any(site in u or site in raw for site in [
+        "baomoi", "autopro", "autodaily", "24h", "vnexpress", "dantri", "cafef", "tinxe", 
+        "vietnamnet", "thanhnien", "tuoitre", "soha", "znews", "zing", "vietgiaitri", 
+        "khoahocdoisong", "vietnamplus", "vov.vn", "vtv.vn", "vneconomy", "nguoiduatin", 
+        "nguoiquansat", "doanhnhan", "thuonghieu", "techz", "vietnam.vn", "baoquocte",
+        "kienthuc", "kinhdoanh", "kinhte", "tienphong", "genk", "congly", "thanhnienviet"
+    ]):
         return "News"
     if "group" in raw or "/groups/" in u:
         return "Facebook Groups"
+    if "user" in raw or "/user/" in u or "profile" in u:
+        return "Facebook Users"
     if "page" in raw or "community" in raw or "/posts/" in u or "reel" in u:
         return "Facebook Pages"
     if "facebook" in raw or "facebook" in u:
         return "Facebook Users"
-    return "Facebook Pages"
+    if cat in ["social"]:
+        return "Social Sites"
+    return "News" if "." in raw else "Facebook Pages"
 
 def enrich_social_record(record, reference_time=None):
     content = str(record.get("Content", "") or record.get("content", "")).strip()

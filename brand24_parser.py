@@ -233,15 +233,15 @@ def parse_brand24_excel(filepath, campaign=None):
         group_name = domain or 'Brand24'
         site_name = domain or 'Brand24'
 
-        # Channel mapping
-        if normalize_channel:
-            channel = normalize_channel(domain, url=raw_source)
-        else:
-            channel = domain or 'Social Media'
-
         # 7. Category -> Type (post_type)
         raw_cat = str(row.get(col_find.get('category', ''), '') or '').strip().lower()
         post_type = CATEGORY_MAP.get(raw_cat, f"{raw_cat}Mention" if raw_cat and raw_cat != 'nan' else 'socialMention')
+
+        # Channel mapping
+        if normalize_channel:
+            channel = normalize_channel(domain, url=raw_source, post_type=post_type, category=raw_cat)
+        else:
+            channel = domain or 'Social Media'
 
         # 8. Title / Domain -> Author
         raw_author = str(row.get(col_find.get('author', ''), '') or '').strip()
