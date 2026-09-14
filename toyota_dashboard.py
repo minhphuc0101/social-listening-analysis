@@ -537,7 +537,7 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
             if kw in TOYOTA_PAIN_POINTS:
                 item = TOYOTA_PAIN_POINTS[kw]
                 badges_html.append(
-                    f'<span style="background:#FFF1F2; color:#9F1239; border:1px solid #FECDD3; font-size:11px; padding:2px 7px; border-radius:10px; font-weight:700; margin-right:4px;">{item["icon"]} {item["name"]}</span>'
+                    f'<span style="background:#FFF1F2; color:#9F1239; border:1px solid #FFE4E6; font-size:0.75rem; padding:2px 8px; border-radius:5px; font-weight:600; margin-right:4px;">{item["name"]}</span>'
                 )
     badges_str = "".join(badges_html)
     
@@ -552,13 +552,13 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
             
     s_upper = str(record.get('sentiment') or 'NEUTRAL').upper()
     if s_upper == 'POSITIVE':
-        badge_html = '<span class="badge-pos">Tích cực</span>'
+        badge_html = '<span style="background:#ECFDF5; color:#059669; border:1px solid #D1FAE5; font-size:0.73rem; font-weight:600; padding:2px 8px; border-radius:5px;">Tích cực</span>'
         border_col = '#10B981'
     elif s_upper == 'NEGATIVE':
-        badge_html = '<span class="badge-neg">Tiêu cực</span>'
-        border_col = '#E11D48'
+        badge_html = '<span style="background:#FEF2F2; color:#DC2626; border:1px solid #FEE2E2; font-size:0.73rem; font-weight:600; padding:2px 8px; border-radius:5px;">Tiêu cực</span>'
+        border_col = '#DC2626'
     else:
-        badge_html = '<span class="badge-neu">Trung lập</span>'
+        badge_html = '<span style="background:#F8FAFC; color:#64748B; border:1px solid #E2E8F0; font-size:0.73rem; font-weight:600; padding:2px 8px; border-radius:5px;">Trung lập</span>'
         border_col = '#94A3B8'
         
     raw_desc = str(record.get('description') or record.get('Description') or '').strip()
@@ -566,28 +566,28 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
     if raw_desc and raw_content and raw_desc.lower() != raw_content.lower() and len(raw_desc) > 5 and not raw_desc.lower().startswith('bài viết của'):
         clean_desc = re.sub(r'\s+', ' ', raw_desc).strip()
         clean_desc_esc = html.escape(clean_desc[:140] + ('...' if len(clean_desc) > 140 else ''))
-        topic_caption_html = f'<div style="font-size:0.8rem; color:#64748B; margin-bottom:6px; font-style:italic;"><span style="color:#94A3B8;">Bài viết gốc:</span> &ldquo;{clean_desc_esc}&rdquo;</div>'
+        topic_caption_html = f'<div style="font-size:0.8rem; color:#64748B; margin-bottom:8px; background:#F8FAFC; border:1px solid #F1F5F9; border-radius:6px; padding:6px 10px; line-height:1.45;"><span style="color:#94A3B8; font-weight:500;">Bài viết gốc:</span> &ldquo;{clean_desc_esc}&rdquo;</div>'
 
-    auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700;" title="Mở bài viết gốc">{html.escape(auth)}</a>' if has_link else f'<span class="feed-author">{html.escape(auth)}</span>'
-    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Kênh: {chan}</span>'
-    model_tag_html = f'<span class="feed-topic-tag" style="margin-bottom:0; background:#EFF6FF; color:#1D4ED8; margin-left:6px; font-weight:700;">🚗 {html.escape(car_model)}</span>' if (car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all')) else ''
+    auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:600;" title="Mở bài viết gốc">{html.escape(auth)}</a>' if has_link else f'<span class="feed-author" style="color:#0F172A; font-weight:600;">{html.escape(auth)}</span>'
+    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.78rem; color:#94A3B8;">Kênh: {chan}</span>'
+    model_tag_html = f'<span style="font-size:0.75rem; font-weight:600; background:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE; padding:2px 8px; border-radius:5px;">{html.escape(car_model)}</span>' if (car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all')) else ''
 
     return (
-        f'<div class="feed-card" style="border-left:4px solid {border_col}; margin-bottom:10px; padding:12px 16px; background:#FFFFFF; border-radius:8px; border:1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">'
+        f'<div class="feed-card" style="border:1px solid #E2E8F0; border-left:3px solid {border_col}; margin-bottom:12px; padding:14px 18px; background:#FFFFFF; border-radius:10px; box-shadow:0 1px 3px rgba(15,23,42,0.03); transition:all 0.15s ease;">'
         f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'
-        f'<div style="font-size:0.85rem; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
+        f'<div style="font-size:0.84rem; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">'
         f'{auth_html}'
-        f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
-        f'<span style="color:#64748B; font-size:0.82rem;">{chan}</span>'
-        f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
-        f'<span style="color:#94A3B8; font-size:0.8rem;">{dt_str}</span>'
+        f'<span style="color:#CBD5E1;">•</span>'
+        f'<span style="color:#475569; font-size:0.78rem; background:#F1F5F9; border:1px solid #E2E8F0; padding:1px 6px; border-radius:4px; font-weight:500;">{chan}</span>'
+        f'<span style="color:#CBD5E1;">•</span>'
+        f'<span style="color:#94A3B8; font-size:0.78rem; font-weight:400;">{dt_str}</span>'
         f'</div>'
         f'<div>{badge_html}</div>'
         f'</div>'
         f'<div style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:4px;">{badges_str}</div>'
         f'{topic_caption_html}'
-        f'<div class="feed-content" style="font-size:0.9rem; color:#0F172A; line-height:1.55; margin-bottom:10px;">{clean_content}</div>'
-        f'<div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #F1F5F9;">'
+        f'<div class="feed-content" style="font-size:0.88rem; color:#334155; line-height:1.6; margin-bottom:10px; font-weight:400;">{clean_content}</div>'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #F8FAFC;">'
         f'<div>{model_tag_html}</div>'
         f'{link_btn_html}'
         f'</div>'
@@ -2690,7 +2690,7 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
 elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     col_back, _ = st.columns([1.5, 4])
     with col_back:
-        if st.button("⬅️ Quay lại Tổng quan thảo luận", key="back_from_painpoints"):
+        if st.button("← Quay lại Tổng quan thảo luận", key="back_from_painpoints"):
             st.session_state["redirect_page"] = "Tổng quan thảo luận"
             st.rerun()
 
@@ -2728,23 +2728,87 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     if p_name in pillar_counts:
                         pillar_counts[p_name] += 1
 
+    # MODERN EXECUTIVE STYLING FOR PAIN POINTS PAGE
+    st.markdown("""
+    <style>
+        /* Typography and controls */
+        div[data-testid="stSelectbox"] label, div[data-testid="stTextInput"] label {
+            font-size: 0.76rem !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+            margin-bottom: 4px !important;
+        }
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+            border-radius: 8px !important;
+            border-color: #E2E8F0 !important;
+            font-size: 0.83rem !important;
+            min-height: 36px !important;
+            background-color: #FFFFFF !important;
+        }
+        div[data-testid="stTextInput"] input {
+            border-radius: 8px !important;
+            border-color: #E2E8F0 !important;
+            font-size: 0.83rem !important;
+            min-height: 36px !important;
+            background-color: #FFFFFF !important;
+        }
+        div[data-testid="stButton"] > button {
+            border-radius: 8px !important;
+            font-size: 0.81rem !important;
+            font-weight: 500 !important;
+            padding: 0.35rem 0.6rem !important;
+            min-height: 36px !important;
+            transition: all 0.15s ease-in-out !important;
+            border: 1px solid #E2E8F0 !important;
+            background-color: #FFFFFF !important;
+            color: #334155 !important;
+            letter-spacing: -0.01em !important;
+        }
+        div[data-testid="stButton"] > button:hover {
+            border-color: #CBD5E1 !important;
+            background-color: #F8FAFC !important;
+            color: #0F172A !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04) !important;
+        }
+        div[data-testid="stButton"] > button[kind="primary"] {
+            background-color: #0F172A !important;
+            border-color: #0F172A !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15) !important;
+        }
+        div[data-testid="stButton"] > button[kind="primary"]:hover {
+            background-color: #1E293B !important;
+            border-color: #1E293B !important;
+            color: #FFFFFF !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     # TOP BANNER
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%); border: 1.5px solid #FECDD3; border-radius: 10px; padding: 14px 20px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:20px 24px; margin-bottom:16px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
             <div>
-                <div style="font-size:1.25rem; font-weight:800; color:#9F1239; display:flex; align-items:center; gap:8px;">
-                    <span>🔥 Điểm Nóng & Định Kiến Thương Hiệu Toyota</span>
-                    <span style="font-size:0.75rem; background:#E11D48; color:#FFFFFF; font-weight:700; padding:2px 8px; border-radius:12px;">21 CHỦ ĐỀ TRỌNG ĐIỂM</span>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                    <span style="font-size:1.3rem; font-weight:700; color:#0F172A; letter-spacing:-0.02em;">Điểm Nóng & Định Kiến Thương Hiệu Toyota</span>
+                    <span style="font-size:0.7rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; background:#FEF2F2; color:#BE123C; border:1px solid #FECDD3; padding:2px 8px; border-radius:6px;">21 Từ khóa nhạy cảm</span>
                 </div>
-                <div style="font-size:0.86rem; color:#BE123C; margin-top:3px;">
-                    Giám sát chuyên biệt các rủi ro truyền thông và phản ánh nhạy cảm từ người tiêu dùng: thu hồi, xe xấu, ồn, bia kèm lạc, tốn xăng, ăn xăng, lỗi, xem thường, chê, ngáo giá, thùng tôn, túi khí, cùi, ế...
+                <div style="font-size:0.85rem; color:#64748B; line-height:1.5;">
+                    Hệ thống tự động phát hiện và đo lường các phản ánh nhạy cảm từ người tiêu dùng nhằm phát hiện sớm các rủi ro truyền thông.
                 </div>
             </div>
-            <div style="text-align:right;">
-                <span style="font-size:0.8rem; color:#64748B;">Tổng số phản ánh phát hiện</span><br>
-                <span style="font-size:1.4rem; font-weight:800; color:#E11D48;">{total_pp:,} buzz</span>
-                <span style="font-size:0.82rem; color:#9F1239; font-weight:600;">({pp_ratio:.1f}% tổng thảo luận)</span>
+            <div style="text-align:right; border-left:1px solid #F1F5F9; padding-left:24px;">
+                <div style="font-size:0.72rem; font-weight:600; color:#64748B; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">Tổng số phản ánh</div>
+                <div style="font-size:1.55rem; font-weight:800; color:#0F172A; letter-spacing:-0.02em; line-height:1.2;">
+                    {total_pp:,} <span style="font-size:0.85rem; font-weight:500; color:#64748B;">buzz</span>
+                </div>
+                <div style="font-size:0.75rem; color:#DC2626; font-weight:600; margin-top:2px;">
+                    {pp_ratio:.1f}% tổng thảo luận Toyota
+                </div>
             </div>
         </div>
     </div>
@@ -2765,34 +2829,42 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     with kpi_col1:
         st.markdown(f"""
-        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #E11D48; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Tổng buzz điểm nóng</div>
-            <div style="font-size:1.6rem; font-weight:800; color:#0F172A; margin:4px 0;">{total_pp:,}</div>
-            <div style="font-size:0.8rem; color:#E11D48; font-weight:600;">{pp_ratio:.1f}% tổng thảo luận Toyota</div>
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:16px 18px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="font-size:0.72rem; font-weight:600; color:#64748B; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Tổng buzz điểm nóng</div>
+            <div style="font-size:1.55rem; font-weight:800; color:#0F172A; letter-spacing:-0.02em; line-height:1.2;">{total_pp:,}</div>
+            <div style="margin-top:8px;">
+                <span style="display:inline-block; font-size:0.75rem; font-weight:600; color:#BE123C; background:#FFF1F2; border:1px solid #FFE4E6; border-radius:6px; padding:2px 8px;">{pp_ratio:.1f}% tổng thảo luận</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_col2:
         st.markdown(f"""
-        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #EA580C; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Vấn đề phản ánh nhiều nhất</div>
-            <div style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{top_kw_name}">{top_kw_name}</div>
-            <div style="font-size:0.8rem; color:#EA580C; font-weight:600;">{top_kw_item[1]:,} buzz ({top_kw_item[0]})</div>
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:16px 18px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="font-size:0.72rem; font-weight:600; color:#64748B; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Từ khóa phản ánh cao nhất</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{top_kw_name}">{top_kw_name}</div>
+            <div style="margin-top:8px;">
+                <span style="display:inline-block; font-size:0.75rem; font-weight:600; color:#C2410C; background:#FFF7ED; border:1px solid #FFEDD5; border-radius:6px; padding:2px 8px;">{top_kw_item[1]:,} buzz ({top_kw_item[0]})</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_col3:
         st.markdown(f"""
-        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #3B82F6; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Dòng xe chịu phản ánh cao nhất</div>
-            <div style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{top_model_name}</div>
-            <div style="font-size:0.8rem; color:#3B82F6; font-weight:600;">{top_model_cnt:,} buzz phản ánh</div>
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:16px 18px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="font-size:0.72rem; font-weight:600; color:#64748B; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Mẫu xe chịu phản ánh nhiều nhất</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{top_model_name}</div>
+            <div style="margin-top:8px;">
+                <span style="display:inline-block; font-size:0.75rem; font-weight:600; color:#1D4ED8; background:#EFF6FF; border:1px solid #DBEAFE; border-radius:6px; padding:2px 8px;">{top_model_cnt:,} phản ánh</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_col4:
         st.markdown(f"""
-        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #8B5CF6; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Kênh phát sinh chính</div>
-            <div style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{top_chan_name}</div>
-            <div style="font-size:0.8rem; color:#8B5CF6; font-weight:600;">{top_chan_cnt:,} buzz thảo luận</div>
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:16px 18px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="font-size:0.72rem; font-weight:600; color:#64748B; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Nền tảng phát sinh chính</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{top_chan_name}</div>
+            <div style="margin-top:8px;">
+                <span style="display:inline-block; font-size:0.75rem; font-weight:600; color:#6D28D9; background:#F5F3FF; border:1px solid #EDE9FE; border-radius:6px; padding:2px 8px;">{top_chan_cnt:,} buzz thảo luận</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2803,13 +2875,13 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     active_pp_kw = st.session_state.get('active_pp_kw')
 
     with st.container(border=True):
-        sel_hdr_l, sel_hdr_r = st.columns([3.3, 1.1])
+        sel_hdr_l, sel_hdr_r = st.columns([3.4, 1.0])
         with sel_hdr_l:
-            kw_filter_hint = f" &bull; Đang chọn từ khóa: <b style='color:#DC2626;'>{active_pp_kw}</b>" if active_pp_kw else ""
+            kw_filter_hint = f" &bull; <span style='color:#0F172A; font-weight:600; background:#F1F5F9; border:1px solid #E2E8F0; padding:2px 8px; border-radius:5px;'>Đang chọn: {active_pp_kw}</span>" if active_pp_kw else ""
             st.markdown(f"""
             <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">🎯 Bộ chọn 21 Từ khóa Định kiến Thương hiệu</span>
-                <span style="font-size:0.78rem; color:#64748B;">(Bấm vào từ khóa để lọc biểu đồ & bài viết{kw_filter_hint})</span>
+                <span style="font-size:0.95rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Bộ chọn 21 Từ khóa Định kiến</span>
+                <span style="font-size:0.8rem; color:#64748B;">— Bấm vào từ khóa để lọc biểu đồ & bài viết{kw_filter_hint}</span>
             </div>
             """, unsafe_allow_html=True)
         with sel_hdr_r:
@@ -2820,12 +2892,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 st.session_state['active_pp_kw'] = None
                 st.rerun()
 
-        st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
 
         # Sorted 21 keywords (sorted by frequency descending, then name)
         sorted_kws = sorted(kw_counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
 
-        # Render all 21 keywords in 3 symmetrical rows of 7 columns
+        # Render all 21 keywords in 3 clean symmetrical rows of 7 columns (NO ICONS)
         k_chunk_size = 7
         for chunk_idx in range(0, len(sorted_kws), k_chunk_size):
             chunk = sorted_kws[chunk_idx:chunk_idx+k_chunk_size]
@@ -2833,9 +2905,8 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             for i, (kw, cnt) in enumerate(chunk):
                 with c_cols[i]:
                     meta = TOYOTA_PAIN_POINTS.get(kw, {})
-                    icon = meta.get('icon', '📌')
                     is_k_act = (active_pp_kw == kw)
-                    kw_display = f"{icon} {kw} ({cnt})"
+                    kw_display = f"{kw} ({cnt})"
                     b_style = "primary" if is_k_act else "secondary"
                     kw_key = f"btn_kw_sel_{kw.replace(' ', '_')}"
                     if st.button(kw_display, key=kw_key, type=b_style, use_container_width=True):
@@ -2867,11 +2938,11 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     with r1_col1:
         with st.container(border=True):
             active_pp_date = st.session_state.get('active_pp_date')
-            date_hdr_sub = f"Đang lọc: <b style='color:#DC2626;'>Ngày {active_pp_date}</b>" if active_pp_date else "👆 Bấm ngày để lọc bài đăng"
+            date_badge = f"<span style='font-size:0.72rem; font-weight:600; color:#BE123C; background:#FFF1F2; border:1px solid #FFE4E6; padding:2px 8px; border-radius:6px;'>Đang lọc: Ngày {active_pp_date}</span>" if active_pp_date else "<span style='font-size:0.72rem; font-weight:500; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:6px;'>Bấm cột để lọc</span>"
             st.markdown(f"""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">📈 Xu hướng Tiêu cực theo Thời gian</span>
-                <span style="font-size:0.75rem; color:#EF4444; background:#FEF2F2; border:1px solid #FECACA; padding:2px 8px; border-radius:10px; font-weight:600;">{date_hdr_sub}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.92rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Xu hướng Tiêu cực theo Thời gian</span>
+                {date_badge}
             </div>
             """, unsafe_allow_html=True)
 
@@ -2887,9 +2958,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 daily_neg['date_str'] = daily_neg['date_vn'].apply(lambda d: d.strftime('%d/%m'))
 
                 fig_pp_timeline = go.Figure()
-                bar_colors = ['#991B1B' if (active_pp_date == d) else '#EF4444' for d in daily_neg['date_str']]
-                bar_lines = ['#7F1D1D' if (active_pp_date == d) else '#DC2626' for d in daily_neg['date_str']]
-                bar_widths = [2.5 if (active_pp_date == d) else 1 for d in daily_neg['date_str']]
+                bar_colors = ['#881337' if (active_pp_date == d) else '#E11D48' for d in daily_neg['date_str']]
+                bar_lines = ['#4C0519' if (active_pp_date == d) else '#BE123C' for d in daily_neg['date_str']]
+                bar_widths = [2.0 if (active_pp_date == d) else 0.8 for d in daily_neg['date_str']]
 
                 fig_pp_timeline.add_trace(go.Bar(
                     x=daily_neg['date_str'],
@@ -2900,8 +2971,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     customdata=daily_neg['date_str'],
                     text=daily_neg['buzz'],
                     textposition='outside',
+                    textfont=dict(size=10, color='#64748B', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
                     showlegend=False,
-                    hovertemplate='<b>Ngày:</b> %{x}<br><b>Số thảo luận tiêu cực:</b> %{y:,} buzz<extra></extra>'
+                    hovertemplate='<b>Ngày %{x}</b><br>Số thảo luận tiêu cực: <b>%{y:,}</b><extra></extra>'
                 ))
 
                 # Smooth trendline overlay
@@ -2910,7 +2982,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         x=daily_neg['date_str'],
                         y=daily_neg['buzz'],
                         mode='lines',
-                        line=dict(color='#991B1B', width=2, shape='spline'),
+                        line=dict(color='#BE123C', width=2, shape='spline'),
                         hoverinfo='skip',
                         showlegend=False
                     ))
@@ -2927,22 +2999,23 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     arrowhead=2,
                     arrowsize=1,
                     arrowwidth=1.5,
-                    arrowcolor="#DC2626",
+                    arrowcolor="#E11D48",
                     ax=0,
-                    ay=-22,
-                    bgcolor="#DC2626",
-                    bordercolor="#DC2626",
-                    font=dict(color="#FFFFFF", size=10)
+                    ay=-20,
+                    bgcolor="#E11D48",
+                    bordercolor="#E11D48",
+                    font=dict(color="#FFFFFF", size=9, family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
                 )
 
                 fig_pp_timeline.update_layout(
-                    height=340,
+                    height=320,
                     margin=dict(t=25, b=20, l=35, r=15),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
                     clickmode='event+select',
-                    xaxis=dict(type='category', showgrid=True, gridcolor='#F1F5F9', tickfont=dict(size=11)),
-                    yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None)
+                    font=dict(family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color='#64748B', size=11),
+                    xaxis=dict(type='category', showgrid=True, gridcolor='#F8FAFC', tickfont=dict(size=10, color='#64748B'), linecolor='#E2E8F0'),
+                    yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None, tickfont=dict(size=10, color='#64748B'))
                 )
 
                 pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
@@ -2974,11 +3047,11 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     with r1_col2:
         with st.container(border=True):
             active_pp_model = st.session_state.get('active_pp_model')
-            model_hdr_sub = f"Đang lọc: <b style='color:#2563EB;'>{active_pp_model}</b>" if active_pp_model else "👆 Bấm thanh để lọc mẫu xe"
+            model_badge = f"<span style='font-size:0.72rem; font-weight:600; color:#1D4ED8; background:#EFF6FF; border:1px solid #DBEAFE; padding:2px 8px; border-radius:6px;'>Đang lọc: {active_pp_model}</span>" if active_pp_model else "<span style='font-size:0.72rem; font-weight:500; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:6px;'>Bấm cột để lọc</span>"
             st.markdown(f"""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Ma trận Mẫu xe chịu phản ánh nhiều nhất</span>
-                <span style="font-size:0.75rem; color:#2563EB; background:#EFF6FF; border:1px solid #BFDBFE; padding:2px 8px; border-radius:10px; font-weight:600;">{model_hdr_sub}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.92rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Mẫu xe chịu Phản ánh nhiều nhất</span>
+                {model_badge}
             </div>
             """, unsafe_allow_html=True)
 
@@ -2986,9 +3059,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 model_dist = filtered_pp_df['car_model'].value_counts().head(7).reset_index()
                 model_dist.columns = ['Model', 'Count']
                 
-                m_colors = ['#1D4ED8' if (active_pp_model == m) else '#3B82F6' for m in model_dist['Model']]
-                m_lines = ['#1E3A8A' if (active_pp_model == m) else '#1D4ED8' for m in model_dist['Model']]
-                m_widths = [2.5 if (active_pp_model == m) else 1 for m in model_dist['Model']]
+                m_colors = ['#1E3A8A' if (active_pp_model == m) else '#3B82F6' for m in model_dist['Model']]
+                m_lines = ['#172554' if (active_pp_model == m) else '#2563EB' for m in model_dist['Model']]
+                m_widths = [2.0 if (active_pp_model == m) else 0.8 for m in model_dist['Model']]
 
                 fig_m = go.Figure(go.Bar(
                     x=model_dist['Model'],
@@ -2999,16 +3072,18 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     customdata=model_dist['Model'],
                     text=model_dist['Count'],
                     textposition='outside',
-                    hovertemplate='<b>%{x}</b>: %{y:,} thảo luận<extra></extra>'
+                    textfont=dict(size=10, color='#64748B', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+                    hovertemplate='<b>%{x}</b>: <b>%{y:,}</b> phản ánh<extra></extra>'
                 ))
                 fig_m.update_layout(
-                    height=340,
-                    margin=dict(t=10, b=30, l=35, r=15),
+                    height=320,
+                    margin=dict(t=15, b=30, l=35, r=15),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
                     clickmode='event+select',
-                    xaxis=dict(showgrid=False, tickangle=-20, tickfont=dict(size=11)),
-                    yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None)
+                    font=dict(family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color='#64748B', size=11),
+                    xaxis=dict(showgrid=False, tickangle=-15, tickfont=dict(size=10, color='#64748B'), linecolor='#E2E8F0'),
+                    yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None, tickfont=dict(size=10, color='#64748B'))
                 )
                 pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 m_bar_event = st.plotly_chart(
@@ -3036,18 +3111,18 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
 
     # TIER 2: 2 CHARTS SIDE-BY-SIDE (Hội nhóm / Kênh cụ thể & Nền tảng Thảo luận)
-    st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
     r2_col1, r2_col2 = st.columns([1.25, 0.95])
 
     # Column 3: Phân bổ Định kiến theo Hội nhóm / Nguồn cụ thể (Specific Groups & Channels)
     with r2_col1:
         with st.container(border=True):
             active_pp_grp = st.session_state.get('active_pp_grp')
-            grp_hdr_sub = f"Đang lọc: <b style='color:#C2410C;'>{active_pp_grp}</b>" if active_pp_grp else "👆 Bấm thanh để lọc hội nhóm"
+            grp_badge = f"<span style='font-size:0.72rem; font-weight:600; color:#C2410C; background:#FFF7ED; border:1px solid #FFEDD5; padding:2px 8px; border-radius:6px;'>Đang lọc: {active_pp_grp}</span>" if active_pp_grp else "<span style='font-size:0.72rem; font-weight:500; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:6px;'>Bấm thanh để lọc</span>"
             st.markdown(f"""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top Hội nhóm & Kênh cụ thể phát sinh Định kiến</span>
-                <span style="font-size:0.75rem; color:#C2410C; background:#FFF7ED; border:1px solid #FFEDD5; padding:2px 8px; border-radius:10px; font-weight:600;">{grp_hdr_sub}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.92rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Top Hội nhóm & Kênh Thảo luận chính</span>
+                {grp_badge}
             </div>
             """, unsafe_allow_html=True)
 
@@ -3064,7 +3139,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
 
                 g_colors = ['#C2410C' if (active_pp_grp == g) else '#FB923C' for g in grp_dist['Group']]
                 g_lines = ['#9A3412' if (active_pp_grp == g) else '#EA580C' for g in grp_dist['Group']]
-                g_widths = [2.5 if (active_pp_grp == g) else 1 for g in grp_dist['Group']]
+                g_widths = [2.0 if (active_pp_grp == g) else 0.8 for g in grp_dist['Group']]
 
                 custom_data_grp = list(zip(grp_dist['Group'], grp_dist['NegCount']))
 
@@ -3078,16 +3153,18 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     customdata=custom_data_grp,
                     text=grp_dist['Count'],
                     textposition='outside',
-                    hovertemplate='<b>%{y}</b>: %{x:,} phản ánh định kiến<br>🔴 Tiêu cực: %{customdata[1]:,} thảo luận<extra></extra>'
+                    textfont=dict(size=10, color='#64748B', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+                    hovertemplate='<b>%{y}</b><br>Phản ánh định kiến: <b>%{x:,}</b><br>Tiêu cực: <b>%{customdata[1]:,}</b><extra></extra>'
                 ))
                 fig_pp_grp.update_layout(
-                    height=340,
-                    margin=dict(t=10, b=20, l=190, r=30),
+                    height=320,
+                    margin=dict(t=10, b=20, l=175, r=25),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
                     clickmode='event+select',
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
-                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=11, color='#1E293B'))
+                    font=dict(family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color='#64748B', size=11),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None, tickfont=dict(size=10, color='#64748B')),
+                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=10.5, color='#334155'), linecolor='#E2E8F0')
                 )
                 pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 grp_bar_event = st.plotly_chart(
@@ -3118,11 +3195,11 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     with r2_col2:
         with st.container(border=True):
             active_pp_chan = st.session_state.get('active_pp_chan')
-            chan_hdr_sub = f"Đang lọc: <b style='color:#7C3AED;'>{active_pp_chan}</b>" if active_pp_chan else "👆 Bấm kênh để lọc"
+            chan_badge = f"<span style='font-size:0.72rem; font-weight:600; color:#6D28D9; background:#F5F3FF; border:1px solid #EDE9FE; padding:2px 8px; border-radius:6px;'>Đang lọc: {active_pp_chan}</span>" if active_pp_chan else "<span style='font-size:0.72rem; font-weight:500; color:#64748B; background:#F8FAFC; border:1px solid #E2E8F0; padding:2px 8px; border-radius:6px;'>Bấm thanh để lọc</span>"
             st.markdown(f"""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Phân bổ theo Nền tảng Thảo luận</span>
-                <span style="font-size:0.75rem; color:#7C3AED; background:#F5F3FF; border:1px solid #DDD6FE; padding:2px 8px; border-radius:10px; font-weight:600;">{chan_hdr_sub}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.92rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Phân bổ theo Nền tảng Thảo luận</span>
+                {chan_badge}
             </div>
             """, unsafe_allow_html=True)
 
@@ -3136,7 +3213,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
 
                 c_colors = ['#6D28D9' if (active_pp_chan == ch) else '#A78BFA' for ch in chan_dist['Channel']]
                 c_lines = ['#4C1D95' if (active_pp_chan == ch) else '#7C3AED' for ch in chan_dist['Channel']]
-                c_widths = [2.5 if (active_pp_chan == ch) else 1 for ch in chan_dist['Channel']]
+                c_widths = [2.0 if (active_pp_chan == ch) else 0.8 for ch in chan_dist['Channel']]
 
                 custom_data_chan = list(zip(chan_dist['Channel'], chan_dist['NegCount']))
 
@@ -3150,16 +3227,18 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     customdata=custom_data_chan,
                     text=chan_dist['Count'],
                     textposition='outside',
-                    hovertemplate='<b>%{y}</b>: %{x:,} phản ánh định kiến<br>🔴 Tiêu cực: %{customdata[1]:,} thảo luận<extra></extra>'
+                    textfont=dict(size=10, color='#64748B', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+                    hovertemplate='<b>%{y}</b><br>Phản ánh định kiến: <b>%{x:,}</b><br>Tiêu cực: <b>%{customdata[1]:,}</b><extra></extra>'
                 ))
                 fig_pp_chan.update_layout(
-                    height=340,
-                    margin=dict(t=10, b=20, l=110, r=30),
+                    height=320,
+                    margin=dict(t=10, b=20, l=110, r=25),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
                     clickmode='event+select',
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
-                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=11, color='#1E293B'))
+                    font=dict(family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color='#64748B', size=11),
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None, tickfont=dict(size=10, color='#64748B')),
+                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=10.5, color='#334155'), linecolor='#E2E8F0')
                 )
                 pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 chan_bar_event = st.plotly_chart(
@@ -3187,29 +3266,29 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
 
     # DISCUSSION FEED CONTAINER
-    st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         active_pp_date = st.session_state.get('active_pp_date')
         active_pp_chan = st.session_state.get('active_pp_chan')
         active_pp_grp = st.session_state.get('active_pp_grp')
-        label_parts = []
-        if active_pp_date:
-            label_parts.append(f"Ngày: <b style='color:#DC2626;'>{active_pp_date}</b>")
-        if active_pp_kw:
-            label_parts.append(f"Từ khóa: <b style='color:#DC2626;'>{active_pp_kw}</b>")
-        elif active_pp_pillar:
-            label_parts.append(f"Nhóm: <b style='color:#DC2626;'>{active_pp_pillar}</b>")
-        else:
-            label_parts.append("Tất cả 21 điểm nóng")
-        if active_pp_model and active_pp_model != "Tất cả mẫu xe":
-            label_parts.append(f"Mẫu xe: <b style='color:#2563EB;'>{active_pp_model}</b>")
-        if active_pp_chan and active_pp_chan != "Tất cả kênh":
-            label_parts.append(f"Nền tảng: <b style='color:#7C3AED;'>{active_pp_chan}</b>")
-        if active_pp_grp and active_pp_grp != "Tất cả hội nhóm":
-            label_parts.append(f"Hội nhóm: <b style='color:#EA580C;'>{active_pp_grp}</b>")
-
-        active_label = " &bull; ".join(label_parts)
         
+        # Build filter pills
+        filter_pills = []
+        if active_pp_date and active_pp_date != "Tất cả ngày":
+            filter_pills.append(f"<span style='background:#FFF1F2; border:1px solid #FFE4E6; color:#BE123C; font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:5px;'>Ngày: {active_pp_date}</span>")
+        if active_pp_kw:
+            filter_pills.append(f"<span style='background:#FFF1F2; border:1px solid #FFE4E6; color:#BE123C; font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:5px;'>Từ khóa: {active_pp_kw}</span>")
+        elif active_pp_pillar:
+            filter_pills.append(f"<span style='background:#FFF1F2; border:1px solid #FFE4E6; color:#BE123C; font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:5px;'>Nhóm: {active_pp_pillar}</span>")
+        if active_pp_model and active_pp_model != "Tất cả mẫu xe":
+            filter_pills.append(f"<span style='background:#EFF6FF; border:1px solid #DBEAFE; color:#1D4ED8; font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:5px;'>Xe: {active_pp_model}</span>")
+        if active_pp_chan and active_pp_chan != "Tất cả kênh":
+            filter_pills.append(f"<span style='background:#F5F3FF; border:1px solid #EDE9FE; color:#6D28D9; font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:5px;'>Kênh: {active_pp_chan}</span>")
+        if active_pp_grp and active_pp_grp != "Tất cả hội nhóm":
+            filter_pills.append(f"<span style='background:#FFF7ED; border:1px solid #FFEDD5; color:#C2410C; font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:5px;'>Nhóm: {active_pp_grp}</span>")
+
+        filter_pills_html = " ".join(filter_pills) if filter_pills else "<span style='font-size:0.78rem; color:#94A3B8; font-weight:500;'>Tất cả phản ánh</span>"
+
         # Apply active_pp_date, active_pp_model, active_pp_chan, and active_pp_grp filters to feed
         feed_records_df = filtered_pp_df.copy()
         if 'published_at' in feed_records_df.columns and not feed_records_df.empty:
@@ -3226,12 +3305,14 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             feed_records_df = feed_records_df[feed_records_df['clean_group'] == active_pp_grp]
 
         st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
-            <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
-                📋 Chi tiết Thảo luận & Trích dẫn từ Cộng đồng ({len(feed_records_df):,} thảo luận)
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:12px; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Chi tiết Thảo luận & Trích dẫn từ Cộng đồng</span>
+                <span style="font-size:0.75rem; font-weight:600; color:#0F172A; background:#F1F5F9; border:1px solid #E2E8F0; padding:2px 8px; border-radius:6px;">{len(feed_records_df):,} thảo luận</span>
             </div>
-            <div style="font-size:0.85rem; color:#64748B;">
-                Đang xem: {active_label}
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span style="font-size:0.78rem; color:#64748B; font-weight:500;">Bộ lọc:</span>
+                {filter_pills_html}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -3244,10 +3325,10 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             all_pp_dates = ["Tất cả ngày"]
 
         # Feed sub-filters (6 columns)
-        feed_c0, feed_c1, feed_c2, feed_c3, feed_c4, feed_c5 = st.columns([1.1, 1.3, 1.2, 1.5, 1.7, 0.8])
+        feed_c0, feed_c1, feed_c2, feed_c3, feed_c4, feed_c5 = st.columns([1.1, 1.2, 1.2, 1.6, 1.6, 0.8])
         with feed_c0:
             def_d_idx = all_pp_dates.index(active_pp_date) if active_pp_date and active_pp_date in all_pp_dates else 0
-            sel_date = st.selectbox("📅 Ngày:", options=all_pp_dates, index=def_d_idx, key=f"pp_feed_d_{active_pp_date}")
+            sel_date = st.selectbox("Ngày", options=all_pp_dates, index=def_d_idx, key=f"pp_feed_d_{active_pp_date}")
             if sel_date != (active_pp_date or "Tất cả ngày"):
                 new_d = sel_date if sel_date != "Tất cả ngày" else None
                 st.session_state['active_pp_date'] = new_d
@@ -3257,7 +3338,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         with feed_c1:
             all_models = ["Tất cả mẫu xe"] + sorted(list(filtered_pp_df['car_model'].dropna().unique())) if not filtered_pp_df.empty else ["Tất cả mẫu xe"]
             def_m_idx = all_models.index(active_pp_model) if active_pp_model and active_pp_model in all_models else 0
-            sel_model = st.selectbox("🚗 Mẫu xe:", options=all_models, index=def_m_idx, key=f"pp_feed_m_{active_pp_model}")
+            sel_model = st.selectbox("Mẫu xe", options=all_models, index=def_m_idx, key=f"pp_feed_m_{active_pp_model}")
             if sel_model != (active_pp_model or "Tất cả mẫu xe"):
                 new_m = sel_model if sel_model != "Tất cả mẫu xe" else None
                 st.session_state['active_pp_model'] = new_m
@@ -3267,7 +3348,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         with feed_c2:
             all_chans = ["Tất cả kênh"] + sorted(list(filtered_pp_df['channel'].dropna().unique())) if not filtered_pp_df.empty else ["Tất cả kênh"]
             def_c_idx = all_chans.index(active_pp_chan) if active_pp_chan and active_pp_chan in all_chans else 0
-            sel_chan = st.selectbox("📺 Nền tảng:", options=all_chans, index=def_c_idx, key=f"pp_feed_c_{active_pp_chan}")
+            sel_chan = st.selectbox("Nền tảng", options=all_chans, index=def_c_idx, key=f"pp_feed_c_{active_pp_chan}")
             if sel_chan != (active_pp_chan or "Tất cả kênh"):
                 new_c = sel_chan if sel_chan != "Tất cả kênh" else None
                 st.session_state['active_pp_chan'] = new_c
@@ -3277,7 +3358,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         with feed_c3:
             all_grps = ["Tất cả hội nhóm"] + list(filtered_pp_df['clean_group'].value_counts().index) if not filtered_pp_df.empty else ["Tất cả hội nhóm"]
             def_g_idx = all_grps.index(active_pp_grp) if active_pp_grp and active_pp_grp in all_grps else 0
-            sel_grp = st.selectbox("🏢 Hội nhóm / Nguồn:", options=all_grps, index=def_g_idx, key=f"pp_feed_g_{active_pp_grp}")
+            sel_grp = st.selectbox("Hội nhóm / Nguồn", options=all_grps, index=def_g_idx, key=f"pp_feed_g_{active_pp_grp}")
             if sel_grp != (active_pp_grp or "Tất cả hội nhóm"):
                 new_g = sel_grp if sel_grp != "Tất cả hội nhóm" else None
                 st.session_state['active_pp_grp'] = new_g
@@ -3285,9 +3366,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 st.rerun()
 
         with feed_c4:
-            search_in_feed = st.text_input("🔍 Lọc nội dung thảo luận:", placeholder="Nhập từ khóa tìm kiếm...", key="pp_feed_search")
+            search_in_feed = st.text_input("Lọc nội dung", placeholder="Nhập từ khóa tìm kiếm...", key="pp_feed_search")
         with feed_c5:
-            st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:25px;'></div>", unsafe_allow_html=True)
             has_any_pp_filter = (
                 (active_pp_date and active_pp_date != "Tất cả ngày") or
                 active_pp_kw or active_pp_pillar or
@@ -3297,7 +3378,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 search_in_feed
             )
             if has_any_pp_filter:
-                if st.button("❌ Bỏ lọc", key="clear_pp_feed_filters", use_container_width=True):
+                if st.button("✕ Bỏ lọc", key="clear_pp_feed_filters", use_container_width=True):
                     st.session_state['active_pp_date'] = None
                     st.session_state['active_pp_kw'] = None
                     st.session_state['active_pp_pillar'] = None
@@ -3334,7 +3415,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         unsafe_allow_html=True
                     )
         else:
-            st.success("Không tìm thấy thảo luận nào phù hợp với bộ lọc hiện tại.")
+            st.markdown("""
+            <div style="background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:8px; padding:36px 16px; text-align:center; margin:10px 0;">
+                <div style="font-size:0.92rem; font-weight:600; color:#475569; margin-bottom:4px;">Không tìm thấy thảo luận phù hợp</div>
+                <div style="font-size:0.8rem; color:#94A3B8;">Vui lòng thử chọn từ khóa, mẫu xe hoặc mốc thời gian khác.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 
 
