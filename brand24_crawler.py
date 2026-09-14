@@ -153,12 +153,22 @@ def crawl_brand24_excel(
         pass_loc = page.locator("input[type='password'], input[name='password']").first
         submit_loc = page.locator("button[type='submit'], input[type='submit'], button:has-text('Log in')").first
 
+        dismiss_popups(page)
         try:
             email_loc.wait_for(state="visible", timeout=20000)
             print(f"[Step 1/4] Entering credentials for user: {username[:4]}***@{username.split('@')[-1]}...")
+            dismiss_popups(page)
             email_loc.fill(username)
             pass_loc.fill(password)
-            submit_loc.click()
+            dismiss_popups(page)
+            try:
+                pass_loc.press("Enter")
+            except Exception:
+                pass
+            try:
+                submit_loc.click(timeout=3000, force=True)
+            except Exception:
+                pass
         except PlaywrightTimeoutError:
             print("[Brand24] Email input not found. Checking if already logged in...")
 
@@ -167,9 +177,21 @@ def crawl_brand24_excel(
             page.wait_for_url("**/panel**", timeout=35000)
             print("[Brand24] Authenticated successfully into dashboard.")
         except Exception:
+            err_text = ""
+            for err_sel in [".alert", ".error", "[class*='error']", "[class*='Error']", ".help-block", "div[role='alert']"]:
+                try:
+                    el = page.locator(err_sel).first
+                    if el.is_visible(timeout=1000):
+                        err_text = el.inner_text().strip()
+                        break
+                except Exception:
+                    pass
             print(f"[Brand24] Current URL after login attempt: {page.url}")
+            if err_text:
+                print(f"[Brand24] Page reported error: {err_text}")
             if "login" in page.url:
-                raise RuntimeError(f"Brand24 login failed. Please verify credentials. Current URL: {page.url}")
+                raise RuntimeError(f"Brand24 login failed. {err_text or 'Redirect to panel timed out.'} Current URL: {page.url}")
+
 
 
         # 2. Navigate to target results page
