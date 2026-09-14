@@ -2854,37 +2854,49 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     active_pp_kw = st.session_state.get('active_pp_kw')
 
     with st.container(border=True):
-        st.markdown("""
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-size:1rem; font-weight:700; color:#1E293B;">🎯 Bộ chọn Trọng điểm Định kiến Thương hiệu</span>
-            <span style="font-size:0.78rem; color:#64748B;">Bấm vào nhóm để lọc dữ liệu (hoặc bấm trực tiếp vào biểu đồ từ khóa & mẫu xe bên dưới)</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Row 1: Pillar Filters
-        p_cols = st.columns(7)
-        with p_cols[0]:
-            is_all_p = (active_pp_pillar is None and active_pp_kw is None)
-            if st.button(f"Tất cả ({total_pp:,})", key="btn_pp_all", type="primary" if is_all_p else "secondary", use_container_width=True):
+        sel_hdr_l, sel_hdr_r = st.columns([3.3, 1.1])
+        with sel_hdr_l:
+            kw_filter_hint = f" &bull; Đang chọn từ khóa: <b style='color:#DC2626;'>{active_pp_kw}</b>" if active_pp_kw else ""
+            st.markdown(f"""
+            <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">🎯 Bộ chọn 21 Từ khóa Định kiến Thương hiệu</span>
+                <span style="font-size:0.78rem; color:#64748B;">(Bấm vào từ khóa để lọc biểu đồ & bài viết{kw_filter_hint})</span>
+            </div>
+            """, unsafe_allow_html=True)
+        with sel_hdr_r:
+            is_all_p = (active_pp_kw is None and active_pp_pillar is None)
+            all_btn_label = f"Tất cả ({total_pp:,})"
+            if st.button(all_btn_label, key="btn_pp_all", type="primary" if is_all_p else "secondary", use_container_width=True):
                 st.session_state['active_pp_pillar'] = None
                 st.session_state['active_pp_kw'] = None
                 st.rerun()
 
-        for idx, (p_name, p_meta) in enumerate(PAIN_POINT_PILLARS.items(), 1):
-            with p_cols[idx]:
-                cnt = pillar_counts.get(p_name, 0)
-                is_act = (active_pp_pillar == p_name and active_pp_kw is None)
-                label_p = f"{p_meta['icon']} {p_meta.get('short_name', p_name)} ({cnt})"
-                if st.button(label_p, key=f"btn_pillar_{idx}", type="primary" if is_act else "secondary", use_container_width=True):
-                    if is_act:
-                        st.session_state['active_pp_pillar'] = None
-                    else:
-                        st.session_state['active_pp_pillar'] = p_name
-                        st.session_state['active_pp_kw'] = None
-                    st.rerun()
+        st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
 
-        # Sorted keywords for the charts below
-        sorted_kws = sorted(kw_counts.items(), key=lambda x: x[1], reverse=True)
+        # Sorted 21 keywords (sorted by frequency descending, then name)
+        sorted_kws = sorted(kw_counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
+
+        # Render all 21 keywords in 3 symmetrical rows of 7 columns
+        k_chunk_size = 7
+        for chunk_idx in range(0, len(sorted_kws), k_chunk_size):
+            chunk = sorted_kws[chunk_idx:chunk_idx+k_chunk_size]
+            c_cols = st.columns(k_chunk_size)
+            for i, (kw, cnt) in enumerate(chunk):
+                with c_cols[i]:
+                    meta = TOYOTA_PAIN_POINTS.get(kw, {})
+                    icon = meta.get('icon', '📌')
+                    is_k_act = (active_pp_kw == kw)
+                    kw_display = f"{icon} {kw} ({cnt})"
+                    b_style = "primary" if is_k_act else "secondary"
+                    kw_key = f"btn_kw_sel_{kw.replace(' ', '_')}"
+                    if st.button(kw_display, key=kw_key, type=b_style, use_container_width=True):
+                        if is_k_act:
+                            st.session_state['active_pp_kw'] = None
+                            st.session_state['active_pp_pillar'] = None
+                        else:
+                            st.session_state['active_pp_kw'] = kw
+                            st.session_state['active_pp_pillar'] = meta.get('pillar')
+                        st.rerun()
 
     # Filter pp_df according to current selection
     active_pp_pillar = st.session_state.get('active_pp_pillar')
