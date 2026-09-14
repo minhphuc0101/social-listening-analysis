@@ -2731,8 +2731,63 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     # MODERN EXECUTIVE STYLING FOR PAIN POINTS PAGE
     st.markdown("""
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        /* Modern executive typography */
+        html, body, [class*="css"], div[data-testid="stAppViewContainer"] {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+
+        /* Modern styling for st.pills / ButtonGroup */
+        div[data-testid="stButtonGroup"],
+        div[data-testid="stPills"] {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            row-gap: 9px !important;
+            align-items: center !important;
+        }
+
+        div[data-testid="stButtonGroup"] button,
+        div[data-testid="stPills"] button {
+            border-radius: 9999px !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-size: 0.86rem !important;
+            font-weight: 500 !important;
+            padding: 0.4rem 0.95rem !important;
+            min-height: 35px !important;
+            border: 1px solid #E2E8F0 !important;
+            background-color: #FFFFFF !important;
+            color: #334155 !important;
+            letter-spacing: -0.01em !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        div[data-testid="stButtonGroup"] button:hover,
+        div[data-testid="stPills"] button:hover {
+            border-color: #94A3B8 !important;
+            background-color: #F8FAFC !important;
+            color: #0F172A !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08) !important;
+        }
+
+        div[data-testid="stButtonGroup"] button[aria-checked="true"],
+        div[data-testid="stButtonGroup"] button[aria-pressed="true"],
+        div[data-testid="stButtonGroup"] button[data-selected="true"],
+        div[data-testid="stPills"] button[aria-checked="true"],
+        div[data-testid="stPills"] button[aria-pressed="true"] {
+            background-color: #0F172A !important;
+            border-color: #0F172A !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22) !important;
+        }
+
         /* Typography and controls */
         div[data-testid="stSelectbox"] label, div[data-testid="stTextInput"] label {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             font-size: 0.76rem !important;
             font-weight: 600 !important;
             color: #475569 !important;
@@ -2743,23 +2798,26 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
             border-radius: 8px !important;
             border-color: #E2E8F0 !important;
-            font-size: 0.83rem !important;
-            min-height: 36px !important;
+            font-size: 0.84rem !important;
+            min-height: 38px !important;
             background-color: #FFFFFF !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
         div[data-testid="stTextInput"] input {
             border-radius: 8px !important;
             border-color: #E2E8F0 !important;
-            font-size: 0.83rem !important;
-            min-height: 36px !important;
+            font-size: 0.84rem !important;
+            min-height: 38px !important;
             background-color: #FFFFFF !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
         div[data-testid="stButton"] > button {
             border-radius: 8px !important;
-            font-size: 0.81rem !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-size: 0.82rem !important;
             font-weight: 500 !important;
-            padding: 0.35rem 0.6rem !important;
-            min-height: 36px !important;
+            padding: 0.35rem 0.65rem !important;
+            min-height: 38px !important;
             transition: all 0.15s ease-in-out !important;
             border: 1px solid #E2E8F0 !important;
             background-color: #FFFFFF !important;
@@ -2873,50 +2931,82 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     # INTERACTIVE TOPIC PILLS & SELECTOR
     active_pp_pillar = st.session_state.get('active_pp_pillar')
     active_pp_kw = st.session_state.get('active_pp_kw')
+    pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
+
+    # Sorted 21 keywords (sorted by frequency descending, then name)
+    sorted_kws = sorted(kw_counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
 
     with st.container(border=True):
-        sel_hdr_l, sel_hdr_r = st.columns([3.4, 1.0])
-        with sel_hdr_l:
-            kw_filter_hint = f" &bull; <span style='color:#0F172A; font-weight:600; background:#F1F5F9; border:1px solid #E2E8F0; padding:2px 8px; border-radius:5px;'>Đang chọn: {active_pp_kw}</span>" if active_pp_kw else ""
-            st.markdown(f"""
-            <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
-                <span style="font-size:0.95rem; font-weight:700; color:#0F172A; letter-spacing:-0.01em;">Bộ chọn 21 Từ khóa Định kiến</span>
-                <span style="font-size:0.8rem; color:#64748B;">— Bấm vào từ khóa để lọc biểu đồ & bài viết{kw_filter_hint}</span>
+        if active_pp_kw:
+            kw_cnt_disp = kw_counts.get(active_pp_kw, 0)
+            status_tag = f"<span style='display:inline-flex; align-items:center; gap:6px; background:#FFF1F2; color:#BE123C; border:1px solid #FFE4E6; padding:3px 12px; border-radius:8px; font-size:0.8rem; font-weight:600;'>Đang lọc: {active_pp_kw} ({kw_cnt_disp} buzz)</span>"
+        else:
+            status_tag = f"<span style='color:#64748B; font-size:0.82rem; font-weight:500;'>Hiển thị: <b style='color:#0F172A;'>Tất cả {total_pp:,} buzz</b></span>"
+
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <span style="font-size:0.98rem; font-weight:700; color:#0F172A; letter-spacing:-0.015em;">21 Từ khóa Định kiến Thương hiệu Toyota</span>
+                <span style="font-size:0.82rem; color:#64748B; margin-left:8px;">— Bấm vào từ khóa để lọc biểu đồ & bài viết</span>
             </div>
-            """, unsafe_allow_html=True)
-        with sel_hdr_r:
-            is_all_p = (active_pp_kw is None and active_pp_pillar is None)
-            all_btn_label = f"Tất cả ({total_pp:,})"
-            if st.button(all_btn_label, key="btn_pp_all", type="primary" if is_all_p else "secondary", use_container_width=True):
-                st.session_state['active_pp_pillar'] = None
-                st.session_state['active_pp_kw'] = None
+            <div>
+                {status_tag}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        pill_options = ["ALL"] + [kw for kw, _ in sorted_kws]
+        default_pill = active_pp_kw if (active_pp_kw and active_pp_kw in pill_options) else "ALL"
+
+        if hasattr(st, 'pills'):
+            def format_kw_pill(opt):
+                if opt == "ALL":
+                    return f"Tất cả ({total_pp:,})"
+                cnt = kw_counts.get(opt, 0)
+                return f"{opt} ({cnt})"
+
+            selected_pill = st.pills(
+                "Bộ chọn 21 Từ khóa Định kiến",
+                options=pill_options,
+                default=default_pill,
+                format_func=format_kw_pill,
+                selection_mode="single",
+                label_visibility="collapsed",
+                key=f"pp_pills_sel_{pp_reset_ver}"
+            )
+
+            new_kw = selected_pill if (selected_pill and selected_pill != "ALL") else None
+            if new_kw != active_pp_kw:
+                st.session_state['active_pp_kw'] = new_kw
+                st.session_state['active_pp_pillar'] = TOYOTA_PAIN_POINTS.get(new_kw, {}).get('pillar') if new_kw else None
                 st.rerun()
-
-        st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
-
-        # Sorted 21 keywords (sorted by frequency descending, then name)
-        sorted_kws = sorted(kw_counts.items(), key=lambda x: (x[1], x[0]), reverse=True)
-
-        # Render all 21 keywords in 3 clean symmetrical rows of 7 columns (NO ICONS)
-        k_chunk_size = 7
-        for chunk_idx in range(0, len(sorted_kws), k_chunk_size):
-            chunk = sorted_kws[chunk_idx:chunk_idx+k_chunk_size]
-            c_cols = st.columns(k_chunk_size)
-            for i, (kw, cnt) in enumerate(chunk):
-                with c_cols[i]:
-                    meta = TOYOTA_PAIN_POINTS.get(kw, {})
-                    is_k_act = (active_pp_kw == kw)
-                    kw_display = f"{kw} ({cnt})"
-                    b_style = "primary" if is_k_act else "secondary"
-                    kw_key = f"btn_kw_sel_{kw.replace(' ', '_')}"
-                    if st.button(kw_display, key=kw_key, type=b_style, use_container_width=True):
-                        if is_k_act:
-                            st.session_state['active_pp_kw'] = None
-                            st.session_state['active_pp_pillar'] = None
-                        else:
-                            st.session_state['active_pp_kw'] = kw
-                            st.session_state['active_pp_pillar'] = meta.get('pillar')
-                        st.rerun()
+        else:
+            all_btn_col, _ = st.columns([1.5, 4])
+            with all_btn_col:
+                is_all_p = (active_pp_kw is None and active_pp_pillar is None)
+                if st.button(f"Tất cả ({total_pp:,})", key="btn_pp_all", type="primary" if is_all_p else "secondary", use_container_width=True):
+                    st.session_state['active_pp_pillar'] = None
+                    st.session_state['active_pp_kw'] = None
+                    st.rerun()
+            k_chunk_size = 7
+            for chunk_idx in range(0, len(sorted_kws), k_chunk_size):
+                chunk = sorted_kws[chunk_idx:chunk_idx+k_chunk_size]
+                c_cols = st.columns(k_chunk_size)
+                for i, (kw, cnt) in enumerate(chunk):
+                    with c_cols[i]:
+                        meta = TOYOTA_PAIN_POINTS.get(kw, {})
+                        is_k_act = (active_pp_kw == kw)
+                        kw_display = f"{kw} ({cnt})"
+                        b_style = "primary" if is_k_act else "secondary"
+                        kw_key = f"btn_kw_sel_{kw.replace(' ', '_')}"
+                        if st.button(kw_display, key=kw_key, type=b_style, use_container_width=True):
+                            if is_k_act:
+                                st.session_state['active_pp_kw'] = None
+                                st.session_state['active_pp_pillar'] = None
+                            else:
+                                st.session_state['active_pp_kw'] = kw
+                                st.session_state['active_pp_pillar'] = meta.get('pillar')
+                            st.rerun()
 
     # Filter pp_df according to current selection
     active_pp_pillar = st.session_state.get('active_pp_pillar')
