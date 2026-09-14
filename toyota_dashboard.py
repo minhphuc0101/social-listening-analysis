@@ -521,7 +521,7 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
     raw_content = str(record.get('content') or record.get('Content') or record.get('description') or '').strip()
     clean_content = html.escape(raw_content)
     
-    # Highlight keywords in content
+    # Highlight non-negated keywords in content
     if active_kw and active_kw in COMPILED_PAIN_POINTS:
         target_kws = [active_kw]
     elif matched_kws:
@@ -529,13 +529,7 @@ def render_pain_point_card(record, matched_kws=None, active_kw=None):
     else:
         target_kws = list(COMPILED_PAIN_POINTS.keys())
         
-    for kw in sorted(target_kws, key=lambda k: len(k), reverse=True):
-        if kw in COMPILED_PAIN_POINTS:
-            meta = COMPILED_PAIN_POINTS[kw]
-            clean_content = meta['regex'].sub(
-                r'<mark style="background:#FEE2E2; color:#DC2626; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid #FECACA;">\g<0></mark>',
-                clean_content
-            )
+    clean_content = highlight_pain_points(clean_content, target_kws)
             
     badges_html = []
     if matched_kws:

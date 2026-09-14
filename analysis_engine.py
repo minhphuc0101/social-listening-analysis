@@ -357,13 +357,39 @@ PAIN_POINT_PILLARS = {
     'Thái độ & Trải nghiệm': {'icon': '🗣️', 'color': '#E11D48', 'keywords': ['chê', 'không thích']}
 }
 
+PAIN_POINT_NEGATIONS = [
+    # General negations: không, k, ko, khg, chẳng, chưa, chả, đâu, đâu có, làm gì có, ai
+    r'\b(không|k|ko|khg|chẳng|chưa|chả|đâu\s*có|làm\s*gì\s*có|ai)\s*(hề|hề\s*có|bao\s*giờ|thấy|bị|có|phải|một|1|chút|tí|mấy|gì)?\s*$',
+    # Guarantee & used car sales claim negations: bao test, bao check, bao, cam kết, zin đẹp, đẹp
+    r'\b(khỏi|miễn|hết\s*chỗ|bao\s*test|bao\s*check|bao|cam\s*kết|zin\s*đẹp|đẹp)\s*(không|k|ko)?\s*$',
+    # Diminishing modifiers: ít, đỡ, bớt, chống, giảm
+    r'\b(ít|đỡ|bớt|chống|giảm|hạn\s*chế)\s*(khi|bị)?\s*$',
+    # Specific superlative praise for 'chê': khỏi chê, miễn chê, hết chỗ chê, không có gì để chê
+    r'\b(khỏi|miễn|hết\s*chỗ|không\s*có\s*gì\s*để|k\s*có\s*gì\s*để|ko\s*có\s*gì\s*để|chẳng\s*có\s*gì\s*(để)?|không\s*chê\s*vào\s*đâu)\s*$'
+]
+
+def is_pain_point_negated(full_text, match_start, match_end, term):
+    prefix = full_text[max(0, match_start-50):match_start].strip().lower()
+    for np in PAIN_POINT_NEGATIONS:
+        if re.search(np, prefix):
+            return True
+    suffix = full_text[match_end:min(len(full_text), match_end+30)].strip().lower()
+    if term == 'chê' and re.search(r'^vào\s*đâu\s*(được|nữa)', suffix):
+        return True
+    return False
+
 def extract_toyota_pain_points(text):
     if not text:
         return []
     matched = []
     text_str = str(text)
     for kw, meta in COMPILED_PAIN_POINTS.items():
-        if meta['regex'].search(text_str):
+        found = False
+        for m in meta['regex'].finditer(text_str):
+            if not is_pain_point_negated(text_str, m.start(), m.end(), kw):
+                found = True
+                break
+        if found:
             matched.append(kw)
     return matched
 
@@ -376,10 +402,11 @@ def highlight_pain_points(text, target_keywords=None):
     for kw in sorted_kws:
         if kw in COMPILED_PAIN_POINTS:
             meta = COMPILED_PAIN_POINTS[kw]
-            text_str = meta['regex'].sub(
-                rf'<mark style="background:#FEE2E2; color:#DC2626; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid #FECACA;">\g<0></mark>',
-                text_str
-            )
+            def replacer(m):
+                if is_pain_point_negated(text_str, m.start(), m.end(), kw):
+                    return m.group(0)
+                return f'<mark style="background:#FEE2E2; color:#DC2626; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid #FECACA;">{m.group(0)}</mark>'
+            text_str = meta['regex'].sub(replacer, text_str)
     return text_str
 
 # -------------------------------------------------------------
@@ -463,7 +490,12 @@ def analyze_sentiment(text):
     # Commercial buy/sell listings (car ads, sales links) are promotional/commercial, NOT customer praise.
     if is_commercial_buy_sell(text_lower):
         words = re.findall(r"\w+", text_lower)
-        neg_count = sum(1 for w in words if w in NEGATIVE_WORDS)
+        neg_count = 0
+        for i, w in enumerate(words):
+            if w in NEGATIVE_WORDS:
+                if i > 0 and words[i-1] in NEGATION_WORDS:
+                    continue
+                neg_count += 1
         if neg_count >= 2:
             return "NEGATIVE"
         return "NEUTRAL"
