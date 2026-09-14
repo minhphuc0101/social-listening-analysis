@@ -2899,11 +2899,11 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
 
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
 
-    # THREE BALANCED CHARTS SIDE-BY-SIDE
-    chart_col1, chart_col2, chart_col3 = st.columns([1, 1.15, 0.95])
+    # TIER 1: 2 CHARTS SIDE-BY-SIDE (Từ khóa & Mẫu xe)
+    r1_col1, r1_col2 = st.columns([1, 1.15])
 
     # Column 1: Xếp hạng Tần suất Từ khóa Định kiến
-    with chart_col1:
+    with r1_col1:
         with st.container(border=True):
             kw_hdr_sub = f"Đang lọc: <b style='color:#DC2626;'>{active_pp_kw}</b>" if active_pp_kw else "👆 Bấm thanh để lọc từ khóa"
             st.markdown(f"""
@@ -2946,7 +2946,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     hovertemplate='<b>%{y}</b>: %{x:,} thảo luận<extra></extra>'
                 ))
                 fig_pp_bar.update_layout(
-                    height=360,
+                    height=340,
                     margin=dict(t=10, b=20, l=80, r=30),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
@@ -2983,7 +2983,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 st.info("Không có dữ liệu cho nhóm từ khóa này.")
 
     # Column 2: Ma trận Mẫu xe chịu phản ánh nhiều nhất
-    with chart_col2:
+    with r1_col2:
         with st.container(border=True):
             active_pp_model = st.session_state.get('active_pp_model')
             model_hdr_sub = f"Đang lọc: <b style='color:#2563EB;'>{active_pp_model}</b>" if active_pp_model else "👆 Bấm thanh để lọc mẫu xe"
@@ -3014,7 +3014,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     hovertemplate='<b>%{x}</b>: %{y:,} thảo luận<extra></extra>'
                 ))
                 fig_m.update_layout(
-                    height=360,
+                    height=340,
                     margin=dict(t=10, b=30, l=35, r=15),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
@@ -3050,15 +3050,97 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             else:
                 st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
 
-    # Column 3: Phân bổ Định kiến theo Kênh thảo luận
-    with chart_col3:
+    # TIER 2: 2 CHARTS SIDE-BY-SIDE (Hội nhóm / Kênh cụ thể & Nền tảng Thảo luận)
+    st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
+    r2_col1, r2_col2 = st.columns([1.25, 0.95])
+
+    # Column 3: Phân bổ Định kiến theo Hội nhóm / Nguồn cụ thể (Specific Groups & Channels)
+    with r2_col1:
         with st.container(border=True):
-            active_pp_chan = st.session_state.get('active_pp_chan')
-            chan_hdr_sub = f"Đang lọc: <b style='color:#DC2626;'>{active_pp_chan}</b>" if active_pp_chan else "👆 Bấm kênh để lọc"
+            active_pp_grp = st.session_state.get('active_pp_grp')
+            grp_hdr_sub = f"Đang lọc: <b style='color:#C2410C;'>{active_pp_grp}</b>" if active_pp_grp else "👆 Bấm thanh để lọc hội nhóm"
             st.markdown(f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Phân bổ theo Kênh thảo luận</span>
-                <span style="font-size:0.75rem; color:#DC2626; background:#FEF2F2; border:1px solid #FECACA; padding:2px 8px; border-radius:10px; font-weight:600;">{chan_hdr_sub}</span>
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Top Hội nhóm & Kênh cụ thể phát sinh Định kiến</span>
+                <span style="font-size:0.75rem; color:#C2410C; background:#FFF7ED; border:1px solid #FFEDD5; padding:2px 8px; border-radius:10px; font-weight:600;">{grp_hdr_sub}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if not filtered_pp_df.empty:
+                if 'clean_group' not in filtered_pp_df.columns:
+                    filtered_pp_df['clean_group'] = filtered_pp_df['group_name'].apply(clean_group_name) if 'group_name' in filtered_pp_df.columns else 'Mạng xã hội chung'
+                
+                grp_dist = filtered_pp_df['clean_group'].value_counts().head(8).reset_index()
+                grp_dist.columns = ['Group', 'Count']
+                grp_dist = grp_dist.sort_values('Count', ascending=True)
+
+                neg_per_grp = filtered_pp_df[filtered_pp_df['sentiment'] == 'NEGATIVE'].groupby('clean_group').size().to_dict()
+                grp_dist['NegCount'] = grp_dist['Group'].map(lambda g: neg_per_grp.get(g, 0))
+
+                g_colors = ['#C2410C' if (active_pp_grp == g) else '#FB923C' for g in grp_dist['Group']]
+                g_lines = ['#9A3412' if (active_pp_grp == g) else '#EA580C' for g in grp_dist['Group']]
+                g_widths = [2.5 if (active_pp_grp == g) else 1 for g in grp_dist['Group']]
+
+                custom_data_grp = list(zip(grp_dist['Group'], grp_dist['NegCount']))
+
+                fig_pp_grp = go.Figure(go.Bar(
+                    x=grp_dist['Count'],
+                    y=grp_dist['Group'],
+                    orientation='h',
+                    marker_color=g_colors,
+                    marker_line_color=g_lines,
+                    marker_line_width=g_widths,
+                    customdata=custom_data_grp,
+                    text=grp_dist['Count'],
+                    textposition='outside',
+                    hovertemplate='<b>%{y}</b>: %{x:,} phản ánh định kiến<br>🔴 Tiêu cực: %{customdata[1]:,} thảo luận<extra></extra>'
+                ))
+                fig_pp_grp.update_layout(
+                    height=340,
+                    margin=dict(t=10, b=20, l=190, r=30),
+                    plot_bgcolor='#FFFFFF',
+                    paper_bgcolor='#FFFFFF',
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
+                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=11, color='#1E293B'))
+                )
+                pp_grp_ver = st.session_state.get('pp_grp_ver', 0)
+                grp_bar_event = st.plotly_chart(
+                    fig_pp_grp,
+                    use_container_width=True,
+                    on_select="rerun",
+                    selection_mode="points",
+                    key=f"pp_grp_chart_d_{pp_grp_ver}"
+                )
+                if grp_bar_event:
+                    sel = grp_bar_event.get("selection") if isinstance(grp_bar_event, dict) else getattr(grp_bar_event, "selection", None)
+                    if sel:
+                        pts = sel.get("points") if isinstance(sel, dict) else getattr(sel, "points", [])
+                        if pts:
+                            pt = pts[0]
+                            pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
+                            clicked_g = pt_dict.get("y") or (pt_dict.get("customdata")[0] if isinstance(pt_dict.get("customdata"), (list, tuple)) else pt_dict.get("customdata"))
+                            if clicked_g and clicked_g != active_pp_grp:
+                                st.session_state['active_pp_grp'] = clicked_g
+                                st.session_state['pp_grp_from_chart'] = True
+                                st.session_state['pp_grp_ver'] = pp_grp_ver + 1
+                                st.rerun()
+                        elif active_pp_grp is not None and st.session_state.get('pp_grp_from_chart'):
+                            st.session_state['active_pp_grp'] = None
+                            st.session_state['pp_grp_from_chart'] = False
+                            st.session_state['pp_grp_ver'] = pp_grp_ver + 1
+                            st.rerun()
+            else:
+                st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
+
+    # Column 4: Phân bổ Định kiến theo Nền tảng thảo luận (Platform Medium)
+    with r2_col2:
+        with st.container(border=True):
+            active_pp_chan = st.session_state.get('active_pp_chan')
+            chan_hdr_sub = f"Đang lọc: <b style='color:#7C3AED;'>{active_pp_chan}</b>" if active_pp_chan else "👆 Bấm kênh để lọc"
+            st.markdown(f"""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Phân bổ theo Nền tảng Thảo luận</span>
+                <span style="font-size:0.75rem; color:#7C3AED; background:#F5F3FF; border:1px solid #DDD6FE; padding:2px 8px; border-radius:10px; font-weight:600;">{chan_hdr_sub}</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -3070,8 +3152,8 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                 neg_per_chan = filtered_pp_df[filtered_pp_df['sentiment'] == 'NEGATIVE'].groupby('channel').size().to_dict()
                 chan_dist['NegCount'] = chan_dist['Channel'].map(lambda c: neg_per_chan.get(c, 0))
 
-                c_colors = ['#991B1B' if (active_pp_chan == ch) else '#F87171' for ch in chan_dist['Channel']]
-                c_lines = ['#7F1D1D' if (active_pp_chan == ch) else '#EF4444' for ch in chan_dist['Channel']]
+                c_colors = ['#6D28D9' if (active_pp_chan == ch) else '#A78BFA' for ch in chan_dist['Channel']]
+                c_lines = ['#4C1D95' if (active_pp_chan == ch) else '#7C3AED' for ch in chan_dist['Channel']]
                 c_widths = [2.5 if (active_pp_chan == ch) else 1 for ch in chan_dist['Channel']]
 
                 custom_data_chan = list(zip(chan_dist['Channel'], chan_dist['NegCount']))
@@ -3089,7 +3171,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     hovertemplate='<b>%{y}</b>: %{x:,} phản ánh định kiến<br>🔴 Tiêu cực: %{customdata[1]:,} thảo luận<extra></extra>'
                 ))
                 fig_pp_chan.update_layout(
-                    height=360,
+                    height=340,
                     margin=dict(t=10, b=20, l=110, r=30),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
@@ -3129,6 +3211,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         active_pp_chan = st.session_state.get('active_pp_chan')
+        active_pp_grp = st.session_state.get('active_pp_grp')
         label_parts = []
         if active_pp_kw:
             label_parts.append(f"Từ khóa: <b style='color:#DC2626;'>{active_pp_kw}</b>")
@@ -3139,16 +3222,20 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         if active_pp_model and active_pp_model != "Tất cả mẫu xe":
             label_parts.append(f"Mẫu xe: <b style='color:#2563EB;'>{active_pp_model}</b>")
         if active_pp_chan and active_pp_chan != "Tất cả kênh":
-            label_parts.append(f"Kênh: <b style='color:#DC2626;'>{active_pp_chan}</b>")
+            label_parts.append(f"Nền tảng: <b style='color:#7C3AED;'>{active_pp_chan}</b>")
+        if active_pp_grp and active_pp_grp != "Tất cả hội nhóm":
+            label_parts.append(f"Hội nhóm: <b style='color:#EA580C;'>{active_pp_grp}</b>")
 
         active_label = " &bull; ".join(label_parts)
         
-        # Apply active_pp_model and active_pp_chan filters to feed
+        # Apply active_pp_model, active_pp_chan, and active_pp_grp filters to feed
         feed_records_df = filtered_pp_df.copy()
         if active_pp_model and active_pp_model != "Tất cả mẫu xe":
             feed_records_df = feed_records_df[feed_records_df['car_model'] == active_pp_model]
         if active_pp_chan and active_pp_chan != "Tất cả kênh":
             feed_records_df = feed_records_df[feed_records_df['channel'] == active_pp_chan]
+        if active_pp_grp and active_pp_grp != "Tất cả hội nhóm":
+            feed_records_df = feed_records_df[feed_records_df['clean_group'] == active_pp_grp]
 
         st.markdown(f"""
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
@@ -3161,12 +3248,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         </div>
         """, unsafe_allow_html=True)
 
-        # Feed sub-filters
-        feed_c1, feed_c2, feed_c3, feed_c4 = st.columns([1.5, 1.5, 2.2, 1.0])
+        # Feed sub-filters (5 columns)
+        feed_c1, feed_c2, feed_c3, feed_c4, feed_c5 = st.columns([1.5, 1.4, 1.8, 1.9, 0.9])
         with feed_c1:
             all_models = ["Tất cả mẫu xe"] + sorted(list(filtered_pp_df['car_model'].dropna().unique())) if not filtered_pp_df.empty else ["Tất cả mẫu xe"]
             def_m_idx = all_models.index(active_pp_model) if active_pp_model and active_pp_model in all_models else 0
-            sel_model = st.selectbox("🚗 Lọc theo Mẫu xe:", options=all_models, index=def_m_idx, key=f"pp_feed_m_d_{active_pp_model}")
+            sel_model = st.selectbox("🚗 Mẫu xe:", options=all_models, index=def_m_idx, key=f"pp_feed_m_d_{active_pp_model}")
             if sel_model != (active_pp_model or "Tất cả mẫu xe"):
                 st.session_state['active_pp_model'] = sel_model if sel_model != "Tất cả mẫu xe" else None
                 st.session_state['pp_m_ver'] = st.session_state.get('pp_m_ver', 0) + 1
@@ -3175,28 +3262,47 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         with feed_c2:
             all_chans = ["Tất cả kênh"] + sorted(list(filtered_pp_df['channel'].dropna().unique())) if not filtered_pp_df.empty else ["Tất cả kênh"]
             def_c_idx = all_chans.index(active_pp_chan) if active_pp_chan and active_pp_chan in all_chans else 0
-            sel_chan = st.selectbox("📺 Lọc theo Kênh:", options=all_chans, index=def_c_idx, key=f"pp_feed_c_d_{active_pp_chan}")
+            sel_chan = st.selectbox("📺 Nền tảng:", options=all_chans, index=def_c_idx, key=f"pp_feed_c_d_{active_pp_chan}")
             if sel_chan != (active_pp_chan or "Tất cả kênh"):
                 st.session_state['active_pp_chan'] = sel_chan if sel_chan != "Tất cả kênh" else None
                 st.session_state['pp_chan_ver'] = st.session_state.get('pp_chan_ver', 0) + 1
                 st.rerun()
 
         with feed_c3:
-            search_in_feed = st.text_input("🔍 Lọc nội dung thảo luận:", placeholder="Nhập từ khóa tìm kiếm...", key="pp_feed_search")
+            all_grps = ["Tất cả hội nhóm"] + list(filtered_pp_df['clean_group'].value_counts().index) if not filtered_pp_df.empty else ["Tất cả hội nhóm"]
+            def_g_idx = all_grps.index(active_pp_grp) if active_pp_grp and active_pp_grp in all_grps else 0
+            sel_grp = st.selectbox("🏢 Hội nhóm / Nguồn:", options=all_grps, index=def_g_idx, key=f"pp_feed_g_d_{active_pp_grp}")
+            if sel_grp != (active_pp_grp or "Tất cả hội nhóm"):
+                st.session_state['active_pp_grp'] = sel_grp if sel_grp != "Tất cả hội nhóm" else None
+                st.session_state['pp_grp_ver'] = st.session_state.get('pp_grp_ver', 0) + 1
+                st.rerun()
+
         with feed_c4:
+            search_in_feed = st.text_input("🔍 Lọc nội dung thảo luận:", placeholder="Nhập từ khóa tìm kiếm...", key="pp_feed_search_d")
+        with feed_c5:
             st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
-            if active_pp_kw or active_pp_pillar or (active_pp_model and active_pp_model != "Tất cả mẫu xe") or (active_pp_chan and active_pp_chan != "Tất cả kênh") or search_in_feed:
+            has_any_pp_filter = (
+                active_pp_kw or active_pp_pillar or
+                (active_pp_model and active_pp_model != "Tất cả mẫu xe") or
+                (active_pp_chan and active_pp_chan != "Tất cả kênh") or
+                (active_pp_grp and active_pp_grp != "Tất cả hội nhóm") or
+                search_in_feed
+            )
+            if has_any_pp_filter:
                 if st.button("❌ Bỏ lọc", key="clear_pp_feed_filters_d", use_container_width=True):
                     st.session_state['active_pp_kw'] = None
                     st.session_state['active_pp_pillar'] = None
                     st.session_state['active_pp_model'] = None
                     st.session_state['active_pp_chan'] = None
+                    st.session_state['active_pp_grp'] = None
                     st.session_state['pp_kw_from_chart'] = False
                     st.session_state['pp_model_from_chart'] = False
                     st.session_state['pp_chan_from_chart'] = False
+                    st.session_state['pp_grp_from_chart'] = False
                     st.session_state['pp_kw_ver'] = st.session_state.get('pp_kw_ver', 0) + 1
                     st.session_state['pp_m_ver'] = st.session_state.get('pp_m_ver', 0) + 1
                     st.session_state['pp_chan_ver'] = st.session_state.get('pp_chan_ver', 0) + 1
+                    st.session_state['pp_grp_ver'] = st.session_state.get('pp_grp_ver', 0) + 1
                     st.rerun()
 
         # Apply search filter
