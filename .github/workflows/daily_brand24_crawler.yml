@@ -1,13 +1,13 @@
-name: Daily Brand24 Crawler & DB Sync
+name: Brand24 Crawler & DB Sync (4x Daily)
 
 on:
   schedule:
-    # Runs daily at 02:00 UTC (09:00 AM Vietnam Time UTC+7)
-    - cron: '0 2 * * *'
+    # Runs 4 times daily at 01:00, 07:00, 13:00, 19:00 UTC (08:00, 14:00, 20:00, 02:00 Vietnam Time UTC+7)
+    - cron: '0 1,7,13,19 * * *'
   workflow_dispatch:
     inputs:
       target_date:
-        description: 'Target Date (YYYY-MM-DD). Leave blank for yesterday.'
+        description: 'Target Date (YYYY-MM-DD). Leave blank for sliding 48h window.'
         required: false
         default: ''
       project_id:

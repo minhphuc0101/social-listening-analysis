@@ -110,7 +110,9 @@ def crawl_brand24_excel(
 
     if not start_date:
         start_date = get_target_date(days_back=1)
-    if not end_date:
+        if not end_date:
+            end_date = get_target_date(days_back=0)
+    elif not end_date:
         end_date = start_date
 
     results_url = (
@@ -268,7 +270,10 @@ def crawl_brand24_excel(
 
 
         download = dl_info.value
-        filename = f"toyota_report_{start_date}.xlsx"
+        if start_date == end_date:
+            filename = f"toyota_report_{start_date}.xlsx"
+        else:
+            filename = f"toyota_report_{start_date}_to_{end_date}.xlsx"
         saved_path = os.path.abspath(os.path.join(output_dir, filename))
         download.save_as(saved_path)
 
@@ -282,9 +287,18 @@ def crawl_brand24_excel(
 
 def run_daily_task(args):
     """Coordinates download, parsing, and database synchronization with audit logging."""
-    target_date = get_target_date(days_back=args.days_back, custom_date=args.date)
-    start_date = args.start_date or target_date
-    end_date = args.end_date or target_date
+    if args.date:
+        start_date = args.date.strip()
+        end_date = args.date.strip()
+    elif args.start_date or args.end_date:
+        start_date = args.start_date or get_target_date(days_back=1)
+        end_date = args.end_date or start_date
+    else:
+        # Default behavior: sliding 48-hour window (yesterday to today in GMT+7)
+        # to support 4x daily runs and capture fresh intraday mentions with atomic deduplication
+        start_date = get_target_date(days_back=args.days_back)
+        end_date = get_target_date(days_back=0)
+
     start_time = time.time()
 
     excel_path = None
@@ -303,14 +317,14 @@ def run_daily_task(args):
         if not excel_path or not os.path.exists(excel_path):
             duration = time.time() - start_time
             record_crawl_log(
-                target_date=start_date,
+                target_date=end_date,
                 status="FAILED",
                 report_file=None,
-                error_message="Excel report could not be downloaded from Brand24",
+                error_message=f"Excel report could not be downloaded from Brand24 for {start_date} to {end_date}",
                 duration_sec=duration,
                 campaign=args.campaign
             )
-            print("[Error] Brand24 Excel report was not downloaded.")
+            print(f"[Error] Brand24 Excel report was not downloaded for {start_date} to {end_date}.")
             return False
 
         # 2. Parse report
@@ -324,7 +338,7 @@ def run_daily_task(args):
 
         if not records:
             record_crawl_log(
-                target_date=start_date,
+                target_date=end_date,
                 status="NO_MENTIONS",
                 total_mentions=0,
                 inserted_count=0,
@@ -334,6 +348,18 @@ def run_daily_task(args):
                 duration_sec=duration,
                 campaign=args.campaign
             )
+            if start_date != end_date:
+                record_crawl_log(
+                    target_date=start_date,
+                    status="NO_MENTIONS",
+                    total_mentions=0,
+                    inserted_count=0,
+                    duplicate_count=0,
+                    report_file=excel_path,
+                    error_message=f"Covered via sliding window ({start_date} to {end_date})",
+                    duration_sec=duration,
+                    campaign=args.campaign
+                )
             print("[Brand24] No new mentions found to ingest for this time window. Logged status: NO_MENTIONS.")
             return True
 
@@ -341,7 +367,7 @@ def run_daily_task(args):
         if args.no_db:
             print("[DB Sync] Skipping database upload (--no-db specified).")
             record_crawl_log(
-                target_date=start_date,
+                target_date=end_date,
                 status="OFFLINE_CACHE",
                 total_mentions=len(records),
                 inserted_count=0,
@@ -360,7 +386,7 @@ def run_daily_task(args):
         duration = time.time() - start_time
 
         record_crawl_log(
-            target_date=start_date,
+            target_date=end_date,
             status="SUCCESS",
             total_mentions=len(records),
             inserted_count=inserted,
@@ -370,6 +396,18 @@ def run_daily_task(args):
             duration_sec=duration,
             campaign=args.campaign
         )
+        if start_date != end_date:
+            record_crawl_log(
+                target_date=start_date,
+                status="SUCCESS",
+                total_mentions=len(records),
+                inserted_count=0,
+                duplicate_count=duplicates,
+                report_file=excel_path,
+                error_message=f"Covered via sliding window ({start_date} to {end_date})",
+                duration_sec=duration,
+                campaign=args.campaign
+            )
         print(f"[DB Sync] Complete: {inserted} inserted, {duplicates} duplicates skipped.")
 
         # Print summary stats
@@ -387,14 +425,14 @@ def run_daily_task(args):
     except Exception as e:
         duration = time.time() - start_time
         record_crawl_log(
-            target_date=start_date,
+            target_date=end_date,
             status="FAILED",
             report_file=excel_path,
             error_message=str(e),
             duration_sec=duration,
             campaign=args.campaign
         )
-        print(f"[Fatal Error] Daily crawl failed for {start_date}: {e}")
+        print(f"[Fatal Error] Daily crawl failed for {start_date} to {end_date}: {e}")
         return False
 
 def show_crawl_logs(campaign="Toyota", limit=20):
@@ -453,7 +491,7 @@ def backfill_skipped_days(args, lookback_days=14):
 
 def main():
     parser = argparse.ArgumentParser(description="Brand24 Daily Automated Playwright Crawler & DB Ingestion")
-    parser.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD (default: yesterday in GMT+7)")
+    parser.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD (default: sliding window yesterday to today in GMT+7)")
     parser.add_argument("--start-date", type=str, default=None, help="Start date YYYY-MM-DD")
     parser.add_argument("--end-date", type=str, default=None, help="End date YYYY-MM-DD")
     parser.add_argument("--days-back", type=int, default=1, help="Number of days back (default: 1)")
