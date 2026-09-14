@@ -2888,6 +2888,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     customdata=daily_neg['date_str'],
                     text=daily_neg['buzz'],
                     textposition='outside',
+                    showlegend=False,
                     hovertemplate='<b>Ngày:</b> %{x}<br><b>Số thảo luận tiêu cực:</b> %{y:,} buzz<extra></extra>'
                 ))
 
@@ -2927,18 +2928,20 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     margin=dict(t=25, b=20, l=35, r=15),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
+                    clickmode='event+select',
                     xaxis=dict(type='category', showgrid=True, gridcolor='#F1F5F9', tickfont=dict(size=11)),
                     yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None)
                 )
 
-                pp_date_ver = st.session_state.get('pp_date_ver', 0)
+                pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 time_bar_event = st.plotly_chart(
                     fig_pp_timeline,
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="points",
-                    key=f"pp_date_chart_{pp_date_ver}"
+                    key=f"pp_date_chart_{pp_reset_ver}"
                 )
+                cur_d_pt = None
                 if time_bar_event:
                     sel = time_bar_event.get("selection") if isinstance(time_bar_event, dict) else getattr(time_bar_event, "selection", None)
                     if sel:
@@ -2946,17 +2949,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         if pts:
                             pt = pts[0]
                             pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
-                            clicked_d = pt_dict.get("x") or pt_dict.get("customdata")
-                            if clicked_d and clicked_d != active_pp_date:
-                                st.session_state['active_pp_date'] = clicked_d
-                                st.session_state['pp_date_from_chart'] = True
-                                st.session_state['pp_date_ver'] = pp_date_ver + 1
-                                st.rerun()
-                        elif active_pp_date is not None and st.session_state.get('pp_date_from_chart'):
-                            st.session_state['active_pp_date'] = None
-                            st.session_state['pp_date_from_chart'] = False
-                            st.session_state['pp_date_ver'] = pp_date_ver + 1
-                            st.rerun()
+                            cur_d_pt = pt_dict.get("x") or pt_dict.get("customdata")
+                last_d_pt = st.session_state.get('last_pp_date_pt')
+                if cur_d_pt != last_d_pt:
+                    st.session_state['last_pp_date_pt'] = cur_d_pt
+                    st.session_state['active_pp_date'] = cur_d_pt
+                    st.rerun()
             else:
                 st.info("Không có dữ liệu xu hướng tiêu cực.")
 
@@ -2996,17 +2994,19 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     margin=dict(t=10, b=30, l=35, r=15),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
+                    clickmode='event+select',
                     xaxis=dict(showgrid=False, tickangle=-20, tickfont=dict(size=11)),
                     yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None)
                 )
-                pp_m_ver = st.session_state.get('pp_m_ver', 0)
+                pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 m_bar_event = st.plotly_chart(
                     fig_m,
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="points",
-                    key=f"pp_model_chart_{pp_m_ver}"
+                    key=f"pp_model_chart_{pp_reset_ver}"
                 )
+                cur_m_pt = None
                 if m_bar_event:
                     sel = m_bar_event.get("selection") if isinstance(m_bar_event, dict) else getattr(m_bar_event, "selection", None)
                     if sel:
@@ -3014,17 +3014,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         if pts:
                             pt = pts[0]
                             pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
-                            clicked_m = pt_dict.get("x") or pt_dict.get("customdata")
-                            if clicked_m and clicked_m != active_pp_model:
-                                st.session_state['active_pp_model'] = clicked_m
-                                st.session_state['pp_model_from_chart'] = True
-                                st.session_state['pp_m_ver'] = pp_m_ver + 1
-                                st.rerun()
-                        elif active_pp_model is not None and st.session_state.get('pp_model_from_chart'):
-                            st.session_state['active_pp_model'] = None
-                            st.session_state['pp_model_from_chart'] = False
-                            st.session_state['pp_m_ver'] = pp_m_ver + 1
-                            st.rerun()
+                            cur_m_pt = pt_dict.get("x") or pt_dict.get("customdata")
+                last_m_pt = st.session_state.get('last_pp_model_pt')
+                if cur_m_pt != last_m_pt:
+                    st.session_state['last_pp_model_pt'] = cur_m_pt
+                    st.session_state['active_pp_model'] = cur_m_pt
+                    st.rerun()
             else:
                 st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
 
@@ -3078,17 +3073,19 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     margin=dict(t=10, b=20, l=190, r=30),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
+                    clickmode='event+select',
                     xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
                     yaxis=dict(showgrid=False, title=None, tickfont=dict(size=11, color='#1E293B'))
                 )
-                pp_grp_ver = st.session_state.get('pp_grp_ver', 0)
+                pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 grp_bar_event = st.plotly_chart(
                     fig_pp_grp,
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="points",
-                    key=f"pp_grp_chart_{pp_grp_ver}"
+                    key=f"pp_grp_chart_{pp_reset_ver}"
                 )
+                cur_g_pt = None
                 if grp_bar_event:
                     sel = grp_bar_event.get("selection") if isinstance(grp_bar_event, dict) else getattr(grp_bar_event, "selection", None)
                     if sel:
@@ -3096,17 +3093,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         if pts:
                             pt = pts[0]
                             pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
-                            clicked_g = pt_dict.get("y") or (pt_dict.get("customdata")[0] if isinstance(pt_dict.get("customdata"), (list, tuple)) else pt_dict.get("customdata"))
-                            if clicked_g and clicked_g != active_pp_grp:
-                                st.session_state['active_pp_grp'] = clicked_g
-                                st.session_state['pp_grp_from_chart'] = True
-                                st.session_state['pp_grp_ver'] = pp_grp_ver + 1
-                                st.rerun()
-                        elif active_pp_grp is not None and st.session_state.get('pp_grp_from_chart'):
-                            st.session_state['active_pp_grp'] = None
-                            st.session_state['pp_grp_from_chart'] = False
-                            st.session_state['pp_grp_ver'] = pp_grp_ver + 1
-                            st.rerun()
+                            cur_g_pt = pt_dict.get("y") or (pt_dict.get("customdata")[0] if isinstance(pt_dict.get("customdata"), (list, tuple)) else pt_dict.get("customdata"))
+                last_g_pt = st.session_state.get('last_pp_grp_pt')
+                if cur_g_pt != last_g_pt:
+                    st.session_state['last_pp_grp_pt'] = cur_g_pt
+                    st.session_state['active_pp_grp'] = cur_g_pt
+                    st.rerun()
             else:
                 st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
 
@@ -3153,17 +3145,19 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     margin=dict(t=10, b=20, l=110, r=30),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
+                    clickmode='event+select',
                     xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
                     yaxis=dict(showgrid=False, title=None, tickfont=dict(size=11, color='#1E293B'))
                 )
-                pp_chan_ver = st.session_state.get('pp_chan_ver', 0)
+                pp_reset_ver = st.session_state.get('pp_reset_ver', 0)
                 chan_bar_event = st.plotly_chart(
                     fig_pp_chan,
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="points",
-                    key=f"pp_chan_chart_{pp_chan_ver}"
+                    key=f"pp_chan_chart_{pp_reset_ver}"
                 )
+                cur_c_pt = None
                 if chan_bar_event:
                     sel = chan_bar_event.get("selection") if isinstance(chan_bar_event, dict) else getattr(chan_bar_event, "selection", None)
                     if sel:
@@ -3171,17 +3165,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                         if pts:
                             pt = pts[0]
                             pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
-                            clicked_ch = pt_dict.get("y") or (pt_dict.get("customdata")[0] if isinstance(pt_dict.get("customdata"), (list, tuple)) else pt_dict.get("customdata"))
-                            if clicked_ch and clicked_ch != active_pp_chan:
-                                st.session_state['active_pp_chan'] = clicked_ch
-                                st.session_state['pp_chan_from_chart'] = True
-                                st.session_state['pp_chan_ver'] = pp_chan_ver + 1
-                                st.rerun()
-                        elif active_pp_chan is not None and st.session_state.get('pp_chan_from_chart'):
-                            st.session_state['active_pp_chan'] = None
-                            st.session_state['pp_chan_from_chart'] = False
-                            st.session_state['pp_chan_ver'] = pp_chan_ver + 1
-                            st.rerun()
+                            cur_c_pt = pt_dict.get("y") or (pt_dict.get("customdata")[0] if isinstance(pt_dict.get("customdata"), (list, tuple)) else pt_dict.get("customdata"))
+                last_c_pt = st.session_state.get('last_pp_chan_pt')
+                if cur_c_pt != last_c_pt:
+                    st.session_state['last_pp_chan_pt'] = cur_c_pt
+                    st.session_state['active_pp_chan'] = cur_c_pt
+                    st.rerun()
             else:
                 st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
 
@@ -3248,8 +3237,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             def_d_idx = all_pp_dates.index(active_pp_date) if active_pp_date and active_pp_date in all_pp_dates else 0
             sel_date = st.selectbox("📅 Ngày:", options=all_pp_dates, index=def_d_idx, key=f"pp_feed_d_{active_pp_date}")
             if sel_date != (active_pp_date or "Tất cả ngày"):
-                st.session_state['active_pp_date'] = sel_date if sel_date != "Tất cả ngày" else None
-                st.session_state['pp_date_ver'] = st.session_state.get('pp_date_ver', 0) + 1
+                new_d = sel_date if sel_date != "Tất cả ngày" else None
+                st.session_state['active_pp_date'] = new_d
+                st.session_state['last_pp_date_pt'] = new_d
                 st.rerun()
 
         with feed_c1:
@@ -3257,8 +3247,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             def_m_idx = all_models.index(active_pp_model) if active_pp_model and active_pp_model in all_models else 0
             sel_model = st.selectbox("🚗 Mẫu xe:", options=all_models, index=def_m_idx, key=f"pp_feed_m_{active_pp_model}")
             if sel_model != (active_pp_model or "Tất cả mẫu xe"):
-                st.session_state['active_pp_model'] = sel_model if sel_model != "Tất cả mẫu xe" else None
-                st.session_state['pp_m_ver'] = st.session_state.get('pp_m_ver', 0) + 1
+                new_m = sel_model if sel_model != "Tất cả mẫu xe" else None
+                st.session_state['active_pp_model'] = new_m
+                st.session_state['last_pp_model_pt'] = new_m
                 st.rerun()
 
         with feed_c2:
@@ -3266,8 +3257,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             def_c_idx = all_chans.index(active_pp_chan) if active_pp_chan and active_pp_chan in all_chans else 0
             sel_chan = st.selectbox("📺 Nền tảng:", options=all_chans, index=def_c_idx, key=f"pp_feed_c_{active_pp_chan}")
             if sel_chan != (active_pp_chan or "Tất cả kênh"):
-                st.session_state['active_pp_chan'] = sel_chan if sel_chan != "Tất cả kênh" else None
-                st.session_state['pp_chan_ver'] = st.session_state.get('pp_chan_ver', 0) + 1
+                new_c = sel_chan if sel_chan != "Tất cả kênh" else None
+                st.session_state['active_pp_chan'] = new_c
+                st.session_state['last_pp_chan_pt'] = new_c
                 st.rerun()
 
         with feed_c3:
@@ -3275,8 +3267,9 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             def_g_idx = all_grps.index(active_pp_grp) if active_pp_grp and active_pp_grp in all_grps else 0
             sel_grp = st.selectbox("🏢 Hội nhóm / Nguồn:", options=all_grps, index=def_g_idx, key=f"pp_feed_g_{active_pp_grp}")
             if sel_grp != (active_pp_grp or "Tất cả hội nhóm"):
-                st.session_state['active_pp_grp'] = sel_grp if sel_grp != "Tất cả hội nhóm" else None
-                st.session_state['pp_grp_ver'] = st.session_state.get('pp_grp_ver', 0) + 1
+                new_g = sel_grp if sel_grp != "Tất cả hội nhóm" else None
+                st.session_state['active_pp_grp'] = new_g
+                st.session_state['last_pp_grp_pt'] = new_g
                 st.rerun()
 
         with feed_c4:
@@ -3299,16 +3292,11 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
                     st.session_state['active_pp_model'] = None
                     st.session_state['active_pp_chan'] = None
                     st.session_state['active_pp_grp'] = None
-                    st.session_state['pp_date_from_chart'] = False
-                    st.session_state['pp_kw_from_chart'] = False
-                    st.session_state['pp_model_from_chart'] = False
-                    st.session_state['pp_chan_from_chart'] = False
-                    st.session_state['pp_grp_from_chart'] = False
-                    st.session_state['pp_date_ver'] = st.session_state.get('pp_date_ver', 0) + 1
-                    st.session_state['pp_kw_ver'] = st.session_state.get('pp_kw_ver', 0) + 1
-                    st.session_state['pp_m_ver'] = st.session_state.get('pp_m_ver', 0) + 1
-                    st.session_state['pp_chan_ver'] = st.session_state.get('pp_chan_ver', 0) + 1
-                    st.session_state['pp_grp_ver'] = st.session_state.get('pp_grp_ver', 0) + 1
+                    st.session_state['last_pp_date_pt'] = None
+                    st.session_state['last_pp_model_pt'] = None
+                    st.session_state['last_pp_grp_pt'] = None
+                    st.session_state['last_pp_chan_pt'] = None
+                    st.session_state['pp_reset_ver'] = st.session_state.get('pp_reset_ver', 0) + 1
                     st.rerun()
 
         # Apply search filter
