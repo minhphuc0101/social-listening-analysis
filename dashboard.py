@@ -2902,85 +2902,114 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     # TIER 1: 2 CHARTS SIDE-BY-SIDE (Từ khóa & Mẫu xe)
     r1_col1, r1_col2 = st.columns([1, 1.15])
 
-    # Column 1: Xếp hạng Tần suất Từ khóa Định kiến
+    # Column 1: Timeline Xu hướng Thảo luận Tiêu cực theo Ngày
     with r1_col1:
         with st.container(border=True):
-            kw_hdr_sub = f"Đang lọc: <b style='color:#DC2626;'>{active_pp_kw}</b>" if active_pp_kw else "👆 Bấm thanh để lọc từ khóa"
+            active_pp_date = st.session_state.get('active_pp_date')
+            date_hdr_sub = f"Đang lọc: <b style='color:#DC2626;'>Ngày {active_pp_date}</b>" if active_pp_date else "👆 Bấm ngày để lọc bài đăng"
             st.markdown(f"""
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Xếp hạng Tần suất Từ khóa Định kiến</span>
-                <span style="font-size:0.75rem; color:#EF4444; background:#FEF2F2; border:1px solid #FECACA; padding:2px 8px; border-radius:10px; font-weight:600;">{kw_hdr_sub}</span>
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">📈 Xu hướng Tiêu cực theo Thời gian</span>
+                <span style="font-size:0.75rem; color:#EF4444; background:#FEF2F2; border:1px solid #FECACA; padding:2px 8px; border-radius:10px; font-weight:600;">{date_hdr_sub}</span>
             </div>
             """, unsafe_allow_html=True)
 
-            if active_pp_pillar:
-                chart_kws = [k for k in sorted_kws if TOYOTA_PAIN_POINTS[k[0]]['pillar'] == active_pp_pillar]
-            else:
-                chart_kws = [k for k in sorted_kws if k[1] > 0][:12]
+            df_neg_timeline = filtered_pp_df[filtered_pp_df['sentiment'] == 'NEGATIVE'].copy()
+            if df_neg_timeline.empty:
+                df_neg_timeline = filtered_pp_df.copy()
 
-            if chart_kws:
-                df_bar_kws = pd.DataFrame([
-                    {
-                        'Từ khóa': k[0],
-                        'Tên chủ đề': TOYOTA_PAIN_POINTS[k[0]]['name'],
-                        'Buzz': k[1],
-                        'Trụ cột': TOYOTA_PAIN_POINTS[k[0]]['pillar'],
-                        'Icon': TOYOTA_PAIN_POINTS[k[0]]['icon'],
-                        'IsActive': (active_pp_kw == k[0])
-                    }
-                    for k in chart_kws
-                ])
-                df_bar_kws = df_bar_kws.sort_values('Buzz', ascending=True)
+            if not df_neg_timeline.empty:
+                dt_s = pd.to_datetime(df_neg_timeline['published_at'], utc=True, errors='coerce')
+                df_neg_timeline['date_vn'] = dt_s.dt.tz_convert('Asia/Ho_Chi_Minh').dt.date
+                daily_neg = df_neg_timeline.groupby('date_vn').size().reset_index(name='buzz')
+                daily_neg = daily_neg.dropna(subset=['date_vn']).sort_values('date_vn')
+                daily_neg['date_str'] = daily_neg['date_vn'].apply(lambda d: d.strftime('%d/%m'))
 
-                fig_pp_bar = go.Figure(go.Bar(
-                    x=df_bar_kws['Buzz'],
-                    y=df_bar_kws['Từ khóa'],
-                    orientation='h',
-                    marker=dict(
-                        color=['#BE123C' if a else '#F43F5E' for a in df_bar_kws['IsActive']],
-                        line=dict(color=['#881337' if a else '#9F1239' for a in df_bar_kws['IsActive']], width=[2.5 if a else 1 for a in df_bar_kws['IsActive']])
-                    ),
-                    text=df_bar_kws['Buzz'],
+                fig_pp_timeline = go.Figure()
+                bar_colors = ['#991B1B' if (active_pp_date == d) else '#EF4444' for d in daily_neg['date_str']]
+                bar_lines = ['#7F1D1D' if (active_pp_date == d) else '#DC2626' for d in daily_neg['date_str']]
+                bar_widths = [2.5 if (active_pp_date == d) else 1 for d in daily_neg['date_str']]
+
+                fig_pp_timeline.add_trace(go.Bar(
+                    x=daily_neg['date_str'],
+                    y=daily_neg['buzz'],
+                    marker_color=bar_colors,
+                    marker_line_color=bar_lines,
+                    marker_line_width=bar_widths,
+                    customdata=daily_neg['date_str'],
+                    text=daily_neg['buzz'],
                     textposition='outside',
-                    customdata=df_bar_kws['Từ khóa'],
-                    hovertemplate='<b>%{y}</b>: %{x:,} thảo luận<extra></extra>'
+                    hovertemplate='<b>Ngày:</b> %{x}<br><b>Số thảo luận tiêu cực:</b> %{y:,} buzz<extra></extra>'
                 ))
-                fig_pp_bar.update_layout(
+
+                # Smooth trendline overlay
+                if len(daily_neg) > 2:
+                    fig_pp_timeline.add_trace(go.Scatter(
+                        x=daily_neg['date_str'],
+                        y=daily_neg['buzz'],
+                        mode='lines',
+                        line=dict(color='#991B1B', width=2, shape='spline'),
+                        hoverinfo='skip',
+                        showlegend=False
+                    ))
+
+                # Annotate peak buzz day
+                max_idx = daily_neg['buzz'].idxmax()
+                peak_val = daily_neg.loc[max_idx, 'buzz']
+                peak_d = daily_neg.loc[max_idx, 'date_str']
+                fig_pp_timeline.add_annotation(
+                    x=peak_d,
+                    y=peak_val,
+                    text=f"<b>{peak_val:,}</b>",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=1.5,
+                    arrowcolor="#DC2626",
+                    ax=0,
+                    ay=-22,
+                    bgcolor="#DC2626",
+                    bordercolor="#DC2626",
+                    font=dict(color="#FFFFFF", size=10)
+                )
+
+                fig_pp_timeline.update_layout(
                     height=340,
-                    margin=dict(t=10, b=20, l=80, r=30),
+                    margin=dict(t=25, b=20, l=35, r=15),
                     plot_bgcolor='#FFFFFF',
                     paper_bgcolor='#FFFFFF',
-                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
-                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=12, color='#1E293B'))
+                    xaxis=dict(type='category', showgrid=True, gridcolor='#F1F5F9', tickfont=dict(size=11)),
+                    yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None)
                 )
-                pp_kw_ver = st.session_state.get('pp_kw_ver', 0)
-                pp_bar_event = st.plotly_chart(
-                    fig_pp_bar,
+
+                pp_date_ver = st.session_state.get('pp_date_ver', 0)
+                time_bar_event = st.plotly_chart(
+                    fig_pp_timeline,
                     use_container_width=True,
                     on_select="rerun",
                     selection_mode="points",
-                    key=f"pp_bar_chart_d_{pp_kw_ver}"
+                    key=f"pp_date_chart_d_{pp_date_ver}"
                 )
-                if pp_bar_event:
-                    sel = pp_bar_event.get("selection") if isinstance(pp_bar_event, dict) else getattr(pp_bar_event, "selection", None)
+                if time_bar_event:
+                    sel = time_bar_event.get("selection") if isinstance(time_bar_event, dict) else getattr(time_bar_event, "selection", None)
                     if sel:
                         pts = sel.get("points") if isinstance(sel, dict) else getattr(sel, "points", [])
                         if pts:
                             pt = pts[0]
                             pt_dict = pt if isinstance(pt, dict) else getattr(pt, "__dict__", {})
-                            clicked_kw = pt_dict.get("y") or pt_dict.get("customdata")
-                            if clicked_kw and clicked_kw != active_pp_kw:
-                                st.session_state['active_pp_kw'] = clicked_kw
-                                st.session_state['pp_kw_from_chart'] = True
-                                st.session_state['pp_kw_ver'] = pp_kw_ver + 1
+                            clicked_d = pt_dict.get("x") or pt_dict.get("customdata")
+                            if clicked_d and clicked_d != active_pp_date:
+                                st.session_state['active_pp_date'] = clicked_d
+                                st.session_state['pp_date_from_chart'] = True
+                                st.session_state['pp_date_ver'] = pp_date_ver + 1
                                 st.rerun()
-                        elif active_pp_kw is not None and st.session_state.get('pp_kw_from_chart'):
-                            st.session_state['active_pp_kw'] = None
-                            st.session_state['pp_kw_from_chart'] = False
-                            st.session_state['pp_kw_ver'] = pp_kw_ver + 1
+                        elif active_pp_date is not None and st.session_state.get('pp_date_from_chart'):
+                            st.session_state['active_pp_date'] = None
+                            st.session_state['pp_date_from_chart'] = False
+                            st.session_state['pp_date_ver'] = pp_date_ver + 1
                             st.rerun()
             else:
-                st.info("Không có dữ liệu cho nhóm từ khóa này.")
+                st.info("Không có dữ liệu xu hướng tiêu cực.")
 
     # Column 2: Ma trận Mẫu xe chịu phản ánh nhiều nhất
     with r1_col2:
@@ -3210,9 +3239,12 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
     # DISCUSSION FEED CONTAINER
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
+        active_pp_date = st.session_state.get('active_pp_date')
         active_pp_chan = st.session_state.get('active_pp_chan')
         active_pp_grp = st.session_state.get('active_pp_grp')
         label_parts = []
+        if active_pp_date:
+            label_parts.append(f"Ngày: <b style='color:#DC2626;'>{active_pp_date}</b>")
         if active_pp_kw:
             label_parts.append(f"Từ khóa: <b style='color:#DC2626;'>{active_pp_kw}</b>")
         elif active_pp_pillar:
@@ -3228,8 +3260,14 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
 
         active_label = " &bull; ".join(label_parts)
         
-        # Apply active_pp_model, active_pp_chan, and active_pp_grp filters to feed
+        # Apply active_pp_date, active_pp_model, active_pp_chan, and active_pp_grp filters to feed
         feed_records_df = filtered_pp_df.copy()
+        if 'published_at' in feed_records_df.columns and not feed_records_df.empty:
+            dt_feed = pd.to_datetime(feed_records_df['published_at'], utc=True, errors='coerce')
+            feed_records_df['date_vn_str'] = dt_feed.dt.tz_convert('Asia/Ho_Chi_Minh').dt.strftime('%d/%m')
+            if active_pp_date and active_pp_date != "Tất cả ngày":
+                feed_records_df = feed_records_df[feed_records_df['date_vn_str'] == active_pp_date]
+
         if active_pp_model and active_pp_model != "Tất cả mẫu xe":
             feed_records_df = feed_records_df[feed_records_df['car_model'] == active_pp_model]
         if active_pp_chan and active_pp_chan != "Tất cả kênh":
@@ -3248,8 +3286,23 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         </div>
         """, unsafe_allow_html=True)
 
-        # Feed sub-filters (5 columns)
-        feed_c1, feed_c2, feed_c3, feed_c4, feed_c5 = st.columns([1.5, 1.4, 1.8, 1.9, 0.9])
+        # Build date list from filtered_pp_df
+        if 'published_at' in filtered_pp_df.columns and not filtered_pp_df.empty:
+            dt_all_feed = pd.to_datetime(filtered_pp_df['published_at'], utc=True, errors='coerce')
+            all_pp_dates = ["Tất cả ngày"] + sorted(list(dt_all_feed.dt.tz_convert('Asia/Ho_Chi_Minh').dt.strftime('%d/%m').dropna().unique()), reverse=True)
+        else:
+            all_pp_dates = ["Tất cả ngày"]
+
+        # Feed sub-filters (6 columns)
+        feed_c0, feed_c1, feed_c2, feed_c3, feed_c4, feed_c5 = st.columns([1.1, 1.3, 1.2, 1.5, 1.7, 0.8])
+        with feed_c0:
+            def_d_idx = all_pp_dates.index(active_pp_date) if active_pp_date and active_pp_date in all_pp_dates else 0
+            sel_date = st.selectbox("📅 Ngày:", options=all_pp_dates, index=def_d_idx, key=f"pp_feed_d_d_{active_pp_date}")
+            if sel_date != (active_pp_date or "Tất cả ngày"):
+                st.session_state['active_pp_date'] = sel_date if sel_date != "Tất cả ngày" else None
+                st.session_state['pp_date_ver'] = st.session_state.get('pp_date_ver', 0) + 1
+                st.rerun()
+
         with feed_c1:
             all_models = ["Tất cả mẫu xe"] + sorted(list(filtered_pp_df['car_model'].dropna().unique())) if not filtered_pp_df.empty else ["Tất cả mẫu xe"]
             def_m_idx = all_models.index(active_pp_model) if active_pp_model and active_pp_model in all_models else 0
@@ -3282,6 +3335,7 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
         with feed_c5:
             st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
             has_any_pp_filter = (
+                (active_pp_date and active_pp_date != "Tất cả ngày") or
                 active_pp_kw or active_pp_pillar or
                 (active_pp_model and active_pp_model != "Tất cả mẫu xe") or
                 (active_pp_chan and active_pp_chan != "Tất cả kênh") or
@@ -3290,15 +3344,18 @@ elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
             )
             if has_any_pp_filter:
                 if st.button("❌ Bỏ lọc", key="clear_pp_feed_filters_d", use_container_width=True):
+                    st.session_state['active_pp_date'] = None
                     st.session_state['active_pp_kw'] = None
                     st.session_state['active_pp_pillar'] = None
                     st.session_state['active_pp_model'] = None
                     st.session_state['active_pp_chan'] = None
                     st.session_state['active_pp_grp'] = None
+                    st.session_state['pp_date_from_chart'] = False
                     st.session_state['pp_kw_from_chart'] = False
                     st.session_state['pp_model_from_chart'] = False
                     st.session_state['pp_chan_from_chart'] = False
                     st.session_state['pp_grp_from_chart'] = False
+                    st.session_state['pp_date_ver'] = st.session_state.get('pp_date_ver', 0) + 1
                     st.session_state['pp_kw_ver'] = st.session_state.get('pp_kw_ver', 0) + 1
                     st.session_state['pp_m_ver'] = st.session_state.get('pp_m_ver', 0) + 1
                     st.session_state['pp_chan_ver'] = st.session_state.get('pp_chan_ver', 0) + 1
