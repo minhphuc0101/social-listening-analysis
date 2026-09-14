@@ -207,6 +207,182 @@ CAR_MODELS = {
 }
 
 # -------------------------------------------------------------
+# 2.1 TOYOTA PAIN POINTS & OBJECTION TOPICS TAXONOMY (21 KEYWORDS)
+# -------------------------------------------------------------
+TOYOTA_PAIN_POINTS = {
+    'lỗi': {
+        'name': 'Lỗi kỹ thuật / Lỗi xe',
+        'pillar': 'An toàn & Triệu hồi',
+        'icon': '⚠️',
+        'pattern': r'(?<!\w)lỗi(?!\w)'
+    },
+    'chê': {
+        'name': 'Chê bai / Phản hồi tiêu cực',
+        'pillar': 'Thái độ & Trải nghiệm',
+        'icon': '🗣️',
+        'pattern': r'(?<!\w)chê(?!\w)'
+    },
+    'ồn': {
+        'name': 'Ồn ào / Cách âm kém',
+        'pillar': 'Cách âm & Tiêu hao',
+        'icon': '🔊',
+        'pattern': r'(?<!\w)ồn(?!\w)'
+    },
+    'cùi': {
+        'name': 'Cùi / Cùi bắp / Đồ cùi',
+        'pillar': 'Thiết kế & Trang bị',
+        'icon': '🚗',
+        'pattern': r'(?<!\w)cùi(?!\w)'
+    },
+    'xấu': {
+        'name': 'Xấu (Ngoại/Nội thất)',
+        'pillar': 'Thiết kế & Trang bị',
+        'icon': '🚗',
+        'pattern': r'(?<!xe\s)(?<!\w)xấu(?!\w)'
+    },
+    'xe xấu': {
+        'name': 'Xe xấu',
+        'pillar': 'Thiết kế & Trang bị',
+        'icon': '🚗',
+        'pattern': r'(?<!\w)xe\s*xấu(?!\w)'
+    },
+    'tốn xăng': {
+        'name': 'Tốn xăng',
+        'pillar': 'Cách âm & Tiêu hao',
+        'icon': '🔊',
+        'pattern': r'(?<!\w)tốn\s*xăng(?!\w)'
+    },
+    'ăn xăng': {
+        'name': 'Ăn xăng',
+        'pillar': 'Cách âm & Tiêu hao',
+        'icon': '🔊',
+        'pattern': r'(?<!\w)ăn\s*xăng(?!\w)'
+    },
+    'mắc': {
+        'name': 'Mắc / Đắt đỏ',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!thắc\s)(?<!vướng\s)(?<!bị\s)(?<!mắc\s)(?<!\w)mắc(?!\s*công)(?!\s*kẹt)(?!\s*mưa)(?!\s*cỡ)(?!\s*l\b)(?!\s*quân)(?!\s*dịch)(?!\w)'
+    },
+    'ngáo': {
+        'name': 'Ngáo (Định giá / Chính sách)',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!\w)ngáo(?!\s*giá)(?!\w)'
+    },
+    'ngáo giá': {
+        'name': 'Ngáo giá',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!\w)ngáo\s*giá(?!\w)'
+    },
+    'lạc': {
+        'name': 'Bia kèm lạc / Lạc rang',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!bộ\s)(?<!hòa\s)(?<!hoà\s)(?<!liên\s)(?<!sa\s)(?<!lầm\s)(?<!\w)lạc(?!\s*đường)(?!\s*quan)(?!\s*hậu)(?!\s*lõng)(?!\s*lối)(?!\s*đề)(?!\w)'
+    },
+    'túi khí': {
+        'name': 'Túi khí (Không nổ / Bền)',
+        'pillar': 'An toàn & Triệu hồi',
+        'icon': '⚠️',
+        'pattern': r'(?<!\w)túi\s*khí(?!\w)'
+    },
+    'thu hồi': {
+        'name': 'Thu hồi / Triệu hồi',
+        'pillar': 'An toàn & Triệu hồi',
+        'icon': '⚠️',
+        'pattern': r'(?<!\w)(thu\s*hồi|triệu\s*hồi)(?!\w)'
+    },
+    'thùng tôn': {
+        'name': 'Thùng tôn / Vỏ mỏng',
+        'pillar': 'An toàn & Triệu hồi',
+        'icon': '⚠️',
+        'pattern': r'(?<!\w)thùng\s*tôn(?!\w)'
+    },
+    'ế': {
+        'name': 'Ế / Bán ế ẩm',
+        'pillar': 'Doanh số & Thị trường',
+        'icon': '📉',
+        'pattern': r'(?<!\w)ế(?!\w)'
+    },
+    'hết thời': {
+        'name': 'Hết thời / Lỗi thời',
+        'pillar': 'Doanh số & Thị trường',
+        'icon': '📉',
+        'pattern': r'(?<!\w)hết\s*thời(?!\w)'
+    },
+    'không thích': {
+        'name': 'Không thích',
+        'pillar': 'Thái độ & Trải nghiệm',
+        'icon': '🗣️',
+        'pattern': r'(?<!\w)không\s*thích(?!\w)'
+    },
+    'khinh thường': {
+        'name': 'Khinh thường khách hàng',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!\w)khinh\s*thường(?!\w)'
+    },
+    'xem thường': {
+        'name': 'Xem thường khách hàng',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!\w)xem\s*thường(?!\w)'
+    },
+    'ảo tưởng': {
+        'name': 'Ảo tưởng sức mạnh / giá',
+        'pillar': 'Giá bán & Bán hàng',
+        'icon': '💰',
+        'pattern': r'(?<!\w)ảo\s*tưởng(?!\w)'
+    }
+}
+
+COMPILED_PAIN_POINTS = {
+    k: {
+        'name': v['name'],
+        'pillar': v['pillar'],
+        'icon': v['icon'],
+        'regex': re.compile(v['pattern'], re.IGNORECASE)
+    }
+    for k, v in TOYOTA_PAIN_POINTS.items()
+}
+
+PAIN_POINT_PILLARS = {
+    'Giá bán & Bán hàng': {'icon': '💰', 'color': '#DC2626', 'keywords': ['ngáo giá', 'ngáo', 'mắc', 'lạc', 'ảo tưởng', 'khinh thường', 'xem thường']},
+    'An toàn & Triệu hồi': {'icon': '⚠️', 'color': '#EA580C', 'keywords': ['lỗi', 'thu hồi', 'túi khí', 'thùng tôn']},
+    'Cách âm & Tiêu hao': {'icon': '🔊', 'color': '#D97706', 'keywords': ['ồn', 'tốn xăng', 'ăn xăng']},
+    'Thiết kế & Trang bị': {'icon': '🚗', 'color': '#4F46E5', 'keywords': ['xe xấu', 'xấu', 'cùi']},
+    'Doanh số & Thị trường': {'icon': '📉', 'color': '#9333EA', 'keywords': ['ế', 'hết thời']},
+    'Thái độ & Trải nghiệm': {'icon': '🗣️', 'color': '#E11D48', 'keywords': ['chê', 'không thích']}
+}
+
+def extract_toyota_pain_points(text):
+    if not text:
+        return []
+    matched = []
+    text_str = str(text)
+    for kw, meta in COMPILED_PAIN_POINTS.items():
+        if meta['regex'].search(text_str):
+            matched.append(kw)
+    return matched
+
+def highlight_pain_points(text, target_keywords=None):
+    if not text:
+        return ""
+    text_str = str(text)
+    kws = target_keywords if target_keywords else list(COMPILED_PAIN_POINTS.keys())
+    sorted_kws = sorted(kws, key=lambda k: len(k), reverse=True)
+    for kw in sorted_kws:
+        if kw in COMPILED_PAIN_POINTS:
+            meta = COMPILED_PAIN_POINTS[kw]
+            text_str = meta['regex'].sub(
+                rf'<mark style="background:#FEE2E2; color:#DC2626; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid #FECACA;">\g<0></mark>',
+                text_str
+            )
+    return text_str
+
+# -------------------------------------------------------------
 # 3. SENTIMENT ANALYSIS
 # -------------------------------------------------------------
 POSITIVE_PHRASES = [

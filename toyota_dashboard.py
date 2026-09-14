@@ -211,7 +211,10 @@ import database
 importlib.reload(database)
 from database import get_discussions_df, get_db_stats, get_latest_daily_summary, clean_group_name
 from ai_scanner import run_48h_scan
-from analysis_engine import HIERARCHICAL_TOPICS
+from analysis_engine import (
+    HIERARCHICAL_TOPICS, TOYOTA_PAIN_POINTS, PAIN_POINT_PILLARS,
+    COMPILED_PAIN_POINTS, extract_toyota_pain_points, highlight_pain_points
+)
 
 def render_feed_card(record, sentiment_type="NEUTRAL"):
     url = record.get('url_comment') or record.get('UrlComment') or record.get('url') or ''
@@ -500,6 +503,96 @@ def render_feed_card(record, sentiment_type="NEUTRAL"):
     )
 
 
+def render_pain_point_card(record, matched_kws=None, active_kw=None):
+    url = record.get('url_comment') or record.get('UrlComment') or record.get('url') or ''
+    has_link = bool(url and str(url).startswith('http'))
+    raw_auth = str(record.get('author') or record.get('Author') or '').strip()
+    chan = str(record.get('channel') or record.get('Channel') or 'Mạng xã hội').strip()
+    car_model = record.get('car_model') or 'Toyota'
+    
+    if raw_auth and not any(k in raw_auth.lower() for k in [
+        'thành viên', 'bài viết', 'unknown', 'nan', 'none', 'null',
+        'người dùng ẩn danh', 'ẩn danh', 'facebook user', 'anonymous participant', 'user', 'commenter', 'page post'
+    ]):
+        auth = raw_auth
+    else:
+        auth = "Thành viên cộng đồng"
+        
+    raw_content = str(record.get('content') or record.get('Content') or record.get('description') or '').strip()
+    clean_content = html.escape(raw_content)
+    
+    # Highlight keywords in content
+    if active_kw and active_kw in COMPILED_PAIN_POINTS:
+        target_kws = [active_kw]
+    elif matched_kws:
+        target_kws = matched_kws
+    else:
+        target_kws = list(COMPILED_PAIN_POINTS.keys())
+        
+    for kw in sorted(target_kws, key=lambda k: len(k), reverse=True):
+        if kw in COMPILED_PAIN_POINTS:
+            meta = COMPILED_PAIN_POINTS[kw]
+            clean_content = meta['regex'].sub(
+                r'<mark style="background:#FEE2E2; color:#DC2626; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid #FECACA;">\g<0></mark>',
+                clean_content
+            )
+            
+    badges_html = []
+    if matched_kws:
+        for kw in matched_kws[:4]:
+            if kw in TOYOTA_PAIN_POINTS:
+                item = TOYOTA_PAIN_POINTS[kw]
+                badges_html.append(
+                    f'<span style="background:#FFF1F2; color:#9F1239; border:1px solid #FECDD3; font-size:11px; padding:2px 7px; border-radius:10px; font-weight:700; margin-right:4px;">{item["icon"]} {item["name"]}</span>'
+                )
+    badges_str = "".join(badges_html)
+    
+    p_at = record.get('published_at')
+    dt_str = "Gần đây"
+    if p_at:
+        try:
+            dt = pd.to_datetime(p_at)
+            dt_str = dt.strftime('%d/%m/%Y %H:%M')
+        except Exception:
+            dt_str = str(p_at)[:16]
+            
+    s_upper = str(record.get('sentiment') or 'NEUTRAL').upper()
+    if s_upper == 'POSITIVE':
+        badge_html = '<span class="badge-pos">Tích cực</span>'
+        border_col = '#10B981'
+    elif s_upper == 'NEGATIVE':
+        badge_html = '<span class="badge-neg">Tiêu cực</span>'
+        border_col = '#E11D48'
+    else:
+        badge_html = '<span class="badge-neu">Trung lập</span>'
+        border_col = '#94A3B8'
+        
+    auth_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#0F172A; text-decoration:none; font-weight:700;" title="Mở bài viết gốc">{html.escape(auth)}</a>' if has_link else f'<span class="feed-author">{html.escape(auth)}</span>'
+    link_btn_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color:#2563EB; font-weight:600; text-decoration:none; font-size:0.8rem;" title="Mở bài viết">Xem bài viết gốc ↗</a>' if has_link else f'<span style="font-size:0.8rem; color:#94A3B8;">Kênh: {chan}</span>'
+    model_tag_html = f'<span class="feed-topic-tag" style="margin-bottom:0; background:#EFF6FF; color:#1D4ED8; margin-left:6px; font-weight:700;">🚗 {html.escape(car_model)}</span>' if (car_model and car_model.lower() not in ('', 'khác', 'nan', 'none', 'all')) else ''
+
+    return (
+        f'<div class="feed-card" style="border-left:4px solid {border_col}; margin-bottom:10px; padding:12px 16px; background:#FFFFFF; border-radius:8px; border:1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'
+        f'<div style="font-size:0.85rem; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
+        f'{auth_html}'
+        f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
+        f'<span style="color:#64748B; font-size:0.82rem;">{chan}</span>'
+        f'<span style="color:#CBD5E1; margin:0 2px;">&bull;</span>'
+        f'<span style="color:#94A3B8; font-size:0.8rem;">{dt_str}</span>'
+        f'</div>'
+        f'<div>{badge_html}</div>'
+        f'</div>'
+        f'<div style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:4px;">{badges_str}</div>'
+        f'<div class="feed-content" style="font-size:0.9rem; color:#0F172A; line-height:1.55; margin-bottom:10px;">{clean_content}</div>'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #F1F5F9;">'
+        f'<div>{model_tag_html}</div>'
+        f'{link_btn_html}'
+        f'</div>'
+        f'</div>'
+    )
+
+
 def render_interactive_donut(df_grp, total_cnt, active_grp=None, chart_type="negative"):
     """
     Builds an interactive Altair donut chart that allows clicking slices to filter comments by group.
@@ -614,7 +707,8 @@ nav_options = [
     "Thảo luận qua các kênh",
     "Thảo luận theo Mẫu xe",
     "Thảo luận tiêu cực",
-    "Thảo luận tích cực & Độ bền"
+    "Thảo luận tích cực & Độ bền",
+    "🔥 Điểm nóng & Định kiến Toyota"
 ]
 
 if "sidebar_nav_radio" not in st.session_state:
@@ -1948,10 +2042,14 @@ elif nav_page == "Thảo luận qua các kênh":
 # SCREEN 3: THẢO LUẬN TIÊU CỰC (Image 3)
 # =============================================================
 elif nav_page == "Thảo luận tiêu cực":
-    col_back, _ = st.columns([1.5, 4])
+    col_back, col_pp_btn = st.columns([1.5, 3.5])
     with col_back:
-        if st.button("⬅️ Quay lại Tổng quan thảo luận", key="back_from_neg"):
+        if st.button("⬅️ Quay lại Tổng quan", key="back_from_neg"):
             st.session_state["redirect_page"] = "Tổng quan thảo luận"
+            st.rerun()
+    with col_pp_btn:
+        if st.button("🔥 Xem Màn hình Điểm nóng & Định kiến Toyota (21 từ khóa nhạy cảm) ➔", key="go_to_pp_from_neg", type="primary"):
+            st.session_state["redirect_page"] = "🔥 Điểm nóng & Định kiến Toyota"
             st.rerun()
 
     neg_df = df[df['sentiment'] == 'NEGATIVE']
@@ -2370,6 +2468,336 @@ elif nav_page in ("Thảo luận tích cực", "Thảo luận tích cực & Đ�
                         st.markdown(render_feed_card(r, "NEGATIVE"), unsafe_allow_html=True)
             else:
                 st.success("Không có thảo luận tiêu cực phù hợp.")
+
+
+# =============================================================
+# SCREEN: ĐIỂM NÓNG & ĐỊNH KIẾN TOYOTA (21 SENSITIVE TOPICS)
+# =============================================================
+elif nav_page == "🔥 Điểm nóng & Định kiến Toyota":
+    col_back, _ = st.columns([1.5, 4])
+    with col_back:
+        if st.button("⬅️ Quay lại Tổng quan thảo luận", key="back_from_painpoints"):
+            st.session_state["redirect_page"] = "Tổng quan thảo luận"
+            st.rerun()
+
+    # Tag all records in df with matched pain points
+    def detect_pp_record(row):
+        txt = f"{row.get('content', '')} {row.get('description', '')}"
+        return extract_toyota_pain_points(txt)
+
+    if not df.empty:
+        if 'pain_points' not in df.columns:
+            df['pain_points'] = df.apply(detect_pp_record, axis=1)
+            df['pp_count'] = df['pain_points'].apply(len)
+        pp_df = df[df['pp_count'] > 0].copy()
+    else:
+        pp_df = pd.DataFrame()
+
+    total_pp = len(pp_df)
+    total_toyota = len(df)
+    pp_ratio = (total_pp / total_toyota * 100) if total_toyota > 0 else 0
+
+    # Count occurrences for all 21 keywords & pillars
+    kw_counts = {kw: 0 for kw in TOYOTA_PAIN_POINTS.keys()}
+    pillar_counts = {p: 0 for p in PAIN_POINT_PILLARS.keys()}
+    
+    if not pp_df.empty:
+        for pps in pp_df['pain_points']:
+            for kw in pps:
+                if kw in kw_counts:
+                    kw_counts[kw] += 1
+                    p_name = TOYOTA_PAIN_POINTS[kw]['pillar']
+                    if p_name in pillar_counts:
+                        pillar_counts[p_name] += 1
+
+    # TOP BANNER
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%); border: 1.5px solid #FECDD3; border-radius: 10px; padding: 14px 20px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <div style="font-size:1.25rem; font-weight:800; color:#9F1239; display:flex; align-items:center; gap:8px;">
+                    <span>🔥 Điểm Nóng & Định Kiến Thương Hiệu Toyota</span>
+                    <span style="font-size:0.75rem; background:#E11D48; color:#FFFFFF; font-weight:700; padding:2px 8px; border-radius:12px;">21 CHỦ ĐỀ TRỌNG ĐIỂM</span>
+                </div>
+                <div style="font-size:0.86rem; color:#BE123C; margin-top:3px;">
+                    Giám sát chuyên biệt các rủi ro truyền thông và phản ánh nhạy cảm từ người tiêu dùng: thu hồi, xe xấu, ồn, bia kèm lạc, tốn xăng, ăn xăng, lỗi, xem thường, chê, ngáo giá, thùng tôn, túi khí, cùi, ế...
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:0.8rem; color:#64748B;">Tổng số phản ánh phát hiện</span><br>
+                <span style="font-size:1.4rem; font-weight:800; color:#E11D48;">{total_pp:,} buzz</span>
+                <span style="font-size:0.82rem; color:#9F1239; font-weight:600;">({pp_ratio:.1f}% tổng thảo luận)</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 4 KPI METRIC CARDS
+    top_kw_item = max(kw_counts.items(), key=lambda x: x[1]) if kw_counts else ("-", 0)
+    top_kw_name = TOYOTA_PAIN_POINTS.get(top_kw_item[0], {}).get('name', top_kw_item[0])
+    
+    top_model_item = pp_df['car_model'].value_counts().head(1) if not pp_df.empty else pd.Series()
+    top_model_name = top_model_item.index[0] if not top_model_item.empty else "Chưa có"
+    top_model_cnt = top_model_item.iloc[0] if not top_model_item.empty else 0
+
+    top_chan_item = pp_df['channel'].value_counts().head(1) if not pp_df.empty else pd.Series()
+    top_chan_name = top_chan_item.index[0] if not top_chan_item.empty else "Mạng xã hội"
+    top_chan_cnt = top_chan_item.iloc[0] if not top_chan_item.empty else 0
+
+    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+    with kpi_col1:
+        st.markdown(f"""
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #E11D48; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Tổng buzz điểm nóng</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#0F172A; margin:4px 0;">{total_pp:,}</div>
+            <div style="font-size:0.8rem; color:#E11D48; font-weight:600;">{pp_ratio:.1f}% tổng thảo luận Toyota</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with kpi_col2:
+        st.markdown(f"""
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #EA580C; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Vấn đề phản ánh nhiều nhất</div>
+            <div style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{top_kw_name}">{top_kw_name}</div>
+            <div style="font-size:0.8rem; color:#EA580C; font-weight:600;">{top_kw_item[1]:,} buzz ({top_kw_item[0]})</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with kpi_col3:
+        st.markdown(f"""
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #3B82F6; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Dòng xe chịu phản ánh cao nhất</div>
+            <div style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{top_model_name}</div>
+            <div style="font-size:0.8rem; color:#3B82F6; font-weight:600;">{top_model_cnt:,} buzz phản ánh</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with kpi_col4:
+        st.markdown(f"""
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-top:3px solid #8B5CF6; border-radius:8px; padding:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="font-size:0.78rem; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Kênh phát sinh chính</div>
+            <div style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{top_chan_name}</div>
+            <div style="font-size:0.8rem; color:#8B5CF6; font-weight:600;">{top_chan_cnt:,} buzz thảo luận</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+
+    # INTERACTIVE TOPIC PILLS & SELECTOR
+    active_pp_pillar = st.session_state.get('active_pp_pillar')
+    active_pp_kw = st.session_state.get('active_pp_kw')
+
+    with st.container(border=True):
+        st.markdown("""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:1rem; font-weight:700; color:#1E293B;">🎯 Bộ chọn Trọng điểm & Từ khóa nhạy cảm</span>
+            <span style="font-size:0.78rem; color:#64748B;">Bấm vào nhóm hoặc từ khóa để lọc biểu đồ & danh sách bài viết bên dưới</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Row 1: Pillar Filters
+        p_cols = st.columns(7)
+        with p_cols[0]:
+            is_all_p = (active_pp_pillar is None and active_pp_kw is None)
+            if st.button(f"Tất cả ({total_pp:,})", key="btn_pp_all", type="primary" if is_all_p else "secondary", use_container_width=True):
+                st.session_state['active_pp_pillar'] = None
+                st.session_state['active_pp_kw'] = None
+                st.rerun()
+
+        for idx, (p_name, p_meta) in enumerate(PAIN_POINT_PILLARS.items(), 1):
+            with p_cols[idx]:
+                cnt = pillar_counts.get(p_name, 0)
+                is_act = (active_pp_pillar == p_name and active_pp_kw is None)
+                label_p = f"{p_meta['icon']} {p_name.split(' ')[0]} ({cnt})"
+                if st.button(label_p, key=f"btn_pillar_{idx}", type="primary" if is_act else "secondary", use_container_width=True):
+                    if is_act:
+                        st.session_state['active_pp_pillar'] = None
+                    else:
+                        st.session_state['active_pp_pillar'] = p_name
+                        st.session_state['active_pp_kw'] = None
+                    st.rerun()
+
+        # Row 2: 21 Clickable Keywords Chips (sorted by buzz volume)
+        st.markdown("<div style='margin-top:10px; font-size:0.8rem; font-weight:700; color:#475569; text-transform:uppercase;'>21 Từ khóa chi tiết:</div>", unsafe_allow_html=True)
+        sorted_kws = sorted(kw_counts.items(), key=lambda x: x[1], reverse=True)
+        
+        k_chunk_size = 7
+        for chunk_idx in range(0, len(sorted_kws), k_chunk_size):
+            chunk = sorted_kws[chunk_idx:chunk_idx+k_chunk_size]
+            c_cols = st.columns(k_chunk_size)
+            for i, (kw, cnt) in enumerate(chunk):
+                with c_cols[i]:
+                    is_k_act = (active_pp_kw == kw)
+                    kw_display = f"{kw} ({cnt})"
+                    b_style = "primary" if is_k_act else "secondary"
+                    if st.button(kw_display, key=f"btn_kw_pill_{kw}", type=b_style, use_container_width=True):
+                        if is_k_act:
+                            st.session_state['active_pp_kw'] = None
+                        else:
+                            st.session_state['active_pp_kw'] = kw
+                            st.session_state['active_pp_pillar'] = TOYOTA_PAIN_POINTS[kw]['pillar']
+                        st.rerun()
+
+    # Filter pp_df according to current selection
+    active_pp_pillar = st.session_state.get('active_pp_pillar')
+    active_pp_kw = st.session_state.get('active_pp_kw')
+
+    filtered_pp_df = pp_df.copy()
+    if active_pp_kw:
+        filtered_pp_df = filtered_pp_df[filtered_pp_df['pain_points'].apply(lambda l: active_pp_kw in l)]
+    elif active_pp_pillar:
+        allowed_kws = set(PAIN_POINT_PILLARS[active_pp_pillar]['keywords'])
+        filtered_pp_df = filtered_pp_df[filtered_pp_df['pain_points'].apply(lambda l: bool(set(l) & allowed_kws))]
+
+    st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+
+    # TWO BALANCED CHARTS SIDE-BY-SIDE
+    chart_col1, chart_col2 = st.columns([1, 1.25])
+
+    # Left Chart: Tần suất từ khóa định kiến
+    with chart_col1:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Xếp hạng Tần suất Từ khóa Định kiến</span>
+                <span style="font-size:0.75rem; color:#64748B;">Lượt thảo luận</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if active_pp_pillar:
+                chart_kws = [k for k in sorted_kws if TOYOTA_PAIN_POINTS[k[0]]['pillar'] == active_pp_pillar]
+            else:
+                chart_kws = [k for k in sorted_kws if k[1] > 0][:12]
+
+            if chart_kws:
+                df_bar_kws = pd.DataFrame([
+                    {
+                        'Từ khóa': k[0],
+                        'Tên chủ đề': TOYOTA_PAIN_POINTS[k[0]]['name'],
+                        'Buzz': k[1],
+                        'Trụ cột': TOYOTA_PAIN_POINTS[k[0]]['pillar'],
+                        'Icon': TOYOTA_PAIN_POINTS[k[0]]['icon'],
+                        'IsActive': (active_pp_kw == k[0])
+                    }
+                    for k in chart_kws
+                ])
+                df_bar_kws = df_bar_kws.sort_values('Buzz', ascending=True)
+
+                fig_pp_bar = go.Figure(go.Bar(
+                    x=df_bar_kws['Buzz'],
+                    y=df_bar_kws['Từ khóa'],
+                    orientation='h',
+                    marker=dict(
+                        color=['#BE123C' if a else '#F43F5E' for a in df_bar_kws['IsActive']],
+                        line=dict(color='#9F1239', width=1)
+                    ),
+                    text=df_bar_kws['Buzz'],
+                    textposition='outside',
+                    hovertemplate='<b>%{y}</b>: %{x:,} thảo luận<extra></extra>'
+                ))
+                fig_pp_bar.update_layout(
+                    height=360,
+                    margin=dict(t=10, b=20, l=80, r=30),
+                    plot_bgcolor='#FFFFFF',
+                    paper_bgcolor='#FFFFFF',
+                    xaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None),
+                    yaxis=dict(showgrid=False, title=None, tickfont=dict(size=12, color='#1E293B'))
+                )
+                st.plotly_chart(fig_pp_bar, use_container_width=True)
+            else:
+                st.info("Không có dữ liệu cho nhóm từ khóa này.")
+
+    # Right Chart: Phân bổ Định kiến theo Mẫu xe
+    with chart_col2:
+        with st.container(border=True):
+            st.markdown("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:1rem; font-weight:700; color:#1E293B;">Ma trận Mẫu xe chịu phản ánh nhiều nhất</span>
+                <span style="font-size:0.75rem; color:#64748B;">Phân bổ theo dòng xe</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if not filtered_pp_df.empty:
+                model_dist = filtered_pp_df['car_model'].value_counts().head(7).reset_index()
+                model_dist.columns = ['Model', 'Count']
+                
+                fig_m = go.Figure(go.Bar(
+                    x=model_dist['Model'],
+                    y=model_dist['Count'],
+                    marker_color='#3B82F6',
+                    marker_line_color='#1D4ED8',
+                    marker_line_width=1,
+                    text=model_dist['Count'],
+                    textposition='outside',
+                    hovertemplate='<b>%{x}</b>: %{y:,} thảo luận<extra></extra>'
+                ))
+                fig_m.update_layout(
+                    height=360,
+                    margin=dict(t=10, b=30, l=35, r=15),
+                    plot_bgcolor='#FFFFFF',
+                    paper_bgcolor='#FFFFFF',
+                    xaxis=dict(showgrid=False, tickangle=-20, tickfont=dict(size=11)),
+                    yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None)
+                )
+                st.plotly_chart(fig_m, use_container_width=True)
+            else:
+                st.info("Không có thảo luận phù hợp với bộ lọc hiện tại.")
+
+    # DISCUSSION FEED CONTAINER
+    st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        active_label = f"Từ khóa: <b style='color:#DC2626;'>{active_pp_kw}</b>" if active_pp_kw else (f"Nhóm: <b style='color:#DC2626;'>{active_pp_pillar}</b>" if active_pp_pillar else "Tất cả 21 điểm nóng")
+        
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+            <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
+                📋 Chi tiết Thảo luận & Trích dẫn từ Cộng đồng ({len(filtered_pp_df):,} thảo luận)
+            </div>
+            <div style="font-size:0.85rem; color:#64748B;">
+                Đang xem: {active_label}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Feed sub-filters
+        feed_c1, feed_c2, feed_c3 = st.columns([2, 2, 1.2])
+        with feed_c1:
+            all_models = ["Tất cả mẫu xe"] + sorted(list(filtered_pp_df['car_model'].dropna().unique())) if not filtered_pp_df.empty else ["Tất cả mẫu xe"]
+            sel_model = st.selectbox("🚗 Lọc theo Mẫu xe:", options=all_models, key="pp_feed_model_filter")
+        with feed_c2:
+            search_in_feed = st.text_input("🔍 Lọc nội dung thảo luận:", placeholder="Nhập từ khóa tìm kiếm...", key="pp_feed_search")
+        with feed_c3:
+            st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+            if active_pp_kw or active_pp_pillar or (sel_model != "Tất cả mẫu xe") or search_in_feed:
+                if st.button("❌ Bỏ lọc", key="clear_pp_feed_filters", use_container_width=True):
+                    st.session_state['active_pp_kw'] = None
+                    st.session_state['active_pp_pillar'] = None
+                    st.rerun()
+
+        # Apply model and search filter
+        feed_records_df = filtered_pp_df.copy()
+        if sel_model and sel_model != "Tất cả mẫu xe":
+            feed_records_df = feed_records_df[feed_records_df['car_model'] == sel_model]
+        if search_in_feed:
+            feed_records_df = feed_records_df[
+                feed_records_df['content'].astype(str).str.contains(search_in_feed, case=False, na=False) |
+                feed_records_df['description'].astype(str).str.contains(search_in_feed, case=False, na=False) |
+                feed_records_df['author'].astype(str).str.contains(search_in_feed, case=False, na=False)
+            ]
+
+        if not feed_records_df.empty:
+            records_to_show = feed_records_df.head(40).to_dict('records')
+            c_left, c_right = st.columns(2)
+            for i, r in enumerate(records_to_show):
+                target_col = c_left if i % 2 == 0 else c_right
+                with target_col:
+                    st.markdown(
+                        render_pain_point_card(
+                            r,
+                            matched_kws=r.get('pain_points'),
+                            active_kw=active_pp_kw
+                        ),
+                        unsafe_allow_html=True
+                    )
+        else:
+            st.success("Không tìm thấy thảo luận nào phù hợp với bộ lọc hiện tại.")
 
 
 
