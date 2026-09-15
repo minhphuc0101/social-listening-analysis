@@ -250,5 +250,33 @@
     "error_message": "Covered via sliding window (2026-09-15 to 2026-09-16)",
     "duration_sec": 36.09,
     "db_synced": true
+  },
+  {
+    "timestamp": "2026-09-15T21:57:30.440757+00:00",
+    "target_date": "2026-09-16",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "SUCCESS",
+    "total_mentions": 166,
+    "inserted_count": 16,
+    "duplicate_count": 150,
+    "report_file": "/home/runner/work/social-listening-analysis/social-listening-analysis/reports/brand24/toyota_report_2026-09-15_to_2026-09-16.xlsx",
+    "error_message": null,
+    "duration_sec": 35.25,
+    "db_synced": true
+  },
+  {
+    "timestamp": "2026-09-15T21:57:34.539769+00:00",
+    "target_date": "2026-09-15",
+    "campaign": "Toyota",
+    "crawler_name": "Brand24",
+    "status": "SUCCESS",
+    "total_mentions": 166,
+    "inserted_count": 0,
+    "duplicate_count": 150,
+    "report_file": "/home/runner/work/social-listening-analysis/social-listening-analysis/reports/brand24/toyota_report_2026-09-15_to_2026-09-16.xlsx",
+    "error_message": "Covered via sliding window (2026-09-15 to 2026-09-16)",
+    "duration_sec": 35.25,
+    "db_synced": true
   }
 ]
