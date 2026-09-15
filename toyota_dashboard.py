@@ -745,15 +745,37 @@ available_models = [
 # -------------------------------------------------------------
 # TOP BAR (HEADER, SEARCH & LOOKER STUDIO DATE RANGE CONTROL)
 # -------------------------------------------------------------
-today = datetime.date.today()
+VN_TZ = datetime.timezone(datetime.timedelta(hours=7))
+today = datetime.datetime.now(VN_TZ).date()
 DATASET_MIN_DATE = datetime.date(2025, 1, 1)
 DATASET_MAX_DATE = today
 
 if "ls_date_mode" not in st.session_state:
     st.session_state["ls_date_mode"] = "Last 7 days"
-if "ls_start_date" not in st.session_state:
+
+# Dynamic rolling preset evaluation:
+# If user selected a dynamic preset, keep it rolling with today's date
+cur_mode = st.session_state.get("ls_date_mode", "Last 7 days")
+if cur_mode == "Today":
+    st.session_state["ls_start_date"] = today
+    st.session_state["ls_end_date"] = today
+elif cur_mode == "Yesterday":
+    st.session_state["ls_start_date"] = today - datetime.timedelta(days=1)
+    st.session_state["ls_end_date"] = today - datetime.timedelta(days=1)
+elif cur_mode == "Last 7 days":
     st.session_state["ls_start_date"] = today - datetime.timedelta(days=7)
-if "ls_end_date" not in st.session_state:
+    st.session_state["ls_end_date"] = today
+elif cur_mode == "Last 30 days":
+    st.session_state["ls_start_date"] = today - datetime.timedelta(days=30)
+    st.session_state["ls_end_date"] = today
+elif cur_mode == "This month":
+    st.session_state["ls_start_date"] = today.replace(day=1)
+    st.session_state["ls_end_date"] = today
+elif cur_mode == "All time":
+    st.session_state["ls_start_date"] = DATASET_MIN_DATE
+    st.session_state["ls_end_date"] = today
+elif "ls_start_date" not in st.session_state or "ls_end_date" not in st.session_state:
+    st.session_state["ls_start_date"] = today - datetime.timedelta(days=7)
     st.session_state["ls_end_date"] = today
 
 def on_looker_preset_change():
@@ -799,7 +821,7 @@ col_top1, col_top2 = st.columns([1, 1.4])
 with col_top1:
     st.markdown(f'<div class="page-title">{nav_page}</div>', unsafe_allow_html=True)
 with col_top2:
-    search_col, date_col = st.columns([1, 1.4])
+    search_col, date_col, sync_col = st.columns([1.05, 1.35, 0.6])
     with search_col:
         search_kw = st.text_input("Tìm kiếm", placeholder="🔍 Search...", label_visibility="collapsed")
     with date_col:
@@ -871,6 +893,10 @@ with col_top2:
                         st.session_state["ls_end_date"] = new_e
                         st.session_state["ls_date_mode"] = st.session_state["ls_preset_radio"]
                         st.rerun()
+    with sync_col:
+        if st.button("🔄 Làm mới", key="btn_refresh_live_data", help="Tải dữ liệu mới nhất từ cơ sở dữ liệu", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
 
 lookback_hours = None
 if st.session_state["ls_date_mode"] == "All time":
